@@ -14,6 +14,8 @@
 
 ## Global Constraints
 
+**Shared contract and ownership:** Use the reviewed [v1 interfaces and route/token boundaries](../specs/2026-10-16-shared-contracts-design.md). This is a later integration slice; it does not assign a second writer to A's active `src/` paths. Verify the current approved contract version before changing consumers.
+
 - Do not imply the reference visualizer reveals the learner's own runtime state.
 - Interview Mode blocks spoilers by default; changing modes never loses draft content.
 - No screenshot or sample UI is a substitute for working integration tests.

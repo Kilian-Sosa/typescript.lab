@@ -12,6 +12,8 @@
 
 **Plan status:** Ready for owner review; its security spike has an additional mandatory go/no-go decision.
 
+**Shared contract:** Consume reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from coordinator-owned `shared/contracts/v1.ts`. Track C owns only `docs/security/` and `spikes/runner/` during the parallel wave. Production runner files and UI integration are later, separately assigned work after owner approval of the security report. Shared results do not approve an execution architecture.
+
 **Parallel ownership:** Track C can begin Task 0 immediately, without a completed challenge UI. Before security approval it owns only disposable spikes and `docs/security/`; implementation and UI integration wait for contracts and the owner's security decision.
 
 ## Global Constraints
@@ -45,9 +47,9 @@
 
 ### Task 1: Testable isolated runner contract (after approval only)
 
-**Files:** Create `src/features/runner/types.ts`, `src/features/runner/runChallenge.ts`, `src/features/runner/runChallenge.test.ts` and approved isolation adapter files.
+**Files:** Create `src/features/runner/runChallenge.ts`, `src/features/runner/runChallenge.test.ts` and approved isolation adapter files; consume `shared/contracts/v1.ts` rather than creating competing result types.
 
-**Interfaces:** `RunnerStatus = 'not-run'|'running'|'passed'|'failed'|'compile-error'|'timeout'|'execution-error'|'infrastructure-error'`; `runChallenge(source: string, challengeId: string, signal?: AbortSignal): Promise<RunResult>` with `RunResult { status: RunnerStatus; cases: CaseResult[]; diagnostics?: string[] }`. Case results record expected/actual when available.
+**Interfaces:** Shared `RunStatus`, `RunResult` and `CaseResult`; `runChallenge(source: string, challengeId: string, context: { runId: string; sourceRevision: number; challengeVersion: string }, signal?: AbortSignal): Promise<RunResult>`. Results echo the context and challenge ID; consumers reject stale results before display or submission. Cancellation and unsupported/policy-rejected execution use the shared reason vocabulary. Case results record expected/actual when available.
 
 - [ ] Write failing adapter/timeout/forbidden-access tests and a malformed-source case using the approved isolation model.
 - [ ] Run and record red checks; implement isolated execution and fresh-worker cleanup per run as designed.

@@ -14,6 +14,8 @@
 
 **Parallel ownership:** Track B can begin challenge-local content, metadata and tests when M0.5 contracts are frozen, without waiting for M1. Task 2's Vue page modifications are a **coordinator-controlled integration phase** after Track A completes the shared app shell, not edits performed concurrently in Track A's directory.
 
+**Shared contract:** Consume the reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from `shared/contracts/v1.ts`. B writes only `challenges/`; the coordinator owns shared types and app integration. Challenge ID/slug and initial version are `longest-window` / `1.0.0`.
+
 ## Global Constraints
 
 - `longest-window` selects the earliest maximum-length contiguous window of at most `k` distinct event IDs.
@@ -34,9 +36,9 @@
 
 ### Task 1: Versioned source and deterministic contract
 
-**Files:** Create `challenges/longest-window/README.md`, `metadata.ts`, `cases.ts`, `starter.ts`, `solution.ts`, `solution.test.ts`, `practice.test.ts`; create `src/features/challenges/types.ts`.
+**Files:** Create `challenges/longest-window/README.md`, `metadata.ts`, `cases.ts`, `starter.ts`, `solution.ts`, `solution.test.ts`, `practice.test.ts`; consume coordinator-owned `shared/contracts/v1.ts` without modifying it.
 
-**Interfaces:** `longestWindow(events: string[], k: number): { start: number; endExclusive: number }`; `ChallengeSummary { id:string; slug:string; version:string; title:string; difficulty:'easy'|'medium'|'hard'; estimatedMinutes:number; tags:string[] }`; `ChallengeCase { name:string; events:string[]; k:number; expected:{start:number;endExclusive:number} }`.
+**Interfaces:** `longestWindow(events: string[], k: number): { start: number; endExclusive: number }`; shared `ChallengeSummary` / `ChallengeDefinition`; `ChallengeCase<{ events: string[]; k: number }, { start: number; endExclusive: number }>` with `id`, `name`, `input` and `expected`. Entry point is `longestWindow` with ordered parameter names `['events', 'k']`. Example IDs reference the same cases tested locally.
 
 - [ ] Write shared fixtures and failing tests for canonical solution, including all Review Focus cases and `["A","B","A","C","B","B"],2 => {start:0,endExclusive:3}`.
 - [ ] Verify red test run. Implement minimal deterministic sliding-window reference solution and original human-facing contract.

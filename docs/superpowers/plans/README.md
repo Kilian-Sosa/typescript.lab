@@ -14,4 +14,6 @@ These six scoped plans translate the approved [product specification](../specs/2
 
 Before implementing a plan, read [AGENTS.md](../../../AGENTS.md), the relevant ADRs, and the current [ROADMAP](../../../ROADMAP.md). Use Superpowers TDD, verification and SDD change tracing. Security, RLS, external service costs and production launch retain their approval gates.
 
+**M0.5:** The [Shared Contracts v1 specification](../specs/2026-10-16-shared-contracts-design.md) and coordination matrix were approved for contract freeze. Worktree preparation and frozen interfaces are not implementation-wave approval.
+
 **Local-only Codex prompts:** The repository owner's optional `docs/prompts/` folder is intentionally excluded from Git, GitHub and this documentation's relative-link validation. It is not needed to follow the public plans.

@@ -14,6 +14,8 @@
 
 ## Global Constraints
 
+**Shared contract and ownership:** Consume reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from `shared/contracts/v1.ts`. `SolutionAttempt` and `CreateAttemptInput` are authoritative; write inputs omit user IDs, saved evaluations exclude `not-run`/`running`, and exact source/version matching is required before retaining a prior evaluation. D may prepare local attempts SQL/tests; notebook UI is a later coordinator-assigned integration slice. Generate migration filenames with the pinned CLI rather than using the illustrative filename below literally.
+
 - Submission versions are immutable and carry challenge version, exact source, notes, timestamp, evaluation summary (including `untested`) and optional declared complexity.
 - Historic challenge content changes must not rewrite saved source; a missing old challenge revision is clearly flagged.
 - Users are private by default. Don't enable community feeds or public reads.
@@ -33,7 +35,7 @@
 
 **Files:** Create `supabase/migrations/0002_solution_attempts.sql`, `supabase/tests/attempt_policies.test.sql`, `src/features/solutions/attemptRepository.ts` and `attemptRepository.test.ts`.
 
-**Interfaces:** `AttemptInput { challengeId:string; challengeVersion:string; source:string; notes?:string; timeComplexity?:string; spaceComplexity?:string; testSummary: RunResultSummary | {status:'untested'} }`; `createAttempt(input:AttemptInput): Promise<Attempt>`; `listAttempts(challengeId?:string): Promise<Attempt[]>`.
+**Interfaces:** `createAttempt(input: CreateAttemptInput): Promise<SolutionAttempt>`; `listAttempts(challengeId?: string): Promise<SolutionAttempt[]>`. Inputs use explicit notes and nullable claimed complexity from the shared contract. The database assigns ownership, ID and timestamp; client summaries never authorize trusted scoring.
 
 - [ ] Write SQL and TypeScript tests for append-only policy, row ownership and attempts whose tests are failing/untested.
 - [ ] Run failing tests before writing implementation; then create secure schema and a typed repository using the authenticated session.
@@ -44,7 +46,7 @@
 
 **Files:** Create `src/pages/NotebookPage.vue`, `src/pages/NotebookChallengePage.vue`, `src/features/solutions/AttemptTimeline.vue`, `AttemptComparison.vue`, `exportAttempts.ts`, `exportAttempts.test.ts`, `src/features/solutions/Notebook.test.ts`; modify router and challenge page.
 
-**Interfaces:** `exportAttempts(attempts: Attempt[]): Blob` or an explicit portable files/archive representation; `startFreshAttempt(challengeId: string): StarterSession` creates local session from versioned starter without mutating history.
+**Interfaces:** `exportAttempts(attempts: readonly SolutionAttempt[]): Blob` or an explicit portable files/archive representation; `startFreshAttempt(challengeId: string): StarterSession` creates local session from versioned starter without mutating history.
 
 - [ ] Write failing tests for attempt selection, empty state, older challenge version, diff with non-color signifiers, fresh retry, failed export and source/metadata round-trip.
 - [ ] Implement notebook matching approved mockup with authenticated-only routing and secure retrieval.
