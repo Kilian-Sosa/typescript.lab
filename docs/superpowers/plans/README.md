@@ -4,6 +4,7 @@ These six scoped plans translate the approved [product specification](../specs/2
 
 | Milestone | Plan |
 | --- | --- |
+| M0.5 — Coordination and tools | [Parallel Agent Infrastructure](2026-10-16-parallel-agent-infrastructure.md) |
 | M1 — Frontend and Vercel | [Foundation and Catalog](2026-10-16-foundation-and-catalog.md) |
 | M2 — Challenges | [Portable Challenge Content](2026-10-16-challenge-content.md) |
 | M3 — Untrusted code execution | [Isolated TypeScript Execution](2026-10-16-runner-security.md) |

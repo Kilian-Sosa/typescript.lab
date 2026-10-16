@@ -12,11 +12,13 @@
 
 **Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
 
+**Parallel ownership:** Track D can begin migration source, RLS test design and local test stacks after M0.5 shared types are frozen. Task 1's **remote** Supabase project provisioning, hosted migrations, GitHub OAuth and Vercel env changes are separately owned by the infrastructure owner; these actions do not block writing and testing local schema. Auth UI/route integration waits for the frontend shell.
+
 ## Global Constraints
 
-- Reuse signed-in Edge Supabase org `kiliansosa`, verify it before creating the `typescript-lab` project.
-- UI's prefilled `Kilian-Sosa's Project` is **not** an approved project name. Confirm project, region, quotas and zero unexpected billing.
-- Disable automatic exposure of future tables; enable automatic RLS when supported; create strict explicit policies on every private table.
+- Reuse the existing `typescript.lab` Supabase project in organization `kiliansosa`, region `eu-west-3`. Verify its identity; **do not create a second project**.
+- Verify project plan, quotas and absence of unexpected billing before provisioning additional services.
+- The project was created with automatic table exposure disabled and automatic RLS enabled. Verify those effective settings and create strict explicit policies on every private table.
 - Never commit/print database passwords, service role/secret keys, OAuth client secrets or auth tokens. Client uses publishable/anon key only.
 - No account ID supplied by a client can grant access; RLS must derive ownership from `auth.uid()`.
 - URLs for localhost, Vercel preview and production must be narrowly authorized, no permissive wildcards.
@@ -38,8 +40,8 @@
 **Interfaces:** `getSession()`, `signInWithGitHub()`, `signOut()`; `solution_drafts` keyed by `(user_id, challenge_id)` with `revision` and timestamps. Schema documents explicit owner-only policies for read/insert/update/delete. `src/lib/supabase.ts` only consumes public URL/key.
 
 - [ ] Write migration/policy tests simulating two separate users and unauthenticated access; verify tests fail before policies.
-- [ ] Inspect the Edge Supabase new-project form; confirm current org, project availability, region, fees and the `Enable automatic RLS` / auto-exposure choices. Provision **only** with explicit approval for unexpected effects.
-- [ ] Create secure project and GitHub OAuth provider/callback configuration through supported dashboard/connector flows. Store generated secrets privately, never in output.
+- [ ] Verify the existing Supabase project, region, fees and current effective RLS / table exposure settings; do not reprovision it.
+- [ ] Configure GitHub OAuth provider/callback through supported dashboard/connector flows. Store generated secrets privately, never in output.
 - [ ] Write migration with explicit row ownership RLS; apply only to the dedicated project, then run policy tests against actual DB (use secure alternatives if local DB unavailable).
 - [ ] Configure public keys/URLs locally and in the correct Vercel environments through provider UI; test local + preview callback/redirect and sign-out.
 - [ ] Run typecheck, tests, build and security checks; commit `feat(auth): add GitHub sign-in and private draft schema` (never secrets).

@@ -11,33 +11,33 @@ A visitor can find an original TypeScript challenge, understand the contract, wr
 
 **Do not confuse** a hosted documentation mockup with an implemented MVP, or a browser-side self-reported pass with a trustworthy competitive score.
 
-## Dependencies and execution order
+## Dependencies and parallel execution
 
 ```text
-M0 Accepted documentation + GitHub baseline (this repository)
-  ↓
-M1 Frontend foundation + Vercel Git-connected preview
-  ↓
-M2 Portable challenge, local tests and challenge UI
-  ↓
-M3 Code execution security spike → go/no-go decision → actual runner
-  ↓
-M4 Supabase Auth + private draft persistence
-  ↓
-M5 Immutable attempts, personal notebook and export
-  ↓
-M6 Algorithm visualization + accessibility/responsiveness/release QA
-  ↓
+M0 Approved design (completed)
+   ↓
+M0.5 Shared contracts + parallel-agent infrastructure
+   ├── Track A: Vue shell + Vercel Git/CI integration
+   ├── Track B: versioned challenge packages + local tests
+   ├── Track C: isolated runner threat model + security spike
+   └── Track D: Supabase local schema + RLS/persistence contracts
+               (no remote migrations by individual agents)
+   ↓
+Progressive merge of challenge UI, approved runner and auth/drafts
+   ↓
+Notebook, algorithm visualization and integration E2E
+   ↓
 MVP release gate
 ```
 
-M3 security validation is a hard gate for publishing an embedded runner. If it fails, use an isolated external playground and revise the runner plan before proceeding; do **not** fall back to unsafe evaluation in the app origin. M4 schema/security design may be prepared independently after M2, but actual M4 implementation follows the M3 security decision so that the evaluation-status contract is stable.
+Milestone IDs M1–M6 designate **deliverables**, not a strict serial launch order. M1 app shell, M2 challenge content, M3 *security spike*, and M4 *local schema/policy work* can overlap once their minimal shared contracts are frozen. UI/runner integration waits for a security go/no-go; hosted OAuth completion waits for actual Vercel callback URLs; a finished Notebook relies on approved persistence. Only one infrastructure owner may mutate hosted Vercel/Supabase state. See [parallel-agent infrastructure plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md).
 
 ## Milestones
 
 | Milestone | Status | Deliverable | Acceptance gate | Implementation plan |
 | --- | --- | --- | --- | --- |
 | M0 — Design baseline | Approved; publication authorized | Accepted specification, ADRs, UX contract and browser mockup | Docs validation passes; GitHub baseline pushed | This document |
+| M0.5 — Parallel agent preparation | Proposed | Shared types, independent worktrees, Vercel Codex MCP, Supabase local/remote ownership policy | Tool/auth access checked, file ownership agreed, no unapproved cloud mutations | [M0.5](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) |
 | M1 — App shell + Vercel | Planned | Vue 3/Vite/Router/strict TS app, navigation, styles, CI, Vercel preview | Build/typecheck/tests pass; real Vercel URL shows app shell; previews work | [M1](docs/superpowers/plans/2026-10-16-foundation-and-catalog.md) |
 | M2 — Challenge + Explore | Planned | Portable `longest-window` package, README, cases, canonical solution/tests; searchable catalog and solving skeleton | Canonical local fixtures and rendered examples agree, including ties/empty/`k <= 0` | [M2](docs/superpowers/plans/2026-10-16-challenge-content.md) |
 | M3 — Real runner | Planned; security gate | Security spike, owner-reviewed architecture, actual browser editor/test integration OR safely isolated external provider | Malicious/looping code cannot hang or gain privilege; tests report real results, never fabricated passes | [M3](docs/superpowers/plans/2026-10-16-runner-security.md) |
@@ -50,17 +50,19 @@ M3 security validation is a hard gate for publishing an embedded runner. If it f
 - **GitHub repository:** https://github.com/Kilian-Sosa/typescript.lab ; default intended branch `main`.
 - **Local folder:** `/typescript.lab` in CoS (resolve the approved native path from the workspace, not from this public document).
 - **Vercel:** authenticated Edge tab at `https://vercel.com/kiliansosas-projects`, workspace `kiliansosas-projects` (Hobby at inspection). M1 creates/connects the *typescript.lab* app **after** code exists and confirmation of project/team settings.
-- **Supabase:** authenticated Edge tab at a `supabase.com/dashboard/new/…` form, organization `kiliansosa` (Free at inspection). The project form was **not yet submitted**; its prefilled generic project name is not the desired name. M4 locates the existing tab, verifies the organization/quotas, chooses `typescript-lab` and uses Europe if still suitable. Do not put account-specific dashboard IDs into a public spec.
+- **Supabase:** the dedicated `typescript.lab` project in organization `kiliansosa` is created and healthy in the Paris (`eu-west-3`) region. M4 must reuse this project; do **not** provision another one. Keep its project reference and credentials out of public documentation.
+- **Codex MCP:** the Vercel MCP server `https://mcp.vercel.com` was registered and OAuth login succeeded locally. Supabase project-scoped read-only MCP is ready to configure against the existing project, but its Codex OAuth/connection has not yet been verified. These are **Codex CLI** settings, separate from ChatGPT connectors.
+- **CLIs:** GitHub CLI and Docker CLI are installed, but the Docker daemon was not running at validation. Supabase/Vercel commands are not installed globally. Prefer a pinned project-local Supabase CLI and Git-connected Vercel preview deployments.
 - Browser tabs and account state are **snapshots, not stable identifiers**. Discover active Edge tabs again at execution time. Never treat a signed-in tab as authorization to incur charges, change production DNS, reveal keys, or create additional unrelated resources.
 - Vercel dashboard displayed a warning about existing Node 20-or-older projects. **Do not modify those other projects.** Pin/check a modern supported Node runtime for this project.
-- Supabase new-project form at inspection had **Automatically expose new tables** enabled and **Enable automatic RLS** available. M4 should disable auto-exposure for this private-data project, enable automatic RLS if available, and validate explicit per-table RLS regardless of UI defaults.
+- Supabase was created with **Automatically expose new tables** disabled, **Enable automatic RLS** enabled, and **Enable Data API** enabled. M4 must verify the effective permissions and explicit per-table RLS regardless of project defaults.
 
 ## Global engineering quality gates
 
 Every milestone:
 
 1. Start by reading `AGENTS.md`, the spec, applicable ADRs and the [focused implementation plan](docs/superpowers/plans/README.md). Local Codex handoff prompts are optional and intentionally excluded from the public repository.
-2. Confirm branch, remotes and working-tree state. Work in a focused `feat/<scope>` branch; use Superpowers TDD / verification-before-completion and SDD updates.
+2. Confirm branch, remotes and working-tree state. Use an independently owned Git worktree/branch for each parallel track, with one writer per mutable area; follow Superpowers TDD / verification-before-completion and SDD updates.
 3. First demonstrate a failing test or another explicitly agreed red check, then implement the smallest passing change.
 4. Run typecheck, relevant Vitest tests and production build; report exact commands and results. Verify in browser when UI changes.
 5. Update tests, docs and any affected spec/ADR in the same changeset; no silent requirements drift.

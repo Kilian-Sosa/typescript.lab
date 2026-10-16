@@ -11,6 +11,7 @@ const requiredFiles = [
   ".gitignore",
   "ROADMAP.md",
   "docs/superpowers/specs/2026-10-16-typescript-lab-design.md",
+  "docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md",
   "docs/superpowers/plans/2026-10-16-foundation-and-catalog.md",
   "docs/superpowers/plans/2026-10-16-challenge-content.md",
   "docs/superpowers/plans/2026-10-16-runner-security.md",

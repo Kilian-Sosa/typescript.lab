@@ -12,6 +12,8 @@
 
 **Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
 
+**Parallel ownership:** Track A owns only frontend app-shell/catalog components. The coordinator owns frozen contracts and Track B owns challenge packages. Task 3's **remote Vercel actions** belong to the single infrastructure owner, not the Track A agent.
+
 ## Global Constraints
 
 - Preserve `docs/design/mockups/` as a reference, not imported production UI.

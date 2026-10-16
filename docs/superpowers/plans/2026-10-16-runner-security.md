@@ -12,6 +12,8 @@
 
 **Plan status:** Ready for owner review; its security spike has an additional mandatory go/no-go decision.
 
+**Parallel ownership:** Track C can begin Task 0 immediately, without a completed challenge UI. Before security approval it owns only disposable spikes and `docs/security/`; implementation and UI integration wait for contracts and the owner's security decision.
+
 ## Global Constraints
 
 - **Hard stop:** do not implement a privileged runner until the security spike is reviewed and the owner selects a validated approach.
