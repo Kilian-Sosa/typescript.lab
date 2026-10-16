@@ -16,6 +16,8 @@
 
 ## Global Constraints
 
+**Shared contract and ownership:** Use [v1 persistence interfaces](../specs/2026-10-16-shared-contracts-design.md) from coordinator-owned `shared/contracts/v1.ts`. D owns only `supabase/`; the coordinator schedules client auth/draft files in `src/` after shell integration and applies root dependency pins. D can author SQL/tests before app tooling exists; executing them requires a pinned CLI, Docker and isolated local ports. Generate migration filenames with the pinned CLI; the illustrative filenames below do not override that rule.
+
 - Reuse the existing `typescript.lab` Supabase project in organization `kiliansosa`, region `eu-west-3`. Verify its identity; **do not create a second project**.
 - Verify project plan, quotas and absence of unexpected billing before provisioning additional services.
 - The project was created with automatic table exposure disabled and automatic RLS enabled. Verify those effective settings and create strict explicit policies on every private table.
@@ -50,7 +52,7 @@
 
 **Files:** Create `src/features/solutions/draftRepository.ts`, `draftSync.ts`, `draftSync.test.ts`, `DraftSaveStatus.vue`; modify `src/pages/ChallengePage.vue`.
 
-**Interfaces:** `loadDraft(challengeId: string): Promise<Draft | null>`; `saveDraft(challengeId: string, source: string, expectedRevision: number): Promise<Draft | Conflict>`; client-side `DraftSaveState = 'idle'|'saving'|'saved'|'offline'|'error'|'conflict'`.
+**Interfaces:** `loadDraft(challengeId: string): Promise<SolutionDraft | null>`; `saveDraft(input: SaveDraftInput): Promise<SolutionDraft | Conflict>`; client-side `DraftSaveState = 'idle'|'saving'|'saved'|'offline'|'error'|'conflict'`. `expectedRevision: null` means create only if absent; numeric revisions use atomic compare-and-swap. Write inputs never accept a user ID.
 
 - [ ] Write failing tests for debounce, revision conflict, two tabs, lost connectivity, expired session, guest state and import prompts.
 - [ ] Implement optimistic compare-and-swap via an RLS-safe SQL function or equivalent atomic update; no overwrite on stale revision.

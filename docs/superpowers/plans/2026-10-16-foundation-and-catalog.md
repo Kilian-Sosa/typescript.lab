@@ -14,6 +14,8 @@
 
 **Parallel ownership:** Track A owns only frontend app-shell/catalog components. The coordinator owns frozen contracts and Track B owns challenge packages. Task 3's **remote Vercel actions** belong to the single infrastructure owner, not the Track A agent.
 
+**Shared contract:** Use the reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from coordinator-owned `shared/contracts/v1.ts`; do not duplicate them. A owns `src/`, app configuration and the initial root manifest/lockfile scaffold; subsequent dependency changes go through the coordinator. `/` redirects to `/explore`, with `/notebook/:slug` reserved for notebook integration. A owns `src/app/styles/tokens.css` and global tokens.
+
 ## Global Constraints
 
 - Preserve `docs/design/mockups/` as a reference, not imported production UI.
@@ -58,7 +60,7 @@
 
 ### Task 3: Add CI and Vercel project
 
-**Files:** Create `.github/workflows/ci.yml` and `vercel.json` only if required for SPA fallback; modify `README.md` and `.env.example` if public env configuration is needed; add a simple route smoke test in `tests/e2e/navigation.spec.ts`.
+**Files:** Create `.github/workflows/ci.yml` and local `vercel.json` only if required for SPA fallback; add a route smoke test in `tests/e2e/navigation.spec.ts`. Send proposed shared `README.md` / `.env.example` updates to the coordinator instead of editing those files concurrently.
 
 **Interfaces:** GitHub push/PR triggers typecheck, tests and build. Vercel Git integration points to `Kilian-Sosa/typescript.lab` / approved workspace `kiliansosas-projects` with `dist` output. Preview and production URL loads direct routes.
 

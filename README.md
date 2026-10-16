@@ -23,6 +23,12 @@ node --check docs/design/mockups/app.js
 node scripts/check-design.mjs
 ```
 
+M0.5 has prepared four independent worktrees and frozen the [shared v1 interfaces](docs/superpowers/specs/2026-10-16-shared-contracts-design.md). The [coordination plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) defines ownership and integration gates; feature workers have not started. Check the shared types without scaffolding the app:
+
+```powershell
+npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contracts/tsconfig.json"
+```
+
 ## Documentation
 
 | Document | Purpose |
