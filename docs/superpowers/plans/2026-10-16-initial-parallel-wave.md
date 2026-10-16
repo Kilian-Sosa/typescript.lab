@@ -4,7 +4,7 @@
 
 **Goal:** Deliver the local frontend and portable first challenge, investigate the runner boundary, and verify private persistence policies on isolated PostgreSQL.
 
-**Architecture:** Four existing worktrees consume the same frozen shared contracts. A owns the initial Vue scaffold; B owns challenge content; C owns disposable execution research; D owns local migrations and policy tests. The coordinator integrates completed work on a feature branch.
+**Architecture:** Four worktrees consume the same frozen shared contracts. A owns the initial Vue scaffold; B owns challenge content; C owns disposable execution research; D owns local migrations and policy tests. The coordinator integrates completed work on a feature branch. This session uses ignored worktrees under `.worktrees/` inside the writable workspace; the previously prepared worktrees remain untouched after synchronization to `main`.
 
 **Tech stack:** Vue 3, Vite, Vue Router, strict TypeScript, Vitest, PostgreSQL and a pinned Supabase CLI. Hosted services remain separate approval gates.
 
@@ -21,7 +21,7 @@
 - No hosted migration, OAuth configuration, Vercel linking, deployment, push or merge into `main` is part of this wave.
 - Run A/B/C first, then D when a worker slot becomes available. Each mutable area has one owner.
 
-## Review focus
+## Review Focus
 
 1. Public routes and catalog render without authentication or cloud connectivity; unknown routes/slugs show an accessible empty/not-found state.
 2. Local challenge cases, rendered examples and earliest-tie semantics agree, including Unicode, empty input and nonpositive `k`.
@@ -37,9 +37,9 @@
 
 **Interfaces:** frozen routes and `ChallengeSummary`; `listChallenges(query?, difficulty?)`. The catalog remains empty until B is integrated. Initial dependency selection belongs to A, then transfers to the coordinator.
 
-- [ ] Implement and test routes, responsive accessible shell, theme controls and honest guest/empty states.
-- [ ] Add local CI and SPA fallback configuration without creating a hosted project.
-- [ ] Verify unit tests, typecheck, build and responsive/keyboard navigation.
+- [x] Implement and test routes, responsive accessible shell, theme controls and honest guest/empty states.
+- [x] Add local CI and SPA fallback configuration without creating a hosted project.
+- [x] Verify unit tests, typecheck, build and responsive/keyboard navigation.
 
 ## Task B: Portable challenge
 
@@ -49,8 +49,8 @@
 
 **Interfaces:** `ChallengeDefinition`, named `{ events, k }` inputs and `{ start, endExclusive }` output; challenge version `1.0.0`.
 
-- [ ] Observe failing canonical assertions, then implement and verify the approved edge cases and original explanation.
-- [ ] Verify with A's approved tooling; do not modify root dependencies independently.
+- [x] Observe failing canonical assertions, then implement and verify the approved edge cases and original explanation.
+- [x] Verify with A's approved tooling; do not modify root dependencies independently.
 
 ## Task C: Runner security evidence
 
@@ -60,8 +60,8 @@
 
 **Interfaces:** evidence report covering threat model, storage/DOM/network/import probes, timeout/termination, transpilation feasibility, alternatives and limitations.
 
-- [ ] Execute reproducible adversarial browser probes and document cleanup.
-- [ ] Provide a go/no-go recommendation for owner review; production runner integration remains gated.
+- [x] Execute reproducible adversarial browser probes and document cleanup.
+- [x] Provide a go/no-go recommendation for owner review; production runner integration remains gated.
 
 ## Task D: Local persistence
 
@@ -71,13 +71,13 @@
 
 **Interfaces:** `SaveDraftInput` create-only/null and atomic numeric revision semantics; immutable `CreateAttemptInput` snapshots with server-assigned identity/timestamps and valid evaluation summaries.
 
-- [ ] Use one pinned CLI and isolated local ports; record the initial Docker state.
-- [ ] Test explicit RLS, cross-user/anonymous denial, ownership changes, draft CAS and append-only attempts against actual PostgreSQL.
-- [ ] Clean up only temporary resources created for this track and leave pre-existing Docker running.
+- [x] Use one pinned CLI and isolated local ports; record the initial Docker state.
+- [x] Test explicit RLS, cross-user/anonymous denial, ownership changes, draft CAS and append-only attempts against actual PostgreSQL.
+- [x] Clean up only temporary resources created for this track and leave pre-existing Docker running.
 
 ## Coordinator integration and handoff
 
-- [ ] Inspect worker diffs and reports; reconcile implementation, tests and approved requirements without launching a duplicate review agent.
-- [ ] Integrate completed branches locally and connect challenge content to the frontend after A releases its source ownership.
-- [ ] Update shared tooling/docs, verify contract checks, unit tests, typecheck, production build and relevant browser/database evidence.
-- [ ] Record completed local deliverables and remaining owner/security/hosted integration gates accurately.
+- [x] Inspect worker diffs and reports; reconcile implementation, tests and approved requirements without launching a duplicate review agent.
+- [x] Integrate completed branches locally and connect challenge content to the frontend after A releases its source ownership.
+- [x] Update shared tooling/docs, verify contract checks, unit tests, typecheck, production build and relevant browser/database evidence.
+- [x] Record completed local deliverables and remaining owner/security/hosted integration gates accurately.

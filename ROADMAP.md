@@ -2,7 +2,7 @@
 
 **Baseline approved:** 2026-10-16
 
-**Current status:** Design/specification approved; production implementation not started.
+**Current status:** Initial A–D local implementation delivered: Vue shell and challenge content, a security spike, and a verified private PostgreSQL schema. Runner architecture, hosted auth/deployment, draft client and Notebook integration remain gated or planned. See the [initial wave](docs/superpowers/plans/2026-10-16-initial-parallel-wave.md).
 **Source of truth:** [Product specification](docs/superpowers/specs/2026-10-16-typescript-lab-design.md), [accepted ADRs](docs/decisions/0001-frontend-platform.md), [design reference](docs/design/mockups/index.html).
 
 ## Definition of the MVP
@@ -37,12 +37,12 @@ Milestone IDs M1–M6 designate **deliverables**, not a strict serial launch ord
 | Milestone | Status | Deliverable | Acceptance gate | Implementation plan |
 | --- | --- | --- | --- | --- |
 | M0 — Design baseline | Approved; publication authorized | Accepted specification, ADRs, UX contract and browser mockup | Docs validation passes; GitHub baseline pushed | This document |
-| M0.5 — Parallel agent preparation | Contracts approved/frozen; worker launch pending | Shared v1 interfaces, four parked worktrees, verified read-only Supabase MCP and Vercel access | Identical freeze and checks in every worktree before owner launch decision; no unapproved cloud mutations | [M0.5](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) |
-| M1 — App shell + Vercel | Planned | Vue 3/Vite/Router/strict TS app, navigation, styles, CI, Vercel preview | Build/typecheck/tests pass; real Vercel URL shows app shell; previews work | [M1](docs/superpowers/plans/2026-10-16-foundation-and-catalog.md) |
-| M2 — Challenge + Explore | Planned | Portable `longest-window` package, README, cases, canonical solution/tests; searchable catalog and solving skeleton | Canonical local fixtures and rendered examples agree, including ties/empty/`k <= 0` | [M2](docs/superpowers/plans/2026-10-16-challenge-content.md) |
-| M3 — Real runner | Planned; security gate | Security spike, owner-reviewed architecture, actual browser editor/test integration OR safely isolated external provider | Malicious/looping code cannot hang or gain privilege; tests report real results, never fabricated passes | [M3](docs/superpowers/plans/2026-10-16-runner-security.md) |
-| M4 — Supabase + Auth + drafts | Planned | Supabase project, GitHub OAuth, RLS-protected schema and resilient private autosaves | Cross-user denial, callback flows and autosave conflict/offline tests pass | [M4](docs/superpowers/plans/2026-10-16-auth-and-drafts.md) |
-| M5 — Attempts + Notebook | Planned | Immutable versions, notes, history, comparison, retry, export | Old attempts cannot be overwritten; other users cannot read them; export is readable | [M5](docs/superpowers/plans/2026-10-16-notebook-history.md) |
+| M0.5 — Parallel agent preparation | Contracts frozen; initial wave executed | Shared v1 interfaces, four parked worktrees, verified read-only Supabase MCP and Vercel access | Identical freeze and checks in every worktree before owner launch decision; no unapproved cloud mutations | [M0.5](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) |
+| M1 — App shell + Vercel | Local app/CI configuration verified; hosted preview pending | Vue 3/Vite/Router/strict TS app, navigation, styles, CI, Vercel preview | Build/typecheck/tests pass; real Vercel URL shows app shell; previews work | [M1](docs/superpowers/plans/2026-10-16-foundation-and-catalog.md) |
+| M2 — Challenge + Explore | Local challenge and UI delivered | Portable `longest-window` package, README, cases, canonical solution/tests; searchable catalog and solving skeleton | Canonical local fixtures and rendered examples agree, including ties/empty/`k <= 0` | [M2](docs/superpowers/plans/2026-10-16-challenge-content.md) |
+| M3 — Real runner | Spike verified; owner architecture decision required | Security spike, owner-reviewed architecture, actual browser editor/test integration OR safely isolated external provider | Malicious/looping code cannot hang or gain privilege; tests report real results, never fabricated passes | [M3](docs/superpowers/plans/2026-10-16-runner-security.md) |
+| M4 — Supabase + Auth + drafts | Local SQL/RLS verified; OAuth/client integration pending | Supabase project, GitHub OAuth, RLS-protected schema and resilient private autosaves | Cross-user denial, callback flows and autosave conflict/offline tests pass | [M4](docs/superpowers/plans/2026-10-16-auth-and-drafts.md) |
+| M5 — Attempts + Notebook | Local immutable-attempt schema verified; Notebook/client pending | Immutable versions, notes, history, comparison, retry, export | Old attempts cannot be overwritten; other users cannot read them; export is readable | [M5](docs/superpowers/plans/2026-10-16-notebook-history.md) |
 | M6 — Polish + ship | Planned | Learning visualizer, mobile/keyboard/dark UI, docs/contributor readiness, deployment QA | WCAG-oriented checks, browser E2E, no leaked secrets; launch gate recorded | [M6](docs/superpowers/plans/2026-10-16-release-polish.md) |
 
 ## Environment setup (known at planning time)

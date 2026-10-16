@@ -1,6 +1,6 @@
 # Portable Challenge Content Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Provide the first fully documented TypeScript problem, locally testable and browsable in the real application, without a cloud requirement.
 
@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-01`, `REQ-02`, `REQ-03`, `REQ-13`); ADR-0002; `docs/design/README.md`.
 
-**Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
+**Plan status:** Selected in the initial A–D wave. The portable package, catalog, statement, editable examples and Interview/Learning content gates are implemented locally; the editor and execution boundary remain part of M3.
 
 **Parallel ownership:** Track B can begin challenge-local content, metadata and tests when M0.5 contracts are frozen, without waiting for M1. Task 2's Vue page modifications are a **coordinator-controlled integration phase** after Track A completes the shared app shell, not edits performed concurrently in Track A's directory.
 
@@ -40,11 +40,11 @@
 
 **Interfaces:** `longestWindow(events: string[], k: number): { start: number; endExclusive: number }`; shared `ChallengeSummary` / `ChallengeDefinition`; `ChallengeCase<{ events: string[]; k: number }, { start: number; endExclusive: number }>` with `id`, `name`, `input` and `expected`. Entry point is `longestWindow` with ordered parameter names `['events', 'k']`. Example IDs reference the same cases tested locally.
 
-- [ ] Write shared fixtures and failing tests for canonical solution, including all Review Focus cases and `["A","B","A","C","B","B"],2 => {start:0,endExclusive:3}`.
-- [ ] Verify red test run. Implement minimal deterministic sliding-window reference solution and original human-facing contract.
-- [ ] Keep `starter.ts` incomplete but syntactically valid; practice tests may fail until a learner implements it and should **not** run in CI's green gate.
-- [ ] Verify `pnpm vitest run challenges/longest-window/solution.test.ts`, typecheck and CI default test command.
-- [ ] Commit `feat(challenges): add longest-window challenge`.
+- [x] Write shared fixtures and failing tests for canonical solution, including all Review Focus cases and `["A","B","A","C","B","B"],2 => {start:0,endExclusive:3}`.
+- [x] Verify red test run. Implement minimal deterministic sliding-window reference solution and original human-facing contract.
+- [x] Keep `starter.ts` incomplete but syntactically valid; practice tests may fail until a learner implements it and should **not** run in CI's green gate.
+- [x] Verify `pnpm vitest run challenges/longest-window/solution.test.ts`, typecheck and CI default test command.
+- [x] Commit `feat(challenges): add longest-window challenge`.
 
 ### Task 2: Render challenge content in Explore and Solve
 
@@ -52,8 +52,8 @@
 
 **Interfaces:** `getChallenge(slug: string): ChallengeDefinition | undefined`; examples derive expected output from typed cases / controlled reference demonstrator, **not** editor source.
 
-- [ ] Test matching metadata, example rendering, editable valid inputs, earliest-tie expected output, invalid input feedback and missing slug.
-- [ ] Implement responsive statement, constraints, example explorer and an actual starter-code display (runner/editor is handled in M3).
-- [ ] Hide patterns/hints/reference sources when Interview Mode is active; test mode transitions.
-- [ ] Verify builds, unit tests and responsive browser screenshots against the approved mockup.
-- [ ] Commit `feat(challenges): render versioned learning content`.
+- [x] Test matching metadata, example rendering, editable valid inputs, earliest-tie expected output, invalid input feedback and missing slug.
+- [x] Implement responsive statement, constraints, example explorer and an actual starter-code display (runner/editor is handled in M3).
+- [x] Hide patterns/hints/reference sources when Interview Mode is active; test mode transitions.
+- [x] Verify builds, unit tests and responsive browser screenshots against the approved mockup.
+- [x] Commit `feat(challenges): render versioned learning content`.

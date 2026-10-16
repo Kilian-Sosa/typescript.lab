@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-05`, `REQ-07`, `REQ-13`); ADR-0003; `ROADMAP.md`.
 
-**Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
+**Plan status:** The initial A–D wave verified the local draft schema/RLS/CAS primitives and immutable attempts with 47 PostgreSQL assertions. Hosted migration/OAuth, the auth client and resilient autosave integration remain pending.
 
 **Parallel ownership:** Track D can begin migration source, RLS test design and local test stacks after M0.5 shared types are frozen. Task 1's **remote** Supabase project provisioning, hosted migrations, GitHub OAuth and Vercel env changes are separately owned by the infrastructure owner; these actions do not block writing and testing local schema. Auth UI/route integration waits for the frontend shell.
 
