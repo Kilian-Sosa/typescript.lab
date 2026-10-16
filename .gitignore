@@ -1,4 +1,8 @@
 node_modules/
+.pnpm-store/
+test-results/
+playwright-report/
+output/playwright/
 .nuxt/
 .output/
 .vercel/

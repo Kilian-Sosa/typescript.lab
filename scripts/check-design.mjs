@@ -13,6 +13,7 @@ const requiredFiles = [
   "docs/superpowers/specs/2026-10-16-typescript-lab-design.md",
   "docs/superpowers/specs/2026-10-16-shared-contracts-design.md",
   "docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md",
+  "docs/superpowers/plans/2026-10-16-initial-parallel-wave.md",
   "docs/superpowers/plans/2026-10-16-foundation-and-catalog.md",
   "docs/superpowers/plans/2026-10-16-challenge-content.md",
   "docs/superpowers/plans/2026-10-16-runner-security.md",
@@ -40,6 +41,7 @@ function markdownFiles(dir) {
     if (
       name === ".git" ||
       name === "node_modules" ||
+      [".worktrees", ".pnpm-store", ".npm-cache", "dist", "coverage", "test-results", "playwright-report"].includes(name) ||
       (name === "prompts" && dir === join(root, "docs"))
     ) return [];
     if (statSync(path).isDirectory()) return markdownFiles(path);
@@ -93,7 +95,7 @@ for (const plan of requiredFiles.filter(
 )) {
   const text = readFileSync(join(root, plan), "utf8");
   assert(text.includes("**Goal:**") && text.includes("**Spec:**"), "Superpowers plan header incomplete: " + plan);
-  assert(text.includes("## Review Focus") && text.includes("- [ ]"), "TDD plan has no actionable checklist: " + plan);
+  assert(text.includes("## Review Focus") && /- \[[ x]\]/.test(text), "TDD plan has no task checklist: " + plan);
 }
 
 console.log(

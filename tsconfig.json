@@ -21,8 +21,11 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.vue",
+    "challenges/**/*.ts",
+    "shared/contracts/**/*.ts",
     "vite.config.ts",
     "vitest.config.ts",
+    "vitest.practice.config.ts",
     "playwright.config.ts",
     "tests/e2e/**/*.ts"
   ],
