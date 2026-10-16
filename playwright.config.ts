@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+// Playwright forces color in its workers and web server; avoid conflicting inherited settings.
+delete process.env.NO_COLOR;
+
 const browserChannel = process.env.PLAYWRIGHT_BROWSER_CHANNEL === 'msedge'
   ? { channel: 'msedge' as const }
   : {};
