@@ -12,6 +12,8 @@
 
 **Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
 
+**Parallel ownership:** Track B can begin challenge-local content, metadata and tests when M0.5 contracts are frozen, without waiting for M1. Task 2's Vue page modifications are a **coordinator-controlled integration phase** after Track A completes the shared app shell, not edits performed concurrently in Track A's directory.
+
 ## Global Constraints
 
 - `longest-window` selects the earliest maximum-length contiguous window of at most `k` distinct event IDs.

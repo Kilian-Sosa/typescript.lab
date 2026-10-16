@@ -34,6 +34,7 @@ For every feature, bug fix, refactor or contract change:
 - Keep published reference solutions separate from user attempts; preserve immutable submission history.
 - New challenges must include a precise contract, examples, edge cases, starter implementation, canonical solution and tests.
 - Do not introduce unrelated abstractions, services, or cloud dependencies without a supporting requirement.
+- Follow the [parallel-agent infrastructure plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) when multiple worktrees are active: shared contracts belong to the coordinator, each mutable path to one agent, and *only one authorized infrastructure owner* may change hosted Vercel/Supabase resources. Do not treat shared MCP OAuth credentials as worktree-specific permissions.
 - Default stack: Vue 3, Vite, Vue Router, TypeScript strict, Vitest, Supabase Auth/PostgreSQL/RLS and Vercel. Nuxt is deferred unless explicitly justified through an ADR amendment.
 - For Supabase, never commit passwords, service-role/secret keys, tokens or OAuth client secrets; never disable RLS to make a test pass. Publishable keys are public but still belong in environment-specific configuration.
 - For Vercel and Supabase dashboard operations, verify the current account/organization and project names before creating resources. Use the existing signed-in browser or authorized connector, and never publish credentials in logs or chat.
