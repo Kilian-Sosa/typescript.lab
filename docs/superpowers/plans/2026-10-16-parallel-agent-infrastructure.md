@@ -2,7 +2,7 @@
 
 > **For agentic workers:** Use Superpowers executing-plans for coordinator setup. Feature workers remain parked until the contract freeze and owner launch review.
 
-**Status:** Owner approved v1 and this coordinator plan on 2026-10-16. Contracts are frozen and verified in four parked worker branches; feature launch remains pending.
+**Status:** Owner approved v1 and this coordinator plan on 2026-10-16, then authorized [the initial A–D wave](2026-10-16-initial-parallel-wave.md). Contracts remain frozen. The preparation record below describes the original parked worktrees; execution used workspace-local worktrees after external-directory worker approvals stalled.
 
 **Goal:** Allow independent Codex/CoS agents to work simultaneously without sharing an interactive browser, editing the same files, or racing on the same Vercel/Supabase project.
 
@@ -148,6 +148,8 @@ This diagram shows *integration* dependencies, not idle periods. Notebook UI and
 - [x] Record the launch order and remaining prerequisites below; no implementation workers were spawned.
 
 ## Remaining launch prerequisites
+
+The owner selected the implementation wave after preparation. A pinned app tooling, D used CLI 2.121.0 and verified local PostgreSQL policies, and C completed its security report. The following list records the preparation-time gates; hosted changes and the runner architecture decision remain separately authorized work.
 
 - Owner selects/authorizes the implementation wave; recommended native order is A/B/C, then D as a slot frees. All four worktrees already exist and share the approved freeze.
 - A's first scaffold selects current compatible app/tooling pins. B can author content before that scaffold; its green Vitest execution waits for the approved test tooling.

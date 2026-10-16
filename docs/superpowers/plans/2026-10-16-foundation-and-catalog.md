@@ -1,6 +1,6 @@
 # Foundation and Catalog Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Deliver a real Vue 3 app, CI, Vercel preview, and a faithful guest-friendly challenge explorer, independent of Supabase.
 
@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-01`, `REQ-11`, `REQ-12`, `REQ-13`); ADR-0001; `docs/design/README.md`.
 
-**Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
+**Plan status:** Selected in the initial A–D wave. Local application, CI configuration and desktop/mobile navigation checks are verified; hosted Vercel creation, Git integration and preview verification remain pending separate authorization.
 
 **Parallel ownership:** Track A owns only frontend app-shell/catalog components. The coordinator owns frozen contracts and Track B owns challenge packages. Task 3's **remote Vercel actions** belong to the single infrastructure owner, not the Track A agent.
 
@@ -41,10 +41,10 @@
 
 **Interfaces:** Routes `/explore`, `/challenges/:slug` and `/notebook` render even before data/auth exist. Router exports `router`.
 
-- [ ] Write router tests verifying known and unknown routes, and no cloud dependency for initial render.
-- [ ] Run `pnpm test` to observe failing tests; install compatible minimal deps and implement entrypoint/router.
-- [ ] Run `pnpm typecheck`, `pnpm test`, `pnpm build` and record output.
-- [ ] Commit a focused `feat(app): bootstrap Vue workspace` change.
+- [x] Write router tests verifying known and unknown routes, and no cloud dependency for initial render.
+- [x] Run `pnpm test` to observe failing tests; install compatible minimal deps and implement entrypoint/router.
+- [x] Run `pnpm typecheck`, `pnpm test`, `pnpm build` and record output.
+- [x] Commit a focused `feat(app): bootstrap Vue workspace` change.
 
 ### Task 2: Implement design shell and challenge discovery
 
@@ -52,11 +52,11 @@
 
 **Interfaces:** `listChallenges(query?: string, difficulty?: 'easy' | 'medium' | 'hard'): ChallengeSummary[]`. Before M2 supplies real challenge packages, return an empty catalog (with a useful "first challenges coming soon" state) rather than list falsely available content. `ChallengeList` emits a selected slug when available; never fabricates a private solve count.
 
-- [ ] Test search, difficulty filtering, unknown slug, guest empty state and deep links before implementation.
-- [ ] Implement mockup-inspired side navigation, reusable surfaces, accessible controls and light/dark tokens.
-- [ ] Add responsive Playwright/component assertions at phone and desktop sizes; ensure no horizontal document overflow.
-- [ ] Run focused tests, typecheck and build; compare Explore with `docs/design/mockups/index.html`.
-- [ ] Commit `feat(explore): add accessible challenge catalog`.
+- [x] Test search, difficulty filtering, unknown slug, guest empty state and deep links before implementation.
+- [x] Implement mockup-inspired side navigation, reusable surfaces, accessible controls and light/dark tokens.
+- [x] Add responsive Playwright/component assertions at phone and desktop sizes; ensure no horizontal document overflow.
+- [x] Run focused tests, typecheck and build; compare Explore with `docs/design/mockups/index.html`.
+- [x] Commit `feat(explore): add accessible challenge catalog`.
 
 ### Task 3: Add CI and Vercel project
 

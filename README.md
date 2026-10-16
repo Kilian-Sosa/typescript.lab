@@ -2,9 +2,34 @@
 
 **Practice TypeScript interviews. Understand your solutions. Remember what you learned.**
 
-typescript.lab is a proposed open-source TypeScript interview practice platform. It combines clear coding challenges, interactive examples, a distraction-free solving workspace, and a private notebook that preserves your own solutions and reasoning over time.
+typescript.lab is a TypeScript interview practice platform under development. It combines portable coding challenges with an accessible learning workspace. Private drafts, solution history and browser execution are being introduced behind the approved security and integration gates.
 
-> **Status: approved design baseline, implementation not started.** No application or hosted service has been implemented. The HTML mockup is a standalone, browser-openable design prototype; it does not run arbitrary TypeScript or persist data to a backend.
+> **Status: initial local implementation.** The Vue application, portable `longest-window` challenge, browser execution security spike and local PostgreSQL/RLS schema are implemented. Browser execution, GitHub sign-in, cloud autosave and Notebook history are not connected. Hosted deployment and runner architecture still require owner approval.
+
+## Run locally
+
+Use Node 24 and pnpm 11.25.0 (pinned in `package.json`):
+
+```sh
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+The public learning content needs no cloud credentials. Verify the application and canonical challenge suite with:
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm exec playwright install chromium
+pnpm test:e2e
+```
+
+On Windows, the browser suite can use installed Edge by setting `PLAYWRIGHT_BROWSER_CHANNEL=msedge`. Set `PLAYWRIGHT_PORT` if the default test port `4173` is occupied.
+
+For a local exercise, edit [the starter](challenges/longest-window/starter.ts), then run `pnpm test:practice`. That explicit suite fails until the starter is implemented; the default CI suite tests the separate canonical solution. Read the [challenge contract](challenges/longest-window/README.md) first.
+
+The [local database guide](supabase/README.md) covers the pinned Supabase CLI, isolated migrations and `pnpm test:db`. It uses disposable local PostgreSQL, never a hosted migration. The [security report](docs/security/execution-spike.md) records the runner probes and the remaining architecture decision.
 
 ## Explore the design
 
@@ -23,7 +48,7 @@ node --check docs/design/mockups/app.js
 node scripts/check-design.mjs
 ```
 
-M0.5 has prepared four independent worktrees and frozen the [shared v1 interfaces](docs/superpowers/specs/2026-10-16-shared-contracts-design.md). The [coordination plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) defines ownership and integration gates; feature workers have not started. Check the shared types without scaffolding the app:
+The [initial A–D wave](docs/superpowers/plans/2026-10-16-initial-parallel-wave.md) follows the [coordination plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) and frozen [shared v1 interfaces](docs/superpowers/specs/2026-10-16-shared-contracts-design.md). Their original standalone compiler check remains:
 
 ```powershell
 npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contracts/tsconfig.json"
@@ -51,9 +76,9 @@ npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contr
 4. **Portable challenges.** Every challenge works as a local TypeScript exercise independently of the website.
 5. **Prefer focused quality over feature count.** Begin with one excellent end-to-end challenge.
 
-## Approved stack (not installed)
+## Stack
 
-Vue 3 + Vite + Vue Router + TypeScript, Monaco Editor (subject to UX validation), Vitest, PostgreSQL / Supabase Auth and RLS, GitHub Actions, and Vercel. Nuxt remains a documented alternative if SSR becomes necessary. No product dependencies have been installed yet.
+Vue 3 + Vite + Vue Router + strict TypeScript, Vitest, Playwright and a local Supabase/PostgreSQL schema. The app pins TypeScript 5.9.3 for compatibility with `vue-tsc`; shared contracts also pass their standalone TypeScript 7.0.2 check. GitHub Actions and Vercel SPA configuration are present. Hosted Supabase Auth, Vercel integration and an editor/runner remain gated. Nuxt is deferred.
 
 ## Contributions and licensing
 

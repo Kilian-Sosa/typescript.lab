@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-03`, `REQ-04`, `REQ-12`); ADR-0002.
 
-**Plan status:** Ready for owner review; its security spike has an additional mandatory go/no-go decision.
+**Plan status:** Task 0 is verified with six browser probe tests; see [the execution spike report](../../security/execution-spike.md). Worker-only and same-host/different-port isolation are rejected. Tasks 1–2 await the owner's security architecture decision.
 
 **Shared contract:** Consume reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from coordinator-owned `shared/contracts/v1.ts`. Track C owns only `docs/security/` and `spikes/runner/` during the parallel wave. Production runner files and UI integration are later, separately assigned work after owner approval of the security report. Shared results do not approve an execution architecture.
 

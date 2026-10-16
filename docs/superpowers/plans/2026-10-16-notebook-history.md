@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-06`–`REQ-10`); ADR-0003.
 
-**Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
+**Plan status:** The initial A–D wave verified the local append-only attempts schema and ownership policies. The typed client repository, Notebook UI, comparison, retry and export remain planned.
 
 ## Global Constraints
 
