@@ -1,6 +1,8 @@
-import type { ChallengeSummary, Difficulty } from '../../../shared/contracts/v1';
+import type { ChallengeDefinition, ChallengeSummary, Difficulty } from '../../../shared/contracts/v1';
+import { longestWindowChallenge } from '../../../challenges/longest-window/metadata';
 
-export const challengeRegistry: readonly ChallengeSummary[] = [];
+export const challengeDefinitions: readonly ChallengeDefinition[] = [longestWindowChallenge];
+export const challengeRegistry: readonly ChallengeSummary[] = challengeDefinitions;
 
 export function filterChallenges(
   challenges: readonly ChallengeSummary[],
@@ -29,4 +31,8 @@ export function listChallenges(
 
 export function findChallenge(slug: string): ChallengeSummary | undefined {
   return challengeRegistry.find((challenge) => challenge.slug === slug);
+}
+
+export function getChallenge(slug: string): ChallengeDefinition | undefined {
+  return challengeDefinitions.find((challenge) => challenge.slug === slug);
 }

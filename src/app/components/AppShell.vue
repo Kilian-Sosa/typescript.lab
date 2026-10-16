@@ -62,7 +62,7 @@ onMounted(() => {
             <span class="nav-icon" aria-hidden="true">▦</span>
             <span>Explore</span>
           </RouterLink>
-          <RouterLink class="nav-link" to="/explore#challenge-list" aria-label="Practice challenges">
+          <RouterLink class="nav-link" to="/challenges/longest-window" aria-label="Practice challenges">
             <span class="nav-icon" aria-hidden="true">&lt;/&gt;</span>
             <span>Practice</span>
           </RouterLink>
@@ -92,7 +92,7 @@ onMounted(() => {
       <RouterLink class="mobile-nav-link" to="/explore" aria-label="Explore challenges">
         <span aria-hidden="true">▦</span><span>Explore</span>
       </RouterLink>
-      <RouterLink class="mobile-nav-link" to="/explore#challenge-list" aria-label="Practice challenges">
+      <RouterLink class="mobile-nav-link" to="/challenges/longest-window" aria-label="Practice challenges">
         <span aria-hidden="true">&lt;/&gt;</span><span>Practice</span>
       </RouterLink>
       <RouterLink class="mobile-nav-link" to="/notebook" aria-label="My Notebook">

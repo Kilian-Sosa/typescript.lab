@@ -66,6 +66,7 @@ describe('ChallengeList', () => {
 
   it('shows an honest first-challenges state when the public catalog is empty', () => {
     const wrapper = mount(ChallengeList, {
+      props: { challenges: [] },
       global: { plugins: [router] },
     });
 

@@ -57,10 +57,10 @@ The canonical tests and challenge examples use the same fixtures from `cases.ts`
 pnpm vitest run challenges/longest-window/solution.test.ts
 ```
 
-`practice.test.ts` exercises the intentionally incomplete `starter.ts` and is excluded from the default CI suite. After integration, use the opt-in practice config:
+`practice.test.ts` exercises the intentionally incomplete `starter.ts` and is excluded from the default CI suite. Run the learner suite explicitly:
 
 ```sh
-pnpm vitest run --config vitest.practice.config.ts challenges/longest-window/practice.test.ts
+pnpm test:practice
 ```
 
-The practice suite is expected to fail until the learner replaces the starter's TODO. The practice config is owned by the coordinator because the default Vitest config intentionally excludes this file.
+The practice suite is expected to fail until you replace the starter's TODO with your implementation.
