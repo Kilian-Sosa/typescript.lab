@@ -1,0 +1,15 @@
+node_modules/
+.nuxt/
+.output/
+.vercel/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.local
+.DS_Store
+Thumbs.db
+
+# Local-only Codex handoff prompts; never publish with the repository.
+/docs/prompts/
