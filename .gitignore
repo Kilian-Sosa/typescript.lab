@@ -4,6 +4,7 @@ node_modules/
 .vercel/
 dist/
 coverage/
+.worktrees/
 .env
 .env.*
 !.env.example
