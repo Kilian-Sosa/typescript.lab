@@ -10,7 +10,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-06`–`REQ-10`); ADR-0003.
 
-**Plan status:** The initial A–D wave verified the local append-only attempts schema and ownership policies. The typed client repository, Notebook UI, comparison, retry and export remain planned.
+**Plan status:** Locally implemented and verified in the [2026-10-17 parallel wave](2026-10-17-runner-notebook-visualizer-wave.md), reusing the existing append-only schema. The typed authenticated repository, Notebook list/detail, notes, comparison, original revision metadata, exports and fresh retry are integrated. Real local-auth browser flows pass on desktop/mobile; hosted GitHub OAuth and live run-to-submit E2E remain pending M4/M3.
+
+**Spec impact: no spec change.** Implements REQ-06–10 and ADR-0003 with frozen v1 types. Source/notes/version remain immutable; requests pin the verified account token, history uses cursor pagination, and saves are explicitly `untested`. Missing historical statements are identified without rewriting saved content.
 
 **Parallel M3 dependency:** Runner architecture and implementation **do not block** Task 1's typed attempt repository, authenticated owner-only history, or Task 2's Notebook listing, comparison, portable export and `Retry from scratch`. The stored `AttemptEvaluation` supports `{ status: 'untested' }` when no current-source execution has occurred. **Do not manufacture passed results** or claim end-to-end run→submit validation before M3 is integrated. Coordinate any shared `ChallengePage.vue` changes with the runner/editor owner. M4 authenticated client/session integration remains a separate dependency for real cloud flows.
 
@@ -39,10 +41,10 @@
 
 **Interfaces:** `createAttempt(input: CreateAttemptInput): Promise<SolutionAttempt>`; `listAttempts(challengeId?: string): Promise<SolutionAttempt[]>`. Inputs use explicit notes and nullable claimed complexity from the shared contract. The database assigns ownership, ID and timestamp; client summaries never authorize trusted scoring.
 
-- [ ] Write SQL and TypeScript tests for append-only policy, row ownership and attempts whose tests are failing/untested.
-- [ ] Run failing tests before writing implementation; then create secure schema and a typed repository using the authenticated session.
-- [ ] Verify migration tests on actual isolated database plus unit tests/typecheck/build.
-- [ ] Commit `feat(solutions): persist immutable attempts`.
+- [x] Write SQL and TypeScript tests for append-only policy, row ownership and attempts whose tests are failing/untested; reuse the initial wave's approved SQL tests.
+- [x] Run failing tests before writing implementation; reuse the existing secure schema and implement the typed authenticated repository.
+- [x] Verify migration tests on actual isolated database plus unit tests/typecheck/build.
+- [x] Commit the verified repository with Notebook integration: `a908c1d` (`feat(notebook): integrate private history and learning workspace`).
 
 ### Task 2: My Notebook, compare, retry and export
 
@@ -50,8 +52,8 @@
 
 **Interfaces:** `exportAttempts(attempts: readonly SolutionAttempt[]): Blob` or an explicit portable files/archive representation; `startFreshAttempt(challengeId: string): StarterSession` creates local session from versioned starter without mutating history.
 
-- [ ] Write failing tests for attempt selection, empty state, older challenge version, diff with non-color signifiers, fresh retry, failed export and source/metadata round-trip.
-- [ ] Implement notebook matching approved mockup with authenticated-only routing and secure retrieval.
-- [ ] Preserve all historic versions while restarting at starter code; never preload old reference or user solution in Interview Mode.
-- [ ] Verify complete local and E2E flows and independent export readability; run full checks.
-- [ ] Commit `feat(notebook): add attempt history and export`.
+- [x] Write failing tests for attempt selection, empty state, older challenge version, diff with non-color signifiers, fresh retry, failed export and source/metadata round-trip.
+- [x] Implement notebook matching approved mockup with authenticated-only routing and secure retrieval.
+- [x] Preserve all historic versions while restarting at starter code; never preload old reference or user solution in Interview Mode.
+- [x] Verify complete local and E2E flows and independent export readability; run full checks.
+- [x] Commit the verified Notebook integration: `a908c1d`; hosted/run-to-submit gates remain separate.

@@ -12,10 +12,11 @@ These six scoped plans translate the approved [product specification](../specs/2
 | M4 — Supabase and drafts | [Authentication and Private Drafts](2026-10-16-auth-and-drafts.md) |
 | M5 — Saved solutions | [Immutable Attempts and Notebook](2026-10-16-notebook-history.md) |
 | M6 — Launch readiness | [Learning Visualization and MVP Release](2026-10-16-release-polish.md) |
+| Current parallel wave | [Runner, Notebook and Reference Visualizer](2026-10-17-runner-notebook-visualizer-wave.md) |
 
 Before implementing a plan, read [AGENTS.md](../../../AGENTS.md), the relevant ADRs, and the current [ROADMAP](../../../ROADMAP.md). Use Superpowers TDD, verification and SDD change tracing. Security, RLS, external service costs and production launch retain their approval gates.
 
-**Current execution:** The owner selected [the initial A–D wave](2026-10-16-initial-parallel-wave.md) on 2026-10-16. Local frontend/content and persistence work are integrated on a feature branch. Runner **technical feasibility/security validation**, hosted authentication and deployment retain their separate gates. The [Shared Contracts v1 specification](../specs/2026-10-16-shared-contracts-design.md) remains unchanged.
+**Current execution:** The owner selected [the initial A–D wave](2026-10-16-initial-parallel-wave.md), then [parallel M3/M5/M6 Task 1](2026-10-17-runner-notebook-visualizer-wave.md) on 2026-10-17. Local Notebook and reference visualization are integrated and verified. Runner **technical feasibility/security validation**, hosted authentication, draft autosave and deployment retain their separate gates. The [Shared Contracts v1 specification](../specs/2026-10-16-shared-contracts-design.md) remains unchanged.
 
 **Runner decision (2026-10-17):** dedicated cross-site Vercel runner + sandboxed iframe + disposable Worker + QuickJS/WASM is approved **as an architecture**. The [focused design](../specs/2026-10-17-dedicated-runner-design.md) requires new VM/cross-site feasibility evidence before production code and deployed-origin verification before release. M5 Notebook and M6 reference visualization may proceed in parallel, with shared-page file ownership and final integration gates preserved.
 
