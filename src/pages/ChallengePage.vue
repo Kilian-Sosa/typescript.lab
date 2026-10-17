@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import MarkdownIt from 'markdown-it';
-import { computed, ref } from 'vue';
-import { useRoute, RouterLink } from 'vue-router';
+import { computed, ref, watch } from 'vue';
+import { onBeforeRouteLeave, useRoute, RouterLink } from 'vue-router';
 import { longestWindowCases } from '../../challenges/longest-window/cases';
 import { longestWindowChallenge } from '../../challenges/longest-window/metadata';
 import statementMarkdown from '../../challenges/longest-window/README.md?raw';
 import starterSource from '../../challenges/longest-window/starter.ts?raw';
 import ExampleExplorer from '../features/challenges/ExampleExplorer.vue';
+import LearningHints from '../features/challenges/LearningHints.vue';
+import LongestWindowStepper from '../features/challenges/LongestWindowStepper.vue';
 import { demonstrateLongestWindow } from '../features/challenges/longest-window-demonstrator';
 import { getChallenge } from '../features/challenges/registry';
+import AttemptSubmissionPanel from '../features/solutions/AttemptSubmissionPanel.vue';
 
 const route = useRoute();
 const challenge = computed(() => getChallenge(String(route.params.slug ?? '')));
 const mode = ref<'interview' | 'learning'>('interview');
-const hintsShown = ref(0);
+const source = ref(starterSource);
+const showVisualizer = ref(false);
+const referenceExample = longestWindowCases.find(({ id }) => id === 'documented-sample')!;
 const solutionSource = ref<string | null>(null);
 const explanationHtml = ref<string | null>(null);
 let learningMaterialGeneration = 0;
@@ -29,6 +34,18 @@ const statementHtml = computed(() => {
   return markdown.render(content);
 });
 const isLearningMode = computed(() => mode.value === 'learning');
+
+watch(() => [route.params.slug, route.query.fresh], () => {
+  source.value = starterSource;
+  switchMode('interview');
+});
+
+onBeforeRouteLeave((to) => {
+  if (challenge.value && mode.value === 'interview' && (to.path === '/notebook' || to.path.startsWith('/notebook/'))) {
+    return window.confirm('Your Notebook can reveal previous solutions. Leaving also closes this page without draft autosave. Continue?');
+  }
+  return true;
+});
 
 function switchMode(nextMode: 'interview' | 'learning'): void {
   if (nextMode === mode.value) {
@@ -49,16 +66,9 @@ function switchMode(nextMode: 'interview' | 'learning'): void {
 
   mode.value = nextMode;
   learningMaterialGeneration += 1;
-  hintsShown.value = 0;
+  showVisualizer.value = false;
   solutionSource.value = null;
   explanationHtml.value = null;
-}
-
-function showNextHint(): void {
-  if (!challenge.value || !isLearningMode.value) {
-    return;
-  }
-  hintsShown.value = Math.min(hintsShown.value + 1, challenge.value.learning.hints.length);
 }
 
 async function revealSolution(): Promise<void> {
@@ -173,11 +183,28 @@ async function revealExplanation(): Promise<void> {
               </div>
               <span class="language-label">TypeScript</span>
             </div>
-            <pre class="starter-source"><code>{{ starterSource }}</code></pre>
+            <label class="source-label" for="learner-source">Your TypeScript implementation</label>
+            <textarea
+              id="learner-source"
+              v-model="source"
+              aria-label="TypeScript source"
+              aria-describedby="source-persistence execution-status"
+              class="source-editor"
+              spellcheck="false"
+              autocapitalize="off"
+              autocomplete="off"
+            />
+            <p id="source-persistence" class="learning-copy">Edits stay in this page until you leave. Cloud draft autosave is not connected yet.</p>
             <div class="notice-panel" role="status">
-              <h3>Practice workspace is not connected yet</h3>
-              <p>Code editing, running tests, and saving are not available in this foundation.</p>
+              <h3 id="execution-status">Tests have not run</h3>
+              <p>Running learner code is pending the isolated runner's security review.</p>
             </div>
+            <AttemptSubmissionPanel
+              :key="`${challenge.id}:${String(route.query.fresh ?? '')}`"
+              :challenge-id="challenge.id"
+              :challenge-version="challenge.version"
+              :source="source"
+            />
           </section>
         </div>
       </div>
@@ -191,22 +218,30 @@ async function revealExplanation(): Promise<void> {
           <span class="spoiler-note">Hints and references can reveal the intended approach.</span>
         </div>
 
-        <section class="learning-section" aria-labelledby="hints-title">
-          <h3 id="hints-title">Progressive hints</h3>
-          <ol v-if="hintsShown > 0" class="hint-list">
-            <li v-for="hint in challenge.learning.hints.slice(0, hintsShown)" :key="hint">{{ hint }}</li>
-          </ol>
-          <p v-else class="learning-copy">Reveal one hint at a time when you want a nudge.</p>
+        <LearningHints
+          :active="isLearningMode"
+          :challenge-version="challenge.version"
+          :hints="challenge.learning.hints"
+          :reset-key="challenge.version"
+        />
+
+        <section v-if="challenge.slug === 'longest-window'" class="learning-section" aria-label="Reference algorithm visualization">
           <button
-            v-if="hintsShown < challenge.learning.hints.length"
+            v-if="!showVisualizer"
             type="button"
             class="secondary-button"
-            :aria-label="`Show hint ${hintsShown + 1}`"
-            @click="showNextHint"
+            aria-label="Show reference visualization"
+            @click="showVisualizer = true"
           >
-            Show hint {{ hintsShown + 1 }} of {{ challenge.learning.hints.length }}
+            Show reference visualization
           </button>
-          <p v-else class="learning-copy">All three hints are revealed.</p>
+          <LongestWindowStepper
+            v-else
+            :active="isLearningMode"
+            :events="referenceExample.input.events"
+            :k="referenceExample.input.k"
+            :reset-key="challenge.version"
+          />
         </section>
 
         <section class="learning-section" aria-labelledby="reference-explanation-title">
@@ -252,6 +287,27 @@ async function revealExplanation(): Promise<void> {
 </template>
 
 <style scoped>
+.source-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 650;
+}
+
+.source-editor {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 290px;
+  padding: 16px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--editor);
+  color: #edf0fa;
+  font: 13px/1.65 var(--font-mono, monospace);
+  tab-size: 2;
+}
+
 .challenge-page {
   max-width: 1180px;
 }

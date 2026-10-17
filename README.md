@@ -4,7 +4,7 @@
 
 typescript.lab is a TypeScript interview practice platform under development. It combines portable coding challenges with an accessible learning workspace. Private drafts, solution history and browser execution are being introduced behind the approved security and integration gates.
 
-> **Status: initial local implementation.** The Vue application, portable `longest-window` challenge, browser execution security spike and local PostgreSQL/RLS schema are implemented. Browser execution, GitHub sign-in, cloud autosave and Notebook history are not connected. Hosted deployment and runner architecture still require owner approval.
+> **Status: local implementation, release gates pending.** The Vue application, portable challenge, private Notebook and reference algorithm visualizer are implemented locally. Authenticated saves, history, comparison, exports and fresh retries are verified against disposable local Supabase. Learner execution remains disabled pending the QuickJS feasibility/security gates. Hosted GitHub OAuth, cloud draft autosave and deployment remain pending.
 
 ## Run locally
 
@@ -29,7 +29,21 @@ On Windows, the browser suite can use installed Edge by setting `PLAYWRIGHT_BROW
 
 For a local exercise, edit [the starter](challenges/longest-window/starter.ts), then run `pnpm test:practice`. That explicit suite fails until the starter is implemented; the default CI suite tests the separate canonical solution. Read the [challenge contract](challenges/longest-window/README.md) first.
 
-The [local database guide](supabase/README.md) covers the pinned Supabase CLI, isolated migrations and `pnpm test:db`. It uses disposable local PostgreSQL, never a hosted migration. The [security report](docs/security/execution-spike.md) records the runner probes and the remaining architecture decision.
+The [local database guide](supabase/README.md) covers the pinned Supabase CLI, isolated migrations and `pnpm test:db`. It uses disposable local PostgreSQL, never a hosted migration. The [QuickJS feasibility report](docs/security/quickjs-feasibility.md) records passing local probes and the remaining production NO-GO gates; the [approved design](docs/superpowers/specs/2026-10-17-dedicated-runner-design.md) defines the execution boundary.
+
+### Private Notebook
+
+Copy `.env.example` to an ignored `.env.local` and supply the public URL and publishable key for the intended Supabase environment. Without configuration or a signed-in session, Notebook shows an access gate. The client never uses privileged keys. Hosted GitHub provider setup and exact callback allowlists belong to the separately approved M4 infrastructure work.
+
+The source field supports basic text editing and immutable submissions with notes and declared complexity. Draft autosave and the full runner/editor integration remain pending. Every submission is `untested` until a real source-matching runner is integrated. Learning Mode preserves the current source and requires a separate action to open the reference visualizer.
+
+With a disposable local database/auth/API stack running, verify actual authenticated saves, cross-user denial, comparison, exports and retry using:
+
+```powershell
+node scripts/check-notebook-local.mjs --workers=2
+```
+
+This opt-in check creates synthetic local users and runs desktop/mobile browser flows. It reads generated local keys inside the test process without printing them, refuses a non-loopback API URL, and never accesses the hosted project. Stop/remove the disposable stack afterward using the local database guide. Ordinary browser tests skip this opt-in flow.
 
 ## Explore the design
 
@@ -48,7 +62,7 @@ node --check docs/design/mockups/app.js
 node scripts/check-design.mjs
 ```
 
-The [initial A–D wave](docs/superpowers/plans/2026-10-16-initial-parallel-wave.md) follows the [coordination plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) and frozen [shared v1 interfaces](docs/superpowers/specs/2026-10-16-shared-contracts-design.md). Their original standalone compiler check remains:
+The [initial A–D wave](docs/superpowers/plans/2026-10-16-initial-parallel-wave.md) and [runner/Notebook/visualizer wave](docs/superpowers/plans/2026-10-17-runner-notebook-visualizer-wave.md) follow the [coordination plan](docs/superpowers/plans/2026-10-16-parallel-agent-infrastructure.md) and frozen [shared v1 interfaces](docs/superpowers/specs/2026-10-16-shared-contracts-design.md). Their original standalone compiler check remains:
 
 ```powershell
 npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contracts/tsconfig.json"

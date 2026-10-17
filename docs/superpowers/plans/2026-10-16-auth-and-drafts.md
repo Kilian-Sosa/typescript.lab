@@ -10,7 +10,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-05`, `REQ-07`, `REQ-13`); ADR-0003; `ROADMAP.md`.
 
-**Plan status:** The initial A–D wave verified the local draft schema/RLS/CAS primitives and immutable attempts with 47 PostgreSQL assertions. Hosted migration/OAuth, the auth client and resilient autosave integration remain pending.
+**Plan status:** The initial A–D wave verified the local draft schema/RLS/CAS primitives and immutable attempts with 47 PostgreSQL assertions. M5 subsequently added the narrow authenticated Notebook client/session initializer in `src/features/solutions/session.ts`; reuse or coordinate this client when implementing M4. Hosted migration/GitHub OAuth, callback recovery, sign-out/editor recovery and resilient draft autosave remain pending. Local password sessions in the M5 browser checks verify persistence, not the hosted GitHub OAuth journey.
 
 **Parallel ownership:** Track D can begin migration source, RLS test design and local test stacks after M0.5 shared types are frozen. Task 1's **remote** Supabase project provisioning, hosted migrations, GitHub OAuth and Vercel env changes are separately owned by the infrastructure owner; these actions do not block writing and testing local schema. Auth UI/route integration waits for the frontend shell.
 

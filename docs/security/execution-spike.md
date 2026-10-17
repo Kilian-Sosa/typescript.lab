@@ -4,6 +4,8 @@
 
 **Spec impact:** No spec change. This is the disposable investigation required by Task 0 of the runner plan; no product behavior or shared contract changed. Governing requirements are REQ-03, REQ-04, REQ-12 and ADR-0002.
 
+**Follow-up (2026-10-17):** The [QuickJS feasibility report](quickjs-feasibility.md) records passing local VM/cross-host probes, restricted TypeScript declarations and resource budgets. Production remains **NO-GO** pending independent technical review, deployed TLS/cookie/CSP proof and broader browser checks. The findings below are preserved as historical evidence.
+
 ## Historical decision request (2026-10-16)
 
 Do not proceed with a same-origin worker, an opaque iframe with permissive network policy, or a runner that differs from the app only by port. The original recommendation was a dedicated untrusted **site** with a restrictive iframe and a per-run worker, no shared app/session cookies, no sensitive persistent runner state, strict response CSP and parent-controlled termination. On **2026-10-17**, the owner selected a stronger *dedicated site + QuickJS/WASM inside that disposable Worker* architecture; the new feasibility and release checks supersede this historical decision request. If its controls cannot be demonstrated, use the plan's external-playground fallback after privacy/security review. Do not use browser messages as trusted scoring.
