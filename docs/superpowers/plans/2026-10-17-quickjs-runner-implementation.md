@@ -10,7 +10,7 @@
 
 **Spec:** [Approved runner architecture](../specs/2026-10-17-dedicated-runner-design.md), [REQ-03/04/12/13](../specs/2026-10-16-typescript-lab-design.md), [Shared Contracts v1](../specs/2026-10-16-shared-contracts-design.md), [ADR-0002](../../decisions/0002-challenges-and-execution.md), and [original security spike](../../security/execution-spike.md).
 
-**Status:** Architecture approved 2026-10-17. The [Tasks 0A/0B local feasibility report](../../security/quickjs-feasibility.md) records passing QuickJS and original probe suites, with Q5 deployed proof blocked and Q6 partial. **NO-GO for production** pending separate technical review and the remaining checks. Tasks 1–3 are unimplemented; remote Vercel changes still require separate owner authorization.
+**Status:** Architecture approved 2026-10-17. The [independent review](../../security/2026-10-17-independent-m3-review.md) found no critical/high VM escape or need for redesign, but identified incomplete Q4 active-run result validation and unbounded aggregate Worker use. **NO-GO for Task 1/2 until focused Q4 corrections pass.** Single-run throttling is required before shipping; Q5 deployed proof remains blocked and Q6 partial. Tasks 1–3 are unimplemented; remote Vercel changes require separate owner authorization.
 
 **Ownership:** Runner agent owns `spikes/runner/` and, after a technical go, `apps/runner/`. Coordinator owns root tooling, `shared/contracts/` and Vue integration ownership. Never modify another agent's active `ChallengePage.vue` files; freeze v1 types unless coordinator explicitly approves a version change.
 
