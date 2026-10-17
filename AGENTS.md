@@ -30,6 +30,7 @@ For every feature, bug fix, refactor or contract change:
 - All source-code comments must be written in **English**.
 - TypeScript strictness, accessible components, and semantic HTML are expected for the production app.
 - Do not evaluate untrusted user TypeScript in the server process or app origin. Design an explicit isolated execution boundary and resource limits first.
+- Runner architecture approved 2026-10-17: [dedicated cross-site iframe/Worker/QuickJS-WASM design](docs/superpowers/specs/2026-10-17-dedicated-runner-design.md). This approval is **not** a security validation or deployment authorization. Perform the focused feasibility spike and preserve review gates before implementing/enabling learner execution; never downgrade to native JS evaluation if the gate fails.
 - Personal drafts, submissions and notes are private by default. Never trust a client-provided user ID to authorize access.
 - Keep published reference solutions separate from user attempts; preserve immutable submission history.
 - New challenges must include a precise contract, examples, edge cases, starter implementation, canonical solution and tests.

@@ -1,5 +1,5 @@
-import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { flushPromises, mount } from '@vue/test-utils';
+import { describe, expect, it, vi } from 'vitest';
 import type { ChallengeSummary } from '../../../shared/contracts/v1';
 import { router } from '../../router';
 import ChallengeList from './ChallengeList.vue';
@@ -60,8 +60,11 @@ describe('ChallengeList', () => {
 
     const link = wrapper.get('a[href="/challenges/longest-window"]');
     await link.trigger('click');
+    await vi.dynamicImportSettled();
+    await flushPromises();
 
     expect(wrapper.emitted('select')?.[0]).toEqual(['longest-window']);
+    expect(router.currentRoute.value.fullPath).toBe('/challenges/longest-window');
   });
 
   it('shows an honest first-challenges state when the public catalog is empty', () => {

@@ -12,6 +12,8 @@
 
 **Plan status:** The initial A–D wave verified the local append-only attempts schema and ownership policies. The typed client repository, Notebook UI, comparison, retry and export remain planned.
 
+**Parallel M3 dependency:** Runner architecture and implementation **do not block** Task 1's typed attempt repository, authenticated owner-only history, or Task 2's Notebook listing, comparison, portable export and `Retry from scratch`. The stored `AttemptEvaluation` supports `{ status: 'untested' }` when no current-source execution has occurred. **Do not manufacture passed results** or claim end-to-end run→submit validation before M3 is integrated. Coordinate any shared `ChallengePage.vue` changes with the runner/editor owner. M4 authenticated client/session integration remains a separate dependency for real cloud flows.
+
 ## Global Constraints
 
 **Shared contract and ownership:** Consume reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from `shared/contracts/v1.ts`. `SolutionAttempt` and `CreateAttemptInput` are authoritative; write inputs omit user IDs, saved evaluations exclude `not-run`/`running`, and exact source/version matching is required before retaining a prior evaluation. D may prepare local attempts SQL/tests; notebook UI is a later coordinator-assigned integration slice. Generate migration filenames with the pinned CLI rather than using the illustrative filename below literally.
