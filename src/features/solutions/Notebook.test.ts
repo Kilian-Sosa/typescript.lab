@@ -38,6 +38,7 @@ async function mountNotebook(repository: AttemptRepository) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
+      { path: '/explore', component: { template: '<main>Explore</main>' } },
       { path: '/notebook', component: NotebookPage },
       { path: '/notebook/:slug', name: 'notebook-detail', component: NotebookPage },
     ],
