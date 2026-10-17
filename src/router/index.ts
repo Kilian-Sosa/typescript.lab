@@ -33,6 +33,14 @@ export const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to) {
-    return to.hash ? { el: to.hash } : { top: 0 };
+    if (!to.hash) {
+      return { top: 0 };
+    }
+    try {
+      const anchor = document.getElementById(decodeURIComponent(to.hash.slice(1)));
+      return anchor ? { el: anchor } : { top: 0 };
+    } catch {
+      return { top: 0 };
+    }
   },
 });

@@ -1,5 +1,16 @@
 import { expect, test } from '@playwright/test';
 
+test('opaque authentication fragments never enter scroll diagnostics', async ({ page }) => {
+  const diagnostics: string[] = [];
+  page.on('console', (message) => diagnostics.push(message.text()));
+
+  await page.goto('/explore#access_token=fixture-access&refresh_token=fixture-refresh');
+  await expect(page.getByRole('main')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Make space for better thinking.' })).toBeVisible();
+
+  expect(diagnostics.filter((message) => /fixture-access|fixture-refresh/.test(message))).toEqual([]);
+});
+
 test('a published challenge route renders its content after a refresh', async ({ page }) => {
   await page.goto('/challenges/longest-window');
   await expect(page.getByRole('heading', { name: 'Longest Window with Limited Event Types' })).toBeVisible();
