@@ -21,8 +21,8 @@ describe('ChallengePage', () => {
     expect(wrapper.text()).toContain('Given an array of event identifiers');
     expect(wrapper.text()).toContain('Constraints and edge cases');
     expect(wrapper.get('[data-testid="example-output"]').text()).toBe('{ start: 0, endExclusive: 3 }');
-    expect(wrapper.text()).toContain('TODO: Return the earliest longest window');
-    expect(wrapper.text()).toMatch(/code editing, running tests, and saving are not available/i);
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain('TODO: Return the earliest longest window');
+    expect(wrapper.text()).toContain('Tests have not run');
     expect(wrapper.text()).toContain('Interview Mode');
     expect(wrapper.text()).not.toContain('sliding-window');
     expect(wrapper.text()).not.toContain('Maintain a contiguous range');
@@ -116,5 +116,76 @@ describe('ChallengePage', () => {
     expect(wrapper.get('main h1').text()).toBe('Challenge not found');
     expect(wrapper.get('[role="alert"]').text()).toMatch(/not available in this catalog/i);
     expect(wrapper.get('main a[href="/explore"]').text()).toBe('Explore challenges');
+  });
+
+  it('preserves the current source when learning spoilers are shown and hidden', async () => {
+    vi.stubGlobal('confirm', () => true);
+    await router.push('/challenges/longest-window');
+    const wrapper = mount(App, { global: { plugins: [router] } });
+    await flushPromises();
+
+    const source = 'export function longestWindow() { return { start: 0, endExclusive: 0 }; }';
+    await wrapper.get('textarea[aria-label="TypeScript source"]').setValue(source);
+    await wrapper.get('button[aria-label="Learning mode"]').trigger('click');
+    await wrapper.get('button[aria-label="Interview mode"]').trigger('click');
+
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe(source);
+    expect(wrapper.text()).toContain('Tests have not run');
+    expect(wrapper.text()).not.toContain('Reference algorithm visualization');
+  });
+
+  it('opens the reference visualization on request and hides it again in Interview Mode', async () => {
+    vi.stubGlobal('confirm', () => true);
+    await router.push('/challenges/longest-window');
+    const wrapper = mount(App, { global: { plugins: [router] } });
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('Step through the sliding window');
+    await wrapper.get('button[aria-label="Learning mode"]').trigger('click');
+    expect(wrapper.text()).not.toContain('Step through the sliding window');
+    await wrapper.get('button[aria-label="Show reference visualization"]').trigger('click');
+    expect(wrapper.text()).toContain('Step through the sliding window');
+    expect(wrapper.text()).toContain('does not read or run your editor code');
+
+    await wrapper.get('button[aria-label="Interview mode"]').trigger('click');
+    expect(wrapper.text()).not.toContain('Step through the sliding window');
+    await wrapper.get('button[aria-label="Learning mode"]').trigger('click');
+    expect(wrapper.text()).not.toContain('Step through the sliding window');
+  });
+
+  it('retries from the versioned starter and resets learning material on the same route', async () => {
+    vi.stubGlobal('confirm', () => true);
+    await router.push('/challenges/longest-window');
+    const wrapper = mount(App, { global: { plugins: [router] } });
+    await flushPromises();
+    await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('old learner source');
+    await wrapper.get('button[aria-label="Learning mode"]').trigger('click');
+
+    await router.push('/challenges/longest-window?fresh=1');
+    await flushPromises();
+
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain('TODO: Return the earliest longest window');
+    expect(wrapper.get('button[aria-label="Interview mode"]').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.find('button[aria-label="Show hint 1"]').exists()).toBe(false);
+  });
+
+  it('requires deliberate consent before leaving Interview Mode for historical solutions', async () => {
+    const confirm = vi.fn().mockReturnValue(false);
+    vi.stubGlobal('confirm', confirm);
+    await router.push('/challenges/longest-window');
+    const wrapper = mount(App, { global: { plugins: [router] } });
+    await flushPromises();
+    await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('keep my current approach');
+
+    await router.push('/notebook/longest-window');
+    await flushPromises();
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('previous solutions'));
+    expect(router.currentRoute.value.path).toBe('/challenges/longest-window');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('keep my current approach');
+
+    confirm.mockReturnValue(true);
+    await router.push('/notebook/longest-window');
+    expect(router.currentRoute.value.path).toBe('/notebook/longest-window');
   });
 });

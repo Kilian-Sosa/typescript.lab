@@ -34,7 +34,7 @@ test('Interview Mode hides spoilers and Learning Mode reveals them only after co
   await expect(page.getByRole('button', { name: 'Show hint 1' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Show hint 1' }).click();
-  await expect(page.getByText(/Grow a candidate range from left to right/)).toBeVisible();
+  await expect(page.getByRole('listitem').filter({ hasText: 'Grow a candidate range from left to right' })).toBeVisible();
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Reveal reference explanation' }).click();

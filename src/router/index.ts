@@ -20,7 +20,7 @@ const routes = [
   {
     path: '/notebook/:slug',
     name: 'notebook-detail',
-    component: () => import('../pages/NotebookPage.vue'),
+    component: () => import('../pages/NotebookChallengePage.vue'),
   },
   {
     path: '/:pathMatch(.*)*',

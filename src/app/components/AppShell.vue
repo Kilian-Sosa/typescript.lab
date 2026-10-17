@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 type Theme = 'light' | 'dark';
 
 const theme = ref<Theme>('light');
+const route = useRoute();
+const isNotebookSection = computed(() => route.path === '/notebook' || route.path.startsWith('/notebook/'));
 
 function setTheme(nextTheme: Theme): void {
   theme.value = nextTheme;
@@ -66,7 +69,7 @@ onMounted(() => {
             <span class="nav-icon" aria-hidden="true">&lt;/&gt;</span>
             <span>Practice</span>
           </RouterLink>
-          <RouterLink class="nav-link" to="/notebook" aria-label="My Notebook">
+          <RouterLink class="nav-link" :class="{ 'router-link-active': isNotebookSection }" to="/notebook" aria-label="My Notebook" :aria-current="isNotebookSection ? 'location' : undefined">
             <span class="nav-icon" aria-hidden="true">▤</span>
             <span>My Notebook</span>
           </RouterLink>
@@ -95,7 +98,7 @@ onMounted(() => {
       <RouterLink class="mobile-nav-link" to="/challenges/longest-window" aria-label="Practice challenges">
         <span aria-hidden="true">&lt;/&gt;</span><span>Practice</span>
       </RouterLink>
-      <RouterLink class="mobile-nav-link" to="/notebook" aria-label="My Notebook">
+      <RouterLink class="mobile-nav-link" :class="{ 'router-link-active': isNotebookSection }" to="/notebook" aria-label="My Notebook" :aria-current="isNotebookSection ? 'location' : undefined">
         <span aria-hidden="true">▤</span><span>Notebook</span>
       </RouterLink>
     </nav>
