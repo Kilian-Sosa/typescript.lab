@@ -12,6 +12,8 @@
 
 **Plan status:** Ready for owner review; implementation starts only when this milestone is selected.
 
+**Parallel M3 dependency:** **Task 1 (reference visualizer, spoiler gates and accessibility) can proceed independently of QuickJS** because it traces the canonical algorithm, not learner execution. Most general UI/responsive checks in Task 2 can also start. However, Task 2's live run/compile/timeout E2E, authenticated end-to-end release flows, deployed runner CSP/cookie/origin verification, and the final MVP release gate **cannot pass** until M3 and hosted M4/M5 integration are complete. Assign one owner at a time to `ChallengePage.vue`.
+
 ## Global Constraints
 
 **Shared contract and ownership:** Use the reviewed [v1 interfaces and route/token boundaries](../specs/2026-10-16-shared-contracts-design.md). This is a later integration slice; it does not assign a second writer to A's active `src/` paths. Verify the current approved contract version before changing consumers.

@@ -1,12 +1,12 @@
 # TypeScript execution security spike
 
-**Status:** Task 0 investigation complete; awaiting the owner's security architecture decision. No production runner is approved by this report.
+**Status:** Original Task 0 investigation complete. **Decision update (2026-10-17):** owner selected a dedicated cross-site static runner + sandboxed iframe + disposable Worker + QuickJS/WASM VM. This is an approved architecture, **not a production security go**. The historical tests remain evidence; the [focused spec](../superpowers/specs/2026-10-17-dedicated-runner-design.md) and [new feasibility/implementation plan](../superpowers/plans/2026-10-17-quickjs-runner-implementation.md) set the next gates.
 
 **Spec impact:** No spec change. This is the disposable investigation required by Task 0 of the runner plan; no product behavior or shared contract changed. Governing requirements are REQ-03, REQ-04, REQ-12 and ADR-0002.
 
-## Decision requested
+## Historical decision request (2026-10-16)
 
-Do not proceed with a same-origin worker, an opaque iframe with permissive network policy, or a runner that differs from the app only by port. A conditional browser-side candidate is a dedicated untrusted **site** with a restrictive iframe and a per-run worker, no shared app/session cookies, no sensitive persistent runner state, strict response CSP, and parent-controlled termination. The owner must explicitly approve or reject that architecture before Task 1. If a dedicated site and its deployment controls cannot be assured, use the plan's external-playground fallback after its privacy and security review. Do not use a browser message as trusted scoring.
+Do not proceed with a same-origin worker, an opaque iframe with permissive network policy, or a runner that differs from the app only by port. The original recommendation was a dedicated untrusted **site** with a restrictive iframe and a per-run worker, no shared app/session cookies, no sensitive persistent runner state, strict response CSP and parent-controlled termination. On **2026-10-17**, the owner selected a stronger *dedicated site + QuickJS/WASM inside that disposable Worker* architecture; the new feasibility and release checks supersede this historical decision request. If its controls cannot be demonstrated, use the plan's external-playground fallback after privacy/security review. Do not use browser messages as trusted scoring.
 
 This is a feasibility spike in one browser, not a production security approval. The tested runner used a different port on the **same host**. Its storage separation worked, but its app cookie isolation did not. The next architecture decision must include the deployment hostname and cookie configuration, not just a distinct origin tuple.
 
@@ -69,7 +69,7 @@ The probe did **not** establish a hard CPU or memory budget. It tested one tight
 
 ## Owner gate
 
-**Recommended decision: no-go for production runner implementation from the current evidence alone.** Reject worker-only and same-host/different-port architectures. The owner may authorize Task 1 only after selecting a separate-site browser architecture with explicit cookie and runner-storage isolation requirements, or may select the external playground path after provider review. A subsequent implementation plan must verify actual deployment origin/cookie headers, iframe and worker CSP response headers, message-source validation, per-run worker termination and resource caps, cross-browser behavior, and the policy that browser passes are educational only. If those controls cannot be demonstrated, stop rather than implement Task 1 or Task 2.
+**Historical recommendation (2026-10-16): no-go for production runner implementation from this evidence alone.** Reject worker-only and same-host/different-port architectures. The owner subsequently selected a separate-site QuickJS/WASM design on 2026-10-17. Its **QuickJS containment and hosted-site isolation** require *new* adversarial tests and technical review before Tasks 1–2; client-side passes still cannot be trusted as authoritative scores.
 
 ## Source references
 

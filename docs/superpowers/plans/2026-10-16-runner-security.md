@@ -4,21 +4,21 @@
 
 **Goal:** Validate a safe execution boundary and then run deterministic challenge tests on a learner's **current** TypeScript source with honest result statuses.
 
-**Architecture:** Keep compilation/test fixtures separate from the editor. Run adversarial execution experiments in a disposable spike first; only build the runner if the isolation model survives review. An isolated external playground remains the sanctioned fallback.
+**Architecture:** Approved 2026-10-17: **separate static runner site + sandboxed iframe supervisor + fresh Web Worker + QuickJS/WASM VM**. The initial browser-native spike remains evidence, not production approval. Follow the [QuickJS implementation plan](2026-10-17-quickjs-runner-implementation.md) for the mandatory new spike, implementation, and hosted isolation gates.
 
-**Tech Stack:** TypeScript, browser sandbox/isolated origin as validated, Vitest, Monaco or CodeMirror (selected after responsive/a11y check).
+**Tech Stack:** TypeScript semantic checker, pinned `quickjs-emscripten` after compatibility testing, Vite, browser sandbox, WebAssembly, Worker, Vitest and accessible editor after UX review.
 
-**Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-03`, `REQ-04`, `REQ-12`); ADR-0002.
+**Spec:** `docs/superpowers/specs/2026-10-16-typescript-lab-design.md` (`REQ-03`, `REQ-04`, `REQ-12`); [dedicated runner spec](../specs/2026-10-17-dedicated-runner-design.md); ADR-0002.
 
-**Plan status:** Task 0 is verified with six browser probe tests; see [the execution spike report](../../security/execution-spike.md). Worker-only and same-host/different-port isolation are rejected. Tasks 1–2 await the owner's security architecture decision.
+**Plan status:** Original Task 0 verified with six browser probes; see [historical spike](../../security/execution-spike.md). Owner architecture decision **approved** 2026-10-17. A **new** QuickJS/cross-site feasibility spike and a technical security go/no-go are still required before Tasks 1–2. Separate approval is required for Vercel provisioning and deployment.
 
 **Shared contract:** Consume reviewed [v1 interfaces](../specs/2026-10-16-shared-contracts-design.md) from coordinator-owned `shared/contracts/v1.ts`. Track C owns only `docs/security/` and `spikes/runner/` during the parallel wave. Production runner files and UI integration are later, separately assigned work after owner approval of the security report. Shared results do not approve an execution architecture.
 
-**Parallel ownership:** Track C can begin Task 0 immediately, without a completed challenge UI. Before security approval it owns only disposable spikes and `docs/security/`; implementation and UI integration wait for contracts and the owner's security decision.
+**Parallel ownership:** Runner worker owns `spikes/runner/` and `docs/security/` during feasibility, then `apps/runner/` after a technical go. The coordinator grants exclusive ownership of `src/features/runner/` and `ChallengePage.vue` integration after other agents release those files. M5 Notebook and M6 reference visualizer may proceed in parallel.
 
 ## Global Constraints
 
-- **Hard stop:** do not implement a privileged runner until the security spike is reviewed and the owner selects a validated approach.
+- **Hard stop:** architecture chosen, but do not ship or integrate a production runner until the **new** QuickJS feasibility + isolated-site security gate is reviewed. Hosting requires independent owner approval.
 - A Web Worker by itself is not a security boundary. No direct `eval`/`new Function` of untrusted code in app origin or privileged server contexts.
 - Reject arbitrary imports/packages and prohibit access to saved authentication/session material.
 - The runner must support timeout/termination, compile diagnostics, cancellation and test case failure detail.
@@ -40,14 +40,14 @@
 
 **Interfaces:** A report containing threat model, untrusted capabilities, origin/CSP restrictions, data flow, timeouts, import rules, feasibility of TypeScript transpilation, alternative providers, and a go/no-go recommendation.
 
-- [ ] List forbidden abilities: accessing app origin storage/auth token, parent DOM, unapproved network imports, endless CPU usage and ability to submit fake trusted grades.
-- [ ] Build narrow reproducible adversarial probes against candidate isolation techniques, with cleanup and explicit limitations.
-- [ ] Compare browser-side isolated origin/iframe, server-backed hardened sandbox (deferred unless strictly necessary) and external playground; do not call a worker alone safe.
-- [ ] Present the report and **stop for owner review of security architecture**. If no safe approach is demonstrated, do not continue to Task 1 or 2.
+- [x] List forbidden abilities: accessing app origin storage/auth token, parent DOM, unapproved network imports, endless CPU usage and ability to submit fake trusted grades.
+- [x] Build narrow reproducible adversarial probes against candidate isolation techniques, with cleanup and explicit limitations.
+- [x] Compare browser-side isolated origin/iframe, server-backed hardened sandbox (deferred unless strictly necessary) and external playground; do not call a worker alone safe.
+- [x] Present the report and stop for the owner's security architecture choice. **Choice made 2026-10-17:** dedicated cross-site QuickJS/WASM; its *new feasibility gates* still block production implementation.
 
-### Task 1: Testable isolated runner contract (after approval only)
+### Task 1: Testable isolated runner contract (after new technical go only)
 
-**Files:** Create `src/features/runner/runChallenge.ts`, `src/features/runner/runChallenge.test.ts` and approved isolation adapter files; consume `shared/contracts/v1.ts` rather than creating competing result types.
+**Files:** Build `apps/runner/` first, then `src/features/runner/runChallenge.ts` and adapter tests, per the [focused QuickJS plan](2026-10-17-quickjs-runner-implementation.md). Consume `shared/contracts/v1.ts` without duplicate result types.
 
 **Interfaces:** Shared `RunStatus`, `RunResult` and `CaseResult`; `runChallenge(source: string, challengeId: string, context: { runId: string; sourceRevision: number; challengeVersion: string }, signal?: AbortSignal): Promise<RunResult>`. Results echo the context and challenge ID; consumers reject stale results before display or submission. Cancellation and unsupported/policy-rejected execution use the shared reason vocabulary. Case results record expected/actual when available.
 
@@ -66,3 +66,9 @@
 - [ ] Implement editor component with accessibly labelled code input and real test controls; prohibit fabricated green badges.
 - [ ] Validate mobile and keyboard paths; run full checks and browser review.
 - [ ] Commit `feat(practice): connect editor to real test feedback`.
+
+### Task 3: Deployed-site verification (owner authorization required)
+
+- [ ] Verify genuinely separate Vercel app/runner sites, cookies, iframe sandbox, exact messaging origins, CSP on both HTML and Worker scripts, and WASM asset handling in actual previews.
+- [ ] Retest malicious source, infinite loops, malformed/forged messages and clean termination against preview origins. If requirements fail or previews are unavailable, execution remains **NO-GO**.
+- [ ] Ask the owner separately before creating Vercel resources, enabling production runner execution, deploying or promoting a release.
