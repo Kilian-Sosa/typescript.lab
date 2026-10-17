@@ -10,7 +10,7 @@
 
 **Spec:** [Approved runner architecture](../specs/2026-10-17-dedicated-runner-design.md), [REQ-03/04/12/13](../specs/2026-10-16-typescript-lab-design.md), [Shared Contracts v1](../specs/2026-10-16-shared-contracts-design.md), [ADR-0002](../../decisions/0002-challenges-and-execution.md), and [original security spike](../../security/execution-spike.md).
 
-**Status:** Architecture approved 2026-10-17. QuickJS feasibility and browser isolation gates pending. Tasks 1–3 cannot be declared done on the strength of the existing six browser-native probes alone. Remote Vercel changes require separate owner authorization.
+**Status:** Architecture approved 2026-10-17. The [Tasks 0A/0B local feasibility report](../../security/quickjs-feasibility.md) records passing QuickJS and original probe suites, with Q5 deployed proof blocked and Q6 partial. **NO-GO for production** pending separate technical review and the remaining checks. Tasks 1–3 are unimplemented; remote Vercel changes still require separate owner authorization.
 
 **Ownership:** Runner agent owns `spikes/runner/` and, after a technical go, `apps/runner/`. Coordinator owns root tooling, `shared/contracts/` and Vue integration ownership. Never modify another agent's active `ChallengePage.vue` files; freeze v1 types unless coordinator explicitly approves a version change.
 
@@ -27,21 +27,22 @@
 
 **Files:** `spikes/runner/` probes/tests and a companion report under `docs/security/`. Preserve the original spike evidence.
 
-- [ ] Check `quickjs-emscripten` API, license, maintenance, actual VM memory/interrupt capabilities and browser bundle constraints. Pin a tested version; do not invent a pin.
-- [ ] Red tests first for `longest-window` cases (tie/empty/k<=0/Unicode), learner runtime errors, type mismatch (requiring semantic TS diagnostics), syntax errors and banned import/dependency syntax.
-- [ ] Minimal Worker+QuickJS runtime: source is data until evaluated by QuickJS; bridge only bounded JSON inputs/results, not browser objects/functions; never expose reference solutions or expected outcomes inside the learner VM.
-- [ ] Verify independent Worker disposal on completion, timeout, cancellation and failure; include infinite loops and expensive built-ins that VM interrupt hooks might miss. Test memory, stack, repeated runs, output bounds and cleanup.
-- [ ] Adversarial `postMessage` and invalid-payload tests; preserve source `runId`/`sourceRevision` and distinguish infra vs policy failures.
-- [ ] Re-run original 6 security probes and new compatibility tests. Record actual evidence and **STOP** for owner/coordinator security review before production Task 1.
+- [x] Check `quickjs-emscripten` API, license, maintenance, actual VM memory/interrupt capabilities and browser bundle constraints. Pin a tested version; do not invent a pin.
+- [x] Red tests first for `longest-window` cases (tie/empty/k<=0/Unicode), learner runtime errors, type mismatch (requiring semantic TS diagnostics), syntax errors and banned import/dependency syntax.
+- [x] Minimal Worker+QuickJS runtime: source is data until evaluated by QuickJS; bridge only bounded JSON inputs/results, not browser objects/functions; never expose reference solutions or expected outcomes inside the learner VM.
+- [x] Verify independent Worker disposal on completion, timeout, cancellation and failure; include infinite loops and expensive built-ins that VM interrupt hooks might miss. Test memory, stack, repeated runs, output bounds and cleanup.
+- [x] Adversarial `postMessage` and invalid-payload tests; preserve source `runId`/`sourceRevision` and distinguish infra vs policy failures.
+- [x] Re-run original 6 security probes and new compatibility tests. Record actual evidence and **STOP** for owner/coordinator security review before production Task 1.
 
 ## Task 0B — Cross-site iframe/CSP feasibility
 
-- [ ] Build an isolated local two-site fixture, but state clearly that port isolation is **not** real cookie/site verification.
+- [x] Build an isolated local two-site fixture, but state clearly that port isolation is **not** real cookie/site verification.
 - [ ] Try opaque iframe `sandbox="allow-scripts"` first. Only if it cannot bootstrap a Worker, test `allow-scripts allow-same-origin` **on a separately hosted site**; never put untrusted code in that page's native JS realm.
-- [ ] Test exact `frame-ancestors`/`frame-src`, `event.origin`+`source` validation, nonce/run protocol, restricted Worker script headers, static WASM bootstrap and no unnecessary network access.
+  - Local opaque Worker bootstrap failed; separate `app.test`/`runner.test` hosts passed. Actual hosted-site proof remains blocked and is not represented as complete.
+- [x] Test exact `frame-ancestors`/`frame-src`, `event.origin`+`source` validation, nonce/run protocol, restricted Worker script headers, static WASM bootstrap and no unnecessary network access.
 - [ ] Test malformed messages, forged `passed`, infinite loop, iframe/Worker crashes, stale revisions, repeated and simultaneous runs, slow/cold loads, mobile browsers where available.
-- [ ] Prepare real-preview TLS/cookie/site/CSP header verification. If provisioning is not authorized, **mark deployed-origin proof blocked**; do not create/link a second Vercel project.
-- [ ] Report security **go/no-go**, residual risks, measured performance and fallback. If feasibility fails, keep learner execution disabled; no native-JS downgrade.
+- [x] Prepare real-preview TLS/cookie/site/CSP header verification. If provisioning is not authorized, **mark deployed-origin proof blocked**; do not create/link a second Vercel project.
+- [x] Report security **go/no-go**, residual risks, measured performance and fallback. If feasibility fails, keep learner execution disabled; no native-JS downgrade.
 
 ## Task 1 — Isolated static runner (only after technical go)
 

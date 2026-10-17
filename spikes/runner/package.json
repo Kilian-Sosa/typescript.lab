@@ -1,0 +1,8 @@
+{
+  "name": "typescript-lab-quickjs-spike",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "quickjs-emscripten": "0.32.0"
+  }
+}
