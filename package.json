@@ -17,6 +17,7 @@
     "test:practice": "vitest run --config vitest.practice.config.ts",
     "test:db": "supabase test db --local",
     "test:e2e": "playwright test",
+    "test:e2e:runner-local": "node --test scripts/check-runner-local.mjs",
     "test:e2e:recovery": "node scripts/check-recovery.mjs",
     "test:e2e:notebook-local": "node scripts/check-notebook-local.mjs"
   },

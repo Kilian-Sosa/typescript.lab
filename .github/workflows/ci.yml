@@ -29,5 +29,17 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm --dir apps/runner install --ignore-workspace --frozen-lockfile
+      - run: pnpm --dir apps/runner test
+      - run: pnpm --dir apps/runner build
+        env:
+          VITE_RUNNER_PARENT_ORIGIN: https://lab-app.vercel.app
+          VITE_RUNNER_ORIGIN: https://lab-runner.vercel.app
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - run: pnpm --dir apps/runner test:browser
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
+      - run: pnpm test:e2e:runner-local
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium

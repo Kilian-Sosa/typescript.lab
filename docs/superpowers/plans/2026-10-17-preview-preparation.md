@@ -70,6 +70,8 @@ No new deployment, hosted configuration change or broader approval is performed 
 
 ## Separate runner preview package (still gated)
 
+Update 2026-10-18: Tasks 1 and 2 are now locally implemented on `feat/isolated-quickjs-runner`; [Task 2 has independent local security approval](../../security/2026-10-18-m3-task2-independent-review.md). The exact follow-on package is now [M3 Task 3 Preview and isolation plan](2026-10-18-m3-task3-preview-isolation.md). The paragraph below records the earlier spike-stage prerequisite; it is not current implementation status. Runner hosting and its own bootstrap exception remain unapproved.
+
 The spike corrections are independently validated on separate branch `fix/runner-security` at local commit `83e4889`; that clears the local prerequisite for Task 1 only. They are not integrated into the app's auth branch and do not create `apps/runner/`. Before a runner preview, finish the static runner implementation and its focused tests; then obtain a separate hosted approval for a distinct static runner project.
 
 Record both exact verified app/runner HTTPS origins and prove that they are different **sites**, including the actual hosted public-suffix/cookie behavior. Different project names, ports or arbitrary sibling subdomains are insufficient evidence. Configure strict origin/source/nonce/handshake/result checks; never authorize `*` as an app origin. The runner receives source/challenge data only, with no account IDs, tokens, drafts, notes or secrets. It must not inherit the app's Supabase environment.
