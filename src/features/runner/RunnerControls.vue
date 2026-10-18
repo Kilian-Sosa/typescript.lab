@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import type { RunResult } from '../../../shared/contracts/v1';
-import { createIframeRunner, localRunnerOrigin, newRunId, runOutcome } from './runChallenge';
+import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, newRunId, runOutcome } from './runChallenge';
 import { runChallengeKey } from './session';
 import TestResults from './TestResults.vue';
 
 const props = defineProps<{ source: string; challengeId: string; challengeVersion: string; resetKey?: number }>();
 const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABLE_LOCAL_RUNNER,
-  import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin);
+  import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin)
+  ?? hostedQaRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_M3_QA_RUNNER,
+    import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV);
 const runChallenge = inject(runChallengeKey, null) ?? (origin ? createIframeRunner(origin) : null);
 const result = shallowRef<RunResult | null>(null);
 const stale = ref(false);

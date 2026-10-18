@@ -9,7 +9,17 @@ export function newRunId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Local integration only. Hosted origins require Task 3 verification and a separate activation change.
+// Production builds remain disabled unless the exact, separately built M3 QA mode is selected.
+export const M3_QA_APP_ORIGIN = 'https://typescript-lab-m3-app-qa.vercel.app';
+export const M3_QA_RUNNER_ORIGIN = 'https://typescript-lab-m3-runner-qa.vercel.app';
+
+export function hostedQaRunnerOrigin(mode: string, enabled: string | undefined, raw: string | undefined,
+  parent: string, dev: boolean): string | null {
+  return !dev && mode === 'm3-hosted-qa' && enabled === '1'
+    && parent === M3_QA_APP_ORIGIN && raw === M3_QA_RUNNER_ORIGIN ? M3_QA_RUNNER_ORIGIN : null;
+}
+
+// Ordinary development runs only on the two synthetic local test sites.
 export function localRunnerOrigin(dev: boolean, enabled: string | undefined, raw: string | undefined, parent: string): string | null {
   if (!dev || enabled !== '1' || !raw) return null;
   try {

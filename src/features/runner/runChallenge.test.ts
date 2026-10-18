@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { longestWindowCases } from '../../../challenges/longest-window/cases';
-import { createIframeRunner, localRunnerOrigin } from './runChallenge';
+import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, M3_QA_APP_ORIGIN, M3_QA_RUNNER_ORIGIN } from './runChallenge';
 
 const context = { runId: 'test-run', sourceRevision: 3, challengeVersion: '1.0.0' };
 const origin = 'http://runner.test:4567';
@@ -38,6 +38,23 @@ describe('local activation gate', () => {
       [true, '1', 'https://runner.vercel.app', 'https://app.vercel.app'],
       [true, '1', origin + '/path', 'http://app.test:1234'],
     ] as const) expect(localRunnerOrigin(args[0], args[1], args[2], args[3])).toBeNull();
+  });
+});
+
+describe('hosted QA-only activation gate', () => {
+  it('permits only the reviewed origin pair in the dedicated non-development QA build', () => {
+    expect(hostedQaRunnerOrigin('m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false))
+      .toBe(M3_QA_RUNNER_ORIGIN);
+    const denied: ReadonlyArray<readonly [string, string | undefined, string | undefined, string, boolean]> = [
+      ['production', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false],
+      ['m3-hosted-qa', undefined, M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false],
+      ['m3-hosted-qa', '1', 'https://other.vercel.app', M3_QA_APP_ORIGIN, false],
+      ['m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, 'https://typescript-lab-app-preview.vercel.app', false],
+      ['m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, true],
+    ];
+    for (const [mode, enabled, runner, parent, dev] of denied) {
+      expect(hostedQaRunnerOrigin(mode, enabled, runner, parent, dev)).toBeNull();
+    }
   });
 });
 
