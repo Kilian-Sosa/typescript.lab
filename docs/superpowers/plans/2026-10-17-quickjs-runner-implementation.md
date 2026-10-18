@@ -10,7 +10,7 @@
 
 **Spec:** [Approved runner architecture](../specs/2026-10-17-dedicated-runner-design.md), [REQ-03/04/12/13](../specs/2026-10-16-typescript-lab-design.md), [Shared Contracts v1](../specs/2026-10-16-shared-contracts-design.md), [ADR-0002](../../decisions/0002-challenges-and-execution.md), and [original security spike](../../security/execution-spike.md).
 
-**Status:** Architecture approved 2026-10-17. The [original independent review](../../security/2026-10-17-independent-m3-review.md) identified incomplete Q4 validation and aggregate Worker use. Both corrections, including a follow-up sparse-array blocker, [passed independent reassessment on 2026-10-18](../../security/2026-10-18-m3-correction-validation.md). **Task 1 implemented in `7f4164e`; its P2 JSON-boundary finding is corrected and independently closed. GO for local Task 1 completion/Task 2 prerequisite only.** See the [focused correction and reassessment](../../security/2026-10-18-m3-json-boundary-correction.md). See the [implementation review](../../security/2026-10-18-m3-task1-independent-review.md) and [execution record](../../security/2026-10-18-m3-task1-runner.md). Q5 deployed proof remains blocked, Q6 partial, and production execution disabled. Tasks 2–3 remain unimplemented; remote Vercel changes require separate owner authorization.
+**Status:** Architecture approved 2026-10-17. The [original independent review](../../security/2026-10-17-independent-m3-review.md) identified incomplete Q4 validation and aggregate Worker use. Both corrections, including a follow-up sparse-array blocker, [passed independent reassessment on 2026-10-18](../../security/2026-10-18-m3-correction-validation.md). **Task 1 implemented in `7f4164e`; its P2 JSON-boundary finding is corrected and independently closed. GO for local Task 1 completion/Task 2 prerequisite only.** See the [focused correction and reassessment](../../security/2026-10-18-m3-json-boundary-correction.md). See the [implementation review](../../security/2026-10-18-m3-task1-independent-review.md) and [execution record](../../security/2026-10-18-m3-task1-runner.md). Q5 deployed proof remains blocked, Q6 partial, and production execution disabled. Task 2 is locally implemented and author-verified; see the [editor integration record](../../security/2026-10-18-m3-task2-editor.md). Task 3 remains unimplemented; remote Vercel changes require separate owner authorization.
 
 **Ownership:** Runner agent owns `spikes/runner/` and, after a technical go, `apps/runner/`. Coordinator owns root tooling, `shared/contracts/` and Vue integration ownership. Never modify another agent's active `ChallengePage.vue` files; freeze v1 types unless coordinator explicitly approves a version change.
 
@@ -57,10 +57,10 @@
 
 **Files:** `src/features/runner/` adapter/editor/results/tests and narrow `src/pages/ChallengePage.vue` changes, **only** after the Challenge page writer releases ownership.
 
-- [ ] Red tests: exact editor buffer, semantic compile-error, unsupported import, failed/passed cases, runtime error, timeout/cancel, stale result discard and recoverable iframe failure.
-- [ ] Embed cross-site iframe and use versioned `RunResult` unchanged. Pin allowed runner origin; no tokens, drafts, user IDs or secrets in messages. Lazy-load editor and compiler assets.
-- [ ] Render accessible, honest test feedback; preserve local buffer/Interview Mode and avoid depicting the example demonstrator as actual user-code execution.
-- [ ] Run unit/typecheck/build, E2E desktop/mobile/keyboard, and all security probes.
+- [x] Red tests: exact editor buffer, semantic compile-error, unsupported import, failed/passed cases, runtime error, timeout/cancel, stale result discard and recoverable iframe failure.
+- [x] Embed cross-site iframe and use versioned `RunResult` unchanged. Pin allowed runner origin; no tokens, drafts, user IDs or secrets in messages. Lazy-load editor and compiler assets. Local development opt-in only; production remains disabled.
+- [x] Render accessible, honest test feedback; preserve local buffer/Interview Mode and avoid depicting the example demonstrator as actual user-code execution.
+- [x] Run unit/typecheck/build, E2E desktop/mobile/keyboard, and all security probes. See [Task 2 evidence and limitations](../../security/2026-10-18-m3-task2-editor.md). Author verification only; hosted and production gates remain closed.
 
 ## Task 3 — Deployed preview verification and final gate
 

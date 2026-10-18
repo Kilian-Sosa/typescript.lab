@@ -40,3 +40,6 @@ jobs:
       - run: pnpm --dir apps/runner test:browser
         env:
           PLAYWRIGHT_BROWSER_CHANNEL: chromium
+      - run: pnpm test:e2e:runner-local
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium

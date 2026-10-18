@@ -2,7 +2,9 @@
 
 This package evaluates the current learner source in QuickJS/WASM inside a disposable Worker. The frame supervisor compares actual JSON outputs with the versioned canonical fixtures outside the VM. It imports cases, never the canonical solution. Shared Contracts v1 remains unchanged. Results are educational feedback, not trusted grading.
 
-Task 1 is local implementation only. Vue integration is Task 2; hosted isolation, TLS/cookie/header verification and owner authorization remain Task 3 gates. Production execution remains disabled in the main app.
+Task 1 is local implementation only. [Task 2 Vue integration](../../docs/security/2026-10-18-m3-task2-editor.md) connects the actual draft editor with validated, revision-bound results and accessible feedback. Hosted isolation, TLS/cookie/header verification and owner authorization remain Task 3 gates. Production execution remains disabled in the main app.
+
+Run `node --test scripts/check-runner-local.mjs` from the repository root to exercise the real Vue app and built iframe at desktop/mobile sizes. It starts and closes its own two local test sites and requires installed Edge (or `PLAYWRIGHT_BROWSER_CHANNEL=chromium` in CI). Local integration requires development mode, `VITE_ENABLE_LOCAL_RUNNER=1`, an exact `VITE_RUNNER_ORIGIN=http://runner.test:<port>` and an `http://app.test:<port>` app origin. The fixture supplies these process-local settings, browser-only hostname mapping and a test-only frame policy. Production builds cannot activate execution through these variables. No hosted URLs are approved by this local fixture.
 
 ## Local verification
 
