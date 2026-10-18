@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { flushPromises, mount } from '@vue/test-utils';
-import { createMemoryHistory, createRouter } from 'vue-router';
+import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import { reactive } from 'vue';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { authControllerKey, type AuthController } from '../auth/auth';
@@ -13,9 +13,10 @@ async function fixture() {
   const state = reactive({ status: 'signed-in', userId: 'a' as string | null, generation: 0, message: '', signingOut: false });
   const auth = { state, signIn: vi.fn(), client: {} as SupabaseClient } as unknown as AuthController;
   const repository: DraftRepository = { loadDraft: vi.fn().mockResolvedValue(null), saveDraft: vi.fn().mockRejectedValue(new Error('offline')) };
-  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/challenges/:slug', component: { template: '<div />' } }] });
+  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/challenges/:slug', component: DraftWorkspace,
+    props: { challengeId: 'longest-window', challengeVersion: '1.0.0', starter: 'starter' } }] });
   await router.push('/challenges/longest-window');
-  const wrapper = mount(DraftWorkspace, { props: { challengeId: 'longest-window', challengeVersion: '1.0.0', starter: 'starter' },
+  const wrapper = mount(RouterView, {
     global: { plugins: [router], provide: { [authControllerKey as symbol]: auth, [draftRepositoryKey as symbol]: repository } } });
   await flushPromises();
   return { wrapper, state, repository };

@@ -68,3 +68,11 @@ Files: challenge page, draft status/recovery controls, submission notes and brow
 | OAuth recovery under M4 plan | PKCE fixed callback, safe same-site return state, denial/expiry/replay handling, local sign-out, expiry deadline and stale verification/callback cancellation tests. Both local callback URLs already exist in the approved allowlist. |
 
 All changed behavior maps to these existing requirements or their specified failure cases. **Spec impact remains no spec change.** Production runner execution, offline application-shell delivery, full IDE integration and release approval are outside this scoped frontend completion.
+
+## Fixture cleanup and separate publication — 2026-10-18
+
+The owner requested removal of two non-fatal Vue Router warnings, then two separate PRs to `main`: M4 from `feat/auth-persistence` and the independently validated M3 corrections from `fix/runner-security`. The reviewed scopes remain separate; neither branch is merged into the other or into `main` by this publication.
+
+**Spec impact: no spec change.** Both `VUE_ROUTER_R0020` warnings came from mounting `DraftWorkspace` outside `RouterView` in its unit fixture, so `onBeforeRouteLeave` lacked an active route record. Rendering the actual workspace as the test route component through `RouterView` fixes the context without changing production behavior or suppressing diagnostics. The focused tests still pass and the full 141-test suite now reports zero Vue/Router warnings. Strict typecheck, build, shared contracts and documentation/whitespace checks pass. The unchanged M3 branch also passed all seven browser/security tests in a fresh rerun before publication.
+
+PR publication is authorized; hosted deployment, OAuth/origin changes and production learner execution retain their existing approval gates. The exact app production source remains `cf5a040`; this follow-up changes only its unit fixture and publication documentation.
