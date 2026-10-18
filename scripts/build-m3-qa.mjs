@@ -3,6 +3,11 @@ import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Reject an unsafe target before running builds or replacing any prepared artifacts.
+if (process.env.VERCEL_ENV !== 'preview' || process.env.VERCEL_TARGET_ENV !== 'preview') {
+  throw new Error('M3 QA requires explicit Preview deployment metadata: VERCEL_ENV=preview and VERCEL_TARGET_ENV=preview.');
+}
+
 const root = fileURLToPath(new URL('../', import.meta.url));
 const output = resolve(root, 'output/m3-qa/app/.vercel/output');
 const runnerRoot = resolve(root, 'apps/runner');

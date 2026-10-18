@@ -43,7 +43,7 @@ describe('local activation gate', () => {
 
 describe('hosted QA-only activation gate', () => {
   it('permits only the reviewed origin pair in the dedicated non-development QA build', () => {
-    expect(hostedQaRunnerOrigin('m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false))
+    expect(hostedQaRunnerOrigin('m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, 'preview'))
       .toBe(M3_QA_RUNNER_ORIGIN);
     const denied: ReadonlyArray<readonly [string, string | undefined, string | undefined, string, boolean]> = [
       ['production', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false],
@@ -53,8 +53,12 @@ describe('hosted QA-only activation gate', () => {
       ['m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, true],
     ];
     for (const [mode, enabled, runner, parent, dev] of denied) {
-      expect(hostedQaRunnerOrigin(mode, enabled, runner, parent, dev)).toBeNull();
+      expect(hostedQaRunnerOrigin(mode, enabled, runner, parent, dev, 'preview')).toBeNull();
     }
+  });
+
+  it.each([undefined, '', 'production', 'development', 'staging'])('rejects deployment metadata %s even at the QA origins', deployment => {
+    expect(hostedQaRunnerOrigin('m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, deployment)).toBeNull();
   });
 });
 

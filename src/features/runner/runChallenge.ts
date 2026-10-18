@@ -9,13 +9,13 @@ export function newRunId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Production builds remain disabled unless the exact, separately built M3 QA mode is selected.
+// Hosted activation requires the dedicated QA mode and its validated Preview build metadata.
 export const M3_QA_APP_ORIGIN = 'https://typescript-lab-m3-app-qa.vercel.app';
 export const M3_QA_RUNNER_ORIGIN = 'https://typescript-lab-m3-runner-qa.vercel.app';
 
 export function hostedQaRunnerOrigin(mode: string, enabled: string | undefined, raw: string | undefined,
-  parent: string, dev: boolean): string | null {
-  return !dev && mode === 'm3-hosted-qa' && enabled === '1'
+  parent: string, dev: boolean, deploymentEnvironment: string | undefined): string | null {
+  return !dev && mode === 'm3-hosted-qa' && enabled === '1' && deploymentEnvironment === 'preview'
     && parent === M3_QA_APP_ORIGIN && raw === M3_QA_RUNNER_ORIGIN ? M3_QA_RUNNER_ORIGIN : null;
 }
 

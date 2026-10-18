@@ -9,7 +9,8 @@ const props = defineProps<{ source: string; challengeId: string; challengeVersio
 const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABLE_LOCAL_RUNNER,
   import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin)
   ?? hostedQaRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_M3_QA_RUNNER,
-    import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV);
+    import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV,
+    import.meta.env.VITE_M3_QA_DEPLOYMENT_ENV);
 const runChallenge = inject(runChallengeKey, null) ?? (origin ? createIframeRunner(origin) : null);
 const result = shallowRef<RunResult | null>(null);
 const stale = ref(false);

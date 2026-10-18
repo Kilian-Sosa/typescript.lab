@@ -35,7 +35,11 @@ jobs:
         env:
           VITE_RUNNER_PARENT_ORIGIN: https://lab-app.vercel.app
           VITE_RUNNER_ORIGIN: https://lab-runner.vercel.app
+      - run: node --test scripts/check-m3-qa-build.test.mjs
       - run: node scripts/build-m3-qa.mjs
+        env:
+          VERCEL_ENV: preview
+          VERCEL_TARGET_ENV: preview
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - run: pnpm --dir apps/runner test:browser
