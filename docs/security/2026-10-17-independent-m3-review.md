@@ -2,7 +2,7 @@
 
 **Date/baseline:** 2026-10-17, `feat/runner-notebook-visualizer` at `e984876`; runner files unchanged by the later test-fixture fix. Independent read-only GPT-6.1 Sol Medium security reviewer, explicitly requested by the owner. The coordinator checked the cited handler, supervisor and accepted gate before recording this report.
 
-**Decision: current NO-GO for production runner implementation.** No critical/high VM escape was found and no architecture redesign is required. Conditional GO for bounded implementation follows closure of the Q4 validation/proof gap below. Deployment and production execution retain separate gates.
+**Original decision: NO-GO at the reviewed baseline.** No critical/high VM escape was found and no architecture redesign was required. The two local findings below were corrected and [independently revalidated on 2026-10-18](2026-10-18-m3-correction-validation.md): **GO for the local prerequisite to Task 1 only**. The historical evidence below remains unchanged. Deployment, Q5/Q6 and production execution retain separate gates.
 
 **Spec impact: no spec change.** Corrections enforce the [approved design](../superpowers/specs/2026-10-17-dedicated-runner-design.md), [Shared Contracts v1](../superpowers/specs/2026-10-16-shared-contracts-design.md) and REQ-04/12/13. The explicit Q1–Q4 gate cannot be cleared by incomplete Q4 evidence.
 

@@ -8,7 +8,7 @@ const probeModule = await import('./probe.mjs').catch(() => null);
 const evidence = typeof probeModule?.runSpike === 'function'
   ? await probeModule.runSpike()
   : {};
-const evidencePath = fileURLToPath(new URL('../../docs/prompts/track-c-evidence.json', import.meta.url));
+const evidencePath = fileURLToPath(new URL('./.artifacts/track-c-evidence.json', import.meta.url));
 mkdirSync(dirname(evidencePath), { recursive: true });
 writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, 'utf8');
 console.log(`Full runner probe evidence: ${evidencePath}`);
