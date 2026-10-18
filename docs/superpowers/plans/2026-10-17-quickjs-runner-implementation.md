@@ -10,7 +10,7 @@
 
 **Spec:** [Approved runner architecture](../specs/2026-10-17-dedicated-runner-design.md), [REQ-03/04/12/13](../specs/2026-10-16-typescript-lab-design.md), [Shared Contracts v1](../specs/2026-10-16-shared-contracts-design.md), [ADR-0002](../../decisions/0002-challenges-and-execution.md), and [original security spike](../../security/execution-spike.md).
 
-**Status:** Architecture approved 2026-10-17. The [original independent review](../../security/2026-10-17-independent-m3-review.md) identified incomplete Q4 validation and aggregate Worker use. Both corrections, including a follow-up sparse-array blocker, [passed independent reassessment on 2026-10-18](../../security/2026-10-18-m3-correction-validation.md). **Task 1 locally implemented and verified on 2026-10-18**; see its [execution record](../../security/2026-10-18-m3-task1-runner.md). Q5 deployed proof remains blocked, Q6 partial, and production execution disabled. Tasks 2–3 remain unimplemented; remote Vercel changes require separate owner authorization.
+**Status:** Architecture approved 2026-10-17. The [original independent review](../../security/2026-10-17-independent-m3-review.md) identified incomplete Q4 validation and aggregate Worker use. Both corrections, including a follow-up sparse-array blocker, [passed independent reassessment on 2026-10-18](../../security/2026-10-18-m3-correction-validation.md). **Task 1 committed in `7f4164e`; independent review found a P2 JSON-boundary blocker. NO-GO for Task 1 clearance/Task 2 prerequisite until remediation and reassessment.** See the [implementation review](../../security/2026-10-18-m3-task1-independent-review.md) and [execution record](../../security/2026-10-18-m3-task1-runner.md). Q5 deployed proof remains blocked, Q6 partial, and production execution disabled. Tasks 2–3 remain unimplemented; remote Vercel changes require separate owner authorization.
 
 **Ownership:** Runner agent owns `spikes/runner/` and, after a technical go, `apps/runner/`. Coordinator owns root tooling, `shared/contracts/` and Vue integration ownership. Never modify another agent's active `ChallengePage.vue` files; freeze v1 types unless coordinator explicitly approves a version change.
 
@@ -51,7 +51,7 @@
 - [x] Red tests for wrong origin/source/nonce, malformed/oversized payloads, forged `passed`, stale/cancelled run, blocked module/network, typecheck/runtime/assertion/timeout and worker disposal.
 - [x] Implement the minimum validated protocol and static WASM bundle. TypeScript semantic diagnostics and transpilation target are explicit; evaluator checks *current learner source* against canonical cases outside the VM.
 - [x] Use one Worker+VM per run, bounded source/input/case count/output/stack/memory and independent hard watchdog; no secrets, third-party scripts, analytics, persistent state or unsafe host bridges.
-- [x] Verify original+new adversarial tests, deterministic challenge fixtures, isolated build and headers. Document all caps and unsupported JS features.
+- [ ] Complete adversarial verification and independent reassessment. Existing tests/build/local headers pass, but review found unsupported values can be rewritten during JSON serialization. Add focused regressions and correct this boundary before Task 1 clearance. Caps and unsupported features are documented.
 
 ## Task 2 — Vue editor/result integration (coordinator-controlled)
 
