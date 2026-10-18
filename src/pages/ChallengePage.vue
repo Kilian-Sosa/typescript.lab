@@ -11,12 +11,11 @@ import LearningHints from '../features/challenges/LearningHints.vue';
 import LongestWindowStepper from '../features/challenges/LongestWindowStepper.vue';
 import { demonstrateLongestWindow } from '../features/challenges/longest-window-demonstrator';
 import { getChallenge } from '../features/challenges/registry';
-import AttemptSubmissionPanel from '../features/solutions/AttemptSubmissionPanel.vue';
+import DraftWorkspace from '../features/solutions/DraftWorkspace.vue';
 
 const route = useRoute();
 const challenge = computed(() => getChallenge(String(route.params.slug ?? '')));
 const mode = ref<'interview' | 'learning'>('interview');
-const source = ref(starterSource);
 const showVisualizer = ref(false);
 const referenceExample = longestWindowCases.find(({ id }) => id === 'documented-sample')!;
 const solutionSource = ref<string | null>(null);
@@ -36,13 +35,12 @@ const statementHtml = computed(() => {
 const isLearningMode = computed(() => mode.value === 'learning');
 
 watch(() => [route.params.slug, route.query.fresh], () => {
-  source.value = starterSource;
   switchMode('interview');
 });
 
 onBeforeRouteLeave((to) => {
   if (challenge.value && mode.value === 'interview' && (to.path === '/notebook' || to.path.startsWith('/notebook/'))) {
-    return window.confirm('Your Notebook can reveal previous solutions. Leaving also closes this page without draft autosave. Continue?');
+    return window.confirm('Your Notebook can reveal previous solutions. Continue?');
   }
   return true;
 });
@@ -183,27 +181,11 @@ async function revealExplanation(): Promise<void> {
               </div>
               <span class="language-label">TypeScript</span>
             </div>
-            <label class="source-label" for="learner-source">Your TypeScript implementation</label>
-            <textarea
-              id="learner-source"
-              v-model="source"
-              aria-label="TypeScript source"
-              aria-describedby="source-persistence execution-status"
-              class="source-editor"
-              spellcheck="false"
-              autocapitalize="off"
-              autocomplete="off"
-            />
-            <p id="source-persistence" class="learning-copy">Edits stay in this page until you leave. Cloud draft autosave is not connected yet.</p>
-            <div class="notice-panel" role="status">
-              <h3 id="execution-status">Tests have not run</h3>
-              <p>Running learner code is pending the isolated runner's security review.</p>
-            </div>
-            <AttemptSubmissionPanel
+            <DraftWorkspace
               :key="`${challenge.id}:${String(route.query.fresh ?? '')}`"
               :challenge-id="challenge.id"
               :challenge-version="challenge.version"
-              :source="source"
+              :starter="starterSource"
             />
           </section>
         </div>

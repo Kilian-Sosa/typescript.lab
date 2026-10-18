@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { inject, ref } from 'vue';
+import { inject, ref, watch } from 'vue';
 import type { SolutionAttempt } from '../../../shared/contracts/v1';
 import {
   AttemptSessionChangedError,
@@ -11,10 +11,13 @@ const props = defineProps<{
   challengeId: string;
   challengeVersion: string;
   source: string;
+  recoveryNotes?: { notes: string; timeComplexity: string; spaceComplexity: string };
+  returnTo?: string;
 }>();
 
 const emit = defineEmits<{
   saved: [attempt: SolutionAttempt];
+  notesChanged: [notes: { notes: string; timeComplexity: string; spaceComplexity: string }];
 }>();
 
 const repository = inject(attemptRepositoryKey, null);
@@ -26,6 +29,15 @@ const isSaving = ref(false);
 const statusMessage = ref('');
 const errorMessage = ref('');
 const needsSignIn = ref(false);
+watch(() => props.recoveryNotes, (value) => {
+  if (!value) return;
+  notes.value = value.notes;
+  timeComplexity.value = value.timeComplexity;
+  spaceComplexity.value = value.spaceComplexity;
+}, { immediate: true, deep: true });
+watch([notes, timeComplexity, spaceComplexity], () => {
+  emit('notesChanged', { notes: notes.value, timeComplexity: timeComplexity.value, spaceComplexity: spaceComplexity.value });
+}, { flush: 'sync' });
 
 async function saveAttempt(): Promise<void> {
   if (!repository) {
@@ -71,7 +83,7 @@ async function signIn(): Promise<void> {
   }
 
   try {
-    await session.signInWithGitHub('/notebook');
+    await session.signInWithGitHub(props.returnTo ?? '/notebook');
   } catch {
     errorMessage.value = 'GitHub sign-in could not start. Check the configured provider and retry.';
   }

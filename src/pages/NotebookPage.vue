@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import type { SolutionAttempt } from '../../shared/contracts/v1';
 import { findChallenge } from '../features/challenges/registry';
@@ -9,6 +9,7 @@ import {
 } from '../features/solutions/attemptRepository';
 import { exportAttemptsJson } from '../features/solutions/exportAttempts';
 import { attemptRepositoryKey, notebookSessionKey } from '../features/solutions/session';
+import { authControllerKey } from '../features/auth/auth';
 
 type PageState = 'unconfigured' | 'loading' | 'ready' | 'empty' | 'signed-out' | 'error';
 interface ChallengeGroup {
@@ -20,6 +21,7 @@ interface ChallengeGroup {
 
 const repository = inject<AttemptRepository | null>(attemptRepositoryKey, null);
 const session = inject(notebookSessionKey, null);
+const auth = inject(authControllerKey, null);
 const state = ref<PageState>('loading');
 const attempts = ref<SolutionAttempt[]>([]);
 let unsubscribeSession: (() => void) | undefined;
@@ -60,6 +62,7 @@ function formatDate(value: string): string {
 async function loadAttempts(): Promise<void> {
   const currentRevision = ++loadRevision;
   attempts.value = [];
+  if (auth && !auth.state.userId) { state.value = 'signed-out'; return; }
   if (!repository) {
     state.value = 'unconfigured';
     return;
@@ -117,6 +120,7 @@ onMounted(() => {
   }
   void loadAttempts();
 });
+watch(() => auth?.state.userId, clearAndReload, { flush: 'sync' });
 
 onBeforeUnmount(() => {
   loadRevision += 1;
