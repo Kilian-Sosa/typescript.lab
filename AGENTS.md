@@ -40,6 +40,7 @@ For every feature, bug fix, refactor or contract change:
 - Default stack: Vue 3, Vite, Vue Router, TypeScript strict, Vitest, Supabase Auth/PostgreSQL/RLS and Vercel. Nuxt is deferred unless explicitly justified through an ADR amendment.
 - For Supabase, never commit passwords, service-role/secret keys, tokens or OAuth client secrets; never disable RLS to make a test pass. Publishable keys are public but still belong in environment-specific configuration.
 - For Vercel and Supabase dashboard operations, verify the current account/organization and project names before creating resources. Use the existing signed-in browser or authorized connector, and never publish credentials in logs or chat.
+- For preview-only Vercel work, check the [first-deployment rule](https://vercel.com/docs/deployments/environments#first-deployment) before submitting any deployment: a new project's first deployment is forced to Production, including direct uploads without Git. An omitted API target or explicit Preview intent is not a first-deployment safety guarantee. Under preview-only approval, keep the project empty and Git disconnected until a supported mechanism prevents Production classification. Do not bootstrap with a temporary Production deployment. See the [verified execution record](docs/superpowers/plans/2026-10-17-preview-preparation.md).
 - A GitHub commit/push does not itself authorize production deployment, billing, DNS changes, destructive database changes or expanding OAuth scopes; stop and seek owner approval for material external effects.
 
 ## Git workflow
