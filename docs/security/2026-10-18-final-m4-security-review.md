@@ -41,3 +41,13 @@ The owner's same-browser automatic GitHub login is limited happy-path evidence. 
 - Independent read-only review and synthetic failure reproduction confirm the P2 finding above.
 
 Full hosted acceptance and release approval remain pending even after the finding is corrected. This documentation update does not change infrastructure, OAuth scopes, schema, application behavior or runner activation.
+
+## Finding correction — 2026-10-18
+
+The owner requested the code correction on PR #6 after the review above. The historical REQUEST CHANGES decision remains the independent review's result; the following is implementation and verification evidence, not a fresh independent approval.
+
+`AttemptSubmissionPanel` now requires a verified signed-in application identity before starting a submission and explicitly rejects pending/failed sign-out. The captured application account is passed to the attempt repository and compared with its verified SDK session before any insert. Database ownership still comes from the pinned token and RLS; no account ID is added to the insert payload. Existing token-pinned writes that started before sign-out retain their handling.
+
+The new `submission-signout.test.ts` mounts the actual workspace, auth controller and attempt repository against synthetic in-memory Auth/Data transports. Both retained-session regressions first failed by inserting new guest source/notes with account A's token. After correction they assert zero inserts, a sign-in gate and retained guest source/notes during held logout and after failed logout. Additional tests cover signed-in submission, successful logout, and an already-started write remaining pinned to A without announcing success in the guest workspace. A repository regression first reproduced and now blocks mismatched application/SDK accounts. Panel tests also fail closed for absent, checking, errored, guest and pending/failed logout identities.
+
+Fresh verification: 23 focused tests and all 153 unit tests across 23 files pass; strict Vue/TypeScript, Vite production build and standalone shared-contract compilation pass. The ten existing intercepted recovery browser flows pass on desktop/mobile Edge. The sandboxed browser invocation stalled without output and was stopped; the same suite passed outside the sandbox. These browser tests remain synthetic and do not newly prove hosted/provider acceptance. Author self-review checked REQ-07/13 and ADR-0003 in both directions; **spec impact: no spec change**. No schema, dependency, hosted configuration, deployment or runner activation changes accompany this correction.

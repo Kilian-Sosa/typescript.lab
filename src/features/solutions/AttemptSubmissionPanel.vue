@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { inject, ref, watch } from 'vue';
 import type { SolutionAttempt } from '../../../shared/contracts/v1';
+import { authControllerKey } from '../auth/auth';
 import {
   AttemptSessionChangedError,
   AuthenticationRequiredError,
+  AttemptAuthorizationError,
 } from './attemptRepository';
 import { attemptRepositoryKey, notebookSessionKey } from './session';
 
@@ -21,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const repository = inject(attemptRepositoryKey, null);
+const auth = inject(authControllerKey, null);
 const session = inject(notebookSessionKey, null);
 const notes = ref('');
 const timeComplexity = ref('');
@@ -51,6 +54,10 @@ async function saveAttempt(): Promise<void> {
   needsSignIn.value = false;
 
   try {
+    const userId = auth?.state.userId;
+    if (!userId || auth?.state.status !== 'signed-in' || auth.state.signingOut || auth.state.signOutFailed) {
+      throw new AuthenticationRequiredError();
+    }
     const attempt = await repository.createAttempt({
       challengeId: props.challengeId,
       challengeVersion: props.challengeVersion,
@@ -59,14 +66,14 @@ async function saveAttempt(): Promise<void> {
       timeComplexity: timeComplexity.value.trim() || null,
       spaceComplexity: spaceComplexity.value.trim() || null,
       testSummary: { status: 'untested' },
-    });
+    }, userId);
     statusMessage.value = 'Attempt saved. Test status: Untested.';
     emit('saved', attempt);
   } catch (error) {
     if (error instanceof AuthenticationRequiredError) {
       errorMessage.value = 'Sign in to save this private attempt.';
       needsSignIn.value = true;
-    } else if (error instanceof AttemptSessionChangedError) {
+    } else if (error instanceof AttemptSessionChangedError || error instanceof AttemptAuthorizationError) {
       errorMessage.value = 'Your account changed before this attempt was saved. Sign in again and retry.';
       needsSignIn.value = true;
     } else {

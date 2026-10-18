@@ -81,6 +81,23 @@ PR publication is authorized; hosted deployment, OAuth/origin changes and produc
 
 ## PR #6 deployment documentation and final security review — 2026-10-18
 
+### Sign-out submission correction — 2026-10-18
+
+**Authority:** Owner requested correction of the final review finding in PR #6. Execute inline on its existing `feat/auth-persistence` branch; no additional review agent or hosted changes.
+
+**Spec impact: no spec change.** Restore REQ-07/13 and ADR-0003's private ownership and explicit guest boundary. Shared Contracts v1 and database ownership remain unchanged.
+
+**Implementation plan (one bounded submission-boundary task):**
+
+- [x] Add integrated `DraftWorkspace` regressions using the actual auth controller and attempt repository with synthetic transports. Retain account A's SDK session during held and failed logout, enter new guest source/notes, submit, and assert zero inserts and a sign-in gate. Cover normal signed-in saving, successful logout and an already-started token-pinned write.
+- [x] Watch the retained-session regressions fail before production edits. Add a repository regression for a verified SDK account differing from the submitting application account.
+- [x] Gate `AttemptSubmissionPanel.saveAttempt` on the injected verified application auth state, rejecting checking/error/guest/pending/failed logout. Pass its captured account ID to `AttemptRepository.createAttempt(input, expectedUserId)` and compare against the verified SDK snapshot before any insert. This local interface does not change frozen shared contracts or use caller identity as database authorization.
+- [x] Run focused regressions, the full unit suite, strict typecheck/build, shared-contract compilation and intercepted desktop/mobile recovery browser tests. Review the diff and record evidence in the security report without rewriting the historical independent decision or claiming hosted acceptance.
+
+**Review focus:** Missing/unverified app auth must fail closed; pending/failed logout must retain guest content locally; mismatched SDK/app accounts must make zero inserts; ordinary signed-in source/notes must save exactly; writes begun before logout remain pinned to their original token.
+
+**Execution evidence:** Both retained-session cases failed with one account-A insert of new guest content before the correction; the mismatch test also incorrectly saved before correction. All pass afterward: 23 focused submission/repository tests, 153 total unit tests, strict Vue/TypeScript, production build and shared-contract compilation. The ten existing intercepted recovery browser flows passed on desktop/mobile Edge outside the sandbox after the sandboxed invocation stalled and was stopped. Author self-review checked both requirement-to-test and behavior-to-spec mappings; no additional reviewer was dispatched, per owner policy. See the correction record in the [security report](../../security/2026-10-18-final-m4-security-review.md).
+
 **Plan:** Reconcile the later owner-approved bootstrap, protected app Preview and exact OAuth callback against Vercel read-only evidence; update current status documents and PR metadata while retaining historical checkpoints; run focused verification and one independent M4 security review; preserve findings and remaining acceptance gates.
 
 **Spec impact: no spec change.** Documentation corrects execution status under existing REQ-05/07/13 and ADR-0001/0003. The review checks implementation against existing requirements; it does not authorize changes to behavior, deployment protection, hosted settings, production app deployment or the runner.
