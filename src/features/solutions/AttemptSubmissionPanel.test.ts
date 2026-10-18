@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { defineComponent, h, provide } from 'vue';
+import { authControllerKey, type AuthController } from '../auth/auth';
 import { describe, expect, it, vi } from 'vitest';
 import type { SolutionAttempt } from '../../../shared/contracts/v1';
 import { AuthenticationRequiredError, type AttemptRepository } from './attemptRepository';
@@ -34,6 +35,7 @@ function mountPanel(
   props: { challengeId: string; challengeVersion: string; source: string },
   repository: AttemptRepository,
   session?: NotebookSessionProvider,
+  authState: Partial<AuthController['state']> | null = { status: 'signed-in', userId: 'owner-a' },
 ) {
   const host = defineComponent({
     props: {
@@ -43,6 +45,7 @@ function mountPanel(
     },
     setup(hostProps) {
       provide(attemptRepositoryKey, repository);
+      if (authState) provide(authControllerKey, { state: authState } as AuthController);
       if (session) {
         provide(notebookSessionKey, session);
       }
@@ -57,6 +60,22 @@ function mountPanel(
 }
 
 describe('AttemptSubmissionPanel', () => {
+  it.each([
+    null,
+    { status: 'checking' as const, userId: 'owner-a' },
+    { status: 'error' as const, userId: 'owner-a' },
+    { status: 'signed-out' as const, userId: null },
+    { status: 'signed-in' as const, userId: 'owner-a', signingOut: true },
+    { status: 'signed-in' as const, userId: 'owner-a', signOutFailed: true },
+  ])('requires verified application authentication before calling the repository (%j)', async (state) => {
+    const { repository, createAttempt } = makeRepository();
+    const wrapper = mountPanel({ challengeId: 'longest-window', challengeVersion: '1.0.0', source: 'guest source' }, repository, undefined, state);
+    await wrapper.get('form').trigger('submit');
+    await flushPromises();
+    expect(createAttempt).not.toHaveBeenCalled();
+    expect(wrapper.get('[role="alert"]').text()).toMatch(/sign in/i);
+  });
+
   it('saves the latest parent editor source and notes as an untested immutable attempt', async () => {
     const { repository, createAttempt } = makeRepository();
     const wrapper = mountPanel({
@@ -79,7 +98,7 @@ describe('AttemptSubmissionPanel', () => {
       timeComplexity: 'O(n)',
       spaceComplexity: null,
       testSummary: { status: 'untested' },
-    });
+    }, 'owner-a');
     expect(wrapper.get('[role="status"]').text()).toMatch(/attempt saved.*untested/i);
     expect(wrapper.find('textarea[aria-label="TypeScript source"]').exists()).toBe(false);
   });

@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { App, InjectionKey } from 'vue';
+import { authControllerKey, createAuthController, type AuthController } from '../auth/auth';
+import { createDraftRepository, type DraftRepository } from './draftRepository';
 import {
   createAttemptRepository,
   type AttemptRepository,
@@ -14,6 +16,8 @@ export interface PublicSupabaseConfig {
 export interface NotebookSessionProvider {
   readonly client: SupabaseClient;
   readonly repository: AttemptRepository;
+  readonly drafts: DraftRepository;
+  readonly auth: AuthController;
   signInWithGitHub(returnTo?: string): Promise<void>;
 }
 
@@ -47,6 +51,7 @@ export const attemptRepositoryKey: InjectionKey<AttemptRepository | null> =
   Symbol('attemptRepository');
 export const notebookSessionKey: InjectionKey<NotebookSessionProvider | null> =
   Symbol('notebookSessionProvider');
+export const draftRepositoryKey: InjectionKey<DraftRepository | null> = Symbol('draftRepository');
 
 export function createNotebookSessionProvider(
   config: PublicSupabaseConfig,
@@ -65,29 +70,23 @@ export function createNotebookSessionProvider(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: false,
+      flowType: 'pkce',
     },
   });
   const createScopedRequestClient: ScopedRequestClientFactory = (accessToken) =>
     createScopedDataClient(config, accessToken);
   const repository = createAttemptRepository(client, createScopedRequestClient);
+  const drafts = createDraftRepository(client, createScopedRequestClient);
+  const auth = createAuthController(client, { storage: window.sessionStorage, origin: window.location.origin });
 
   return {
     client,
     repository,
+    drafts,
+    auth,
     async signInWithGitHub(returnTo = '/notebook') {
-      const redirectTo = buildSameOriginRedirectUrl(returnTo, window.location.origin);
-      const { error } = await client.auth.signInWithOAuth({
-        provider: 'github',
-        options: {
-          redirectTo,
-          scopes: 'read:user user:email',
-        },
-      });
-
-      if (error) {
-        throw new Error('Could not start GitHub sign-in.', { cause: error });
-      }
+      await auth.signIn(returnTo);
     },
   };
 }
@@ -111,5 +110,8 @@ export function initializeNotebookSession(
   }
   app.provide(attemptRepositoryKey, session?.repository ?? null);
   app.provide(notebookSessionKey, session);
+  app.provide(draftRepositoryKey, session?.drafts ?? null);
+  app.provide(authControllerKey, session?.auth ?? null);
+  if (session) void session.auth.start();
   return session;
 }

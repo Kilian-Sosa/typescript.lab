@@ -1,11 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h, provide } from 'vue';
+import { defineComponent, h, provide, reactive } from 'vue';
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
 import type { SolutionAttempt } from '../../shared/contracts/v1';
 import NotebookChallengePage from './NotebookChallengePage.vue';
 import { AuthenticationRequiredError, type AttemptRepository } from '../features/solutions/attemptRepository';
 import { attemptRepositoryKey } from '../features/solutions/session';
+import { authControllerKey, type AuthController } from '../features/auth/auth';
 
 const olderAttempt: SolutionAttempt = {
   id: 'attempt-older',
@@ -37,7 +38,7 @@ function makeRepository(listAttempts = vi.fn().mockResolvedValue([newerAttempt, 
   return { repository, listAttempts };
 }
 
-async function mountDetail(repository: AttemptRepository) {
+async function mountDetail(repository: AttemptRepository, auth?: AuthController) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -51,6 +52,7 @@ async function mountDetail(repository: AttemptRepository) {
   const host = defineComponent({
     setup() {
       provide(attemptRepositoryKey, repository);
+      if (auth) provide(authControllerKey, auth);
       return () => h(RouterView);
     },
   });
@@ -60,6 +62,17 @@ async function mountDetail(repository: AttemptRepository) {
 }
 
 describe('Notebook challenge detail', () => {
+  it('hides source, notes and export immediately when the UI identity is cleared', async () => {
+    const state = reactive({ userId: 'owner-a' as string | null });
+    const { repository } = makeRepository();
+    const { wrapper } = await mountDetail(repository, { state } as unknown as AuthController);
+    expect(wrapper.text()).toContain(newerAttempt.notes);
+    state.userId = null;
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(newerAttempt.notes);
+    expect(wrapper.find('[aria-label="Saved TypeScript source"]').exists()).toBe(false);
+    expect(wrapper.find('button[aria-label="Download TypeScript source"]').exists()).toBe(false);
+  });
   it('reopens exact saved source and notes with the original challenge revision', async () => {
     const { repository, listAttempts } = makeRepository();
     const { wrapper } = await mountDetail(repository);

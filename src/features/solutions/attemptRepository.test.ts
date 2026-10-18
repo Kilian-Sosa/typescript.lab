@@ -173,11 +173,18 @@ function repositoryFor(fake: ReturnType<typeof makeClient>) {
 }
 
 describe('createAttemptRepository', () => {
+  it('rejects a verified SDK account that differs from the submitting application account before inserting', async () => {
+    const fake = makeClient({ insertData: row() });
+    const repository = repositoryFor(fake);
+    await expect(repository.createAttempt(input, 'owner-b')).rejects.toBeInstanceOf(AttemptAuthorizationError);
+    expect(fake.inserted).toEqual([]);
+  });
+
   it('stores exact source and notes without accepting identity or timestamp fields from the caller', async () => {
     const fake = makeClient({ insertData: row() });
     const repository = repositoryFor(fake);
 
-    const saved = await repository.createAttempt(input);
+    const saved = await repository.createAttempt(input, 'owner-a');
 
     expect(saved).toEqual({
       id: 'attempt-1',
@@ -207,7 +214,7 @@ describe('createAttemptRepository', () => {
     const repository = repositoryFor(fake);
 
     await expect(repository.listAttempts()).rejects.toBeInstanceOf(AuthenticationRequiredError);
-    await expect(repository.createAttempt(input)).rejects.toBeInstanceOf(AuthenticationRequiredError);
+    await expect(repository.createAttempt(input, 'owner-a')).rejects.toBeInstanceOf(AuthenticationRequiredError);
     expect(fake.client.from).not.toHaveBeenCalled();
   });
 

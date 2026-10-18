@@ -4,7 +4,7 @@
 
 typescript.lab is a TypeScript interview practice platform under development. It combines portable coding challenges with an accessible learning workspace. Private drafts, solution history and browser execution are being introduced behind the approved security and integration gates.
 
-> **Status: local implementation, release gates pending.** The Vue application, portable challenge, private Notebook and reference algorithm visualizer are implemented locally. Authenticated saves, history, comparison, exports and fresh retries are verified against disposable local Supabase. Learner execution remains disabled pending the QuickJS feasibility/security gates. Hosted GitHub OAuth, cloud draft autosave and deployment remain pending.
+> **Status: protected app Preview deployed, release gates pending.** The Vue application, private Notebook, reference visualizer and M4 authentication/draft recovery are available in the [protected Preview](https://typescript-lab-app-preview-mb2mltwhd-kiliansosas-projects.vercel.app), pinned to `cf5a040`. Its exact OAuth callback is configured. Hosted schema/RLS and the original GitHub session flow were verified separately; the new frontend passes intercepted desktop/mobile tests. Full live Preview acceptance and runner security gates remain pending. Learner execution remains disabled.
 
 ## Run locally
 
@@ -35,7 +35,13 @@ The [local database guide](supabase/README.md) covers the pinned Supabase CLI, i
 
 Copy `.env.example` to an ignored `.env.local` and supply the public URL and publishable key for the intended Supabase environment. Without configuration or a signed-in session, Notebook shows an access gate. The client never uses privileged keys. Hosted GitHub provider setup and exact callback allowlists belong to the separately approved M4 infrastructure work.
 
-The source field supports basic text editing and immutable submissions with notes and declared complexity. Draft autosave and the full runner/editor integration remain pending. Every submission is `untested` until a real source-matching runner is integrated. Learning Mode preserves the current source and requires a separate action to open the reference visualizer.
+The source field supports private revision-based draft autosave and immutable submissions with notes and declared complexity. Save feedback distinguishes durable server acknowledgment, pending/offline work and conflicts. Guest import requires an explicit review/action. Recovery buffers are separated by account, challenge and tab; private text is cleared from the UI on sign-out/expiry and restored only for the matching account. Notes and declared complexity stay local until an attempt is saved. Browser storage failure is visible; keep the page open and download/copy memory-only work before leaving.
+
+GitHub sign-in uses PKCE and returns to the exact same-origin `/auth/callback` URL, which must be authorized for that environment. The app handles denied, expired, missing and replayed callbacks without reflecting provider descriptions. Preview testers first need Vercel access; Vercel Authentication and GitHub sign-in are separate gates. An existing GitHub session may sign in without another consent screen. The [M4 frontend record](docs/superpowers/plans/2026-10-17-m4-frontend-recovery.md), [deployment execution record](docs/superpowers/plans/2026-10-17-preview-preparation.md) and [final M4 security review](docs/security/2026-10-18-final-m4-security-review.md) distinguish local proof, hosted observations and remaining acceptance.
+
+Run the dedicated browser recovery suite with `pnpm test:e2e:recovery` (or `node scripts/check-recovery.mjs --workers=2`). It uses a synthetic, fully intercepted Auth/Data API and exercises callback failures, account switching, explicit import, two-tab conflicts, offline recovery and late responses on desktop/mobile. It never accesses the hosted project. Ordinary browser runs skip these ten opt-in cases; this command executes them.
+
+Every submission is `untested` until a real source-matching runner is integrated. The full runner/editor integration remains pending. Learning Mode preserves the current source and requires a separate action to open the reference visualizer.
 
 With a disposable local database/auth/API stack running, verify actual authenticated saves, cross-user denial, comparison, exports and retry using:
 
@@ -92,7 +98,7 @@ npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contr
 
 ## Stack
 
-Vue 3 + Vite + Vue Router + strict TypeScript, Vitest, Playwright and a local Supabase/PostgreSQL schema. The app pins TypeScript 5.9.3 for compatibility with `vue-tsc`; shared contracts also pass their standalone TypeScript 7.0.2 check. GitHub Actions and Vercel SPA configuration are present. Hosted Supabase Auth, Vercel integration and an editor/runner remain gated. Nuxt is deferred.
+Vue 3 + Vite + Vue Router + strict TypeScript, Vitest, Playwright and Supabase/PostgreSQL with RLS. The app pins TypeScript 5.9.3 for compatibility with `vue-tsc`; shared contracts also pass their standalone TypeScript 7.0.2 check. GitHub Actions and Vercel SPA configuration are present. The protected app Preview is deployed; full live PKCE/recovery acceptance, production app deployment and learner execution remain gated. Nuxt is deferred.
 
 ## Contributions and licensing
 
