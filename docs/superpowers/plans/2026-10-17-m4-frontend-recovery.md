@@ -1,5 +1,7 @@
 # M4 frontend recovery execution
 
+**Current checkpoint (2026-10-18):** The pinned app commit `cf5a040` is now deployed to a protected Preview and its exact OAuth callback is configured. The earlier local-only/unresolved-origin observations below are historical. Full live acceptance remains pending; see the [deployment record](2026-10-17-preview-preparation.md) and [final M4 security review](../../security/2026-10-18-final-m4-security-review.md).
+
 **Authority:** Owner requested completion of M4 frontend functionality on `feat/auth-persistence`, the two M3 corrections in parallel, and local preview preparation. Executes the approved [auth/drafts plan](2026-10-16-auth-and-drafts.md), [product requirements](../specs/2026-10-16-typescript-lab-design.md) REQ-05/07/08/12/13, [ADR-0003](../../decisions/0003-solution-persistence.md) and frozen Shared Contracts v1.
 
 **Spec impact: no spec change.** Implement existing callback, private CAS, honest persistence, explicit guest import and recovery requirements; no schema, shared contract or approved runner architecture changes.
@@ -76,3 +78,14 @@ The owner requested removal of two non-fatal Vue Router warnings, then two separ
 **Spec impact: no spec change.** Both `VUE_ROUTER_R0020` warnings came from mounting `DraftWorkspace` outside `RouterView` in its unit fixture, so `onBeforeRouteLeave` lacked an active route record. Rendering the actual workspace as the test route component through `RouterView` fixes the context without changing production behavior or suppressing diagnostics. The focused tests still pass and the full 141-test suite now reports zero Vue/Router warnings. Strict typecheck, build, shared contracts and documentation/whitespace checks pass. The unchanged M3 branch also passed all seven browser/security tests in a fresh rerun before publication.
 
 PR publication is authorized; hosted deployment, OAuth/origin changes and production learner execution retain their existing approval gates. The exact app production source remains `cf5a040`; this follow-up changes only its unit fixture and publication documentation.
+
+## PR #6 deployment documentation and final security review — 2026-10-18
+
+**Plan:** Reconcile the later owner-approved bootstrap, protected app Preview and exact OAuth callback against Vercel read-only evidence; update current status documents and PR metadata while retaining historical checkpoints; run focused verification and one independent M4 security review; preserve findings and remaining acceptance gates.
+
+**Spec impact: no spec change.** Documentation corrects execution status under existing REQ-05/07/13 and ADR-0001/0003. The review checks implementation against existing requirements; it does not authorize changes to behavior, deployment protection, hosted settings, production app deployment or the runner.
+
+- [x] Confirm the clean `feat/auth-persistence` branch matches PR #6 and its current head.
+- [x] Reinspect the exact project, source commit, Preview/Production deployment listings and Vercel Authentication settings; reconcile later approval/execution evidence.
+- [x] Correct the deployment record, README, roadmap, plan index and historical-report pointers without claiming complete hosted acceptance.
+- [x] Record the final security decision and fresh verification in the security report, and prepare the scoped documentation update for PR #6 publication. One P2 finding requires correction before merge; 141 unit tests, ten synthetic desktop/mobile recovery flows, typecheck, build, shared contracts and documentation/whitespace checks pass. No claim of full hosted acceptance follows from these checks.

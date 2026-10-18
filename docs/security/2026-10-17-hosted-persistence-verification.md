@@ -1,5 +1,7 @@
 # M4 hosted persistence and authentication verification
 
+**Historical baseline:** This report describes the 2026-10-17 setup and original local session checks. The later protected app Preview and fifth exact OAuth redirect were separately approved and executed on 2026-10-18; see the [current deployment record](../superpowers/plans/2026-10-17-preview-preparation.md) and [final M4 security review](2026-10-18-final-m4-security-review.md). The pending frontend work and absence of a hosted origin described below refer to this report's original checkpoint.
+
 **Authorization:** Owner approved the five reviewed hosted operations on 2026-10-17 and explicitly authorized `Kilian-Sosa` for real GitHub sign-in. No Vercel provisioning, production deployment, billing, DNS, database reset or runner activation is included.
 
 **Spec impact: no spec change.** This applies existing REQ-05/07/13 and ADR-0003 under the [M4 plan](../superpowers/plans/2026-10-16-auth-and-drafts.md). Hosted setup does not imply completion of frontend callback/sign-out recovery or resilient draft autosave.
