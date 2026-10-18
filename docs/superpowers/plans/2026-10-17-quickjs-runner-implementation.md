@@ -60,9 +60,11 @@
 - [x] Red tests: exact editor buffer, semantic compile-error, unsupported import, failed/passed cases, runtime error, timeout/cancel, stale result discard and recoverable iframe failure.
 - [x] Embed cross-site iframe and use versioned `RunResult` unchanged. Pin allowed runner origin; no tokens, drafts, user IDs or secrets in messages. Lazy-load editor and compiler assets. Local development opt-in only; production remains disabled.
 - [x] Render accessible, honest test feedback; preserve local buffer/Interview Mode and avoid depicting the example demonstrator as actual user-code execution.
-- [x] Run unit/typecheck/build, E2E desktop/mobile/keyboard, and all security probes. See [Task 2 evidence and limitations](../../security/2026-10-18-m3-task2-editor.md). Author verification only; hosted and production gates remain closed.
+- [x] Run unit/typecheck/build, E2E desktop/mobile/keyboard, and all security probes. See [Task 2 evidence and limitations](../../security/2026-10-18-m3-task2-editor.md) and the subsequent [independent local Task 2 approval](../../security/2026-10-18-m3-task2-independent-review.md). Hosted and production gates remain closed.
 
 ## Task 3 — Deployed preview verification and final gate
+
+The [exact Preview deployment and isolation plan](2026-10-18-m3-task3-preview-isolation.md) is prepared, including the new runner project's first-deployment Production bootstrap constraint. No Task 3 hosted operation has been authorized or executed by preparing it.
 
 - [ ] **After separate owner authorization**, connect/provision second Vercel static project and test exact independently isolated main/runner preview sites. No DNS, billing or OAuth changes by default.
 - [ ] Verify actual HTTPS, cookie domain behavior, iframe flags, CSP HTML **and Worker responses**, WASM asset behavior, window/message origin checks, storage/network boundaries and browser compatibility.
