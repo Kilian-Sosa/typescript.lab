@@ -1,0 +1,47 @@
+
+interface Object {}
+interface Function {}
+interface CallableFunction extends Function {}
+interface NewableFunction extends Function {}
+interface IArguments { length: number; callee: Function; [index: number]: any; }
+interface String { readonly length: number; repeat(count: number): string; }
+interface Number {}
+interface Boolean {}
+interface RegExp { test(value: string): boolean; }
+interface Symbol {}
+interface Array<T> {
+  readonly length: number;
+  [index: number]: T;
+  fill(value: T): this;
+}
+interface ReadonlyArray<T> extends Array<T> {}
+interface Map<K, V> {
+  readonly size: number;
+  get(key: K): V | undefined;
+  set(key: K, value: V): this;
+  delete(key: K): boolean;
+}
+interface MapConstructor { new <K, V>(): Map<K, V>; }
+declare var Map: MapConstructor;
+interface ArrayConstructor { new <T>(length?: number): Array<T>; }
+declare var Array: ArrayConstructor;
+interface Error { readonly name: string; readonly message: string; }
+interface ErrorConstructor { new(message?: string): Error; }
+declare var Error: ErrorConstructor;
+declare var fetch: unknown;
+declare var window: unknown;
+declare var document: unknown;
+declare var localStorage: unknown;
+declare var indexedDB: unknown;
+declare var parent: unknown;
+declare var location: unknown;
+declare var WebSocket: unknown;
+declare var XMLHttpRequest: unknown;
+declare var self: unknown;
+declare var Worker: unknown;
+declare var process: unknown;
+declare var require: unknown;
+declare var postMessage: unknown;
+
+declare var expected: unknown;
+declare var NaN: number;
