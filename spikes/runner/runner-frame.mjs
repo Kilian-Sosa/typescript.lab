@@ -6,7 +6,16 @@ const MAX_INPUT_BYTES = 1024 * 1024;
 const MAX_OUTPUT_BYTES = 64 * 1024;
 const MAX_CASES = 100;
 const activeWorkers = new Map();
-const metrics = { workersCreated: 0, workersTerminated: 0, activeWorkers: 0, lastPayloadKeys: [], lastWorkerId: null };
+const metrics = {
+  workersCreated: 0,
+  workersTerminated: 0,
+  activeWorkers: 0,
+  maxActiveWorkers: 0,
+  lastPayloadKeys: [],
+  lastWorkerId: null,
+};
+let handshakeComplete = false;
+let handshakeNonce = null;
 window.__runnerMetrics = metrics;
 
 function bytes(value) {
@@ -189,9 +198,20 @@ function beginRun(request, { testDisableVmInterrupt = false } = {}) {
     }, { status: 'policy-rejected', diagnostics: [error] }));
     return;
   }
+  if (!handshakeComplete) {
+    sendToParent(resultEnvelope(request, {
+      status: 'infrastructure-error',
+      diagnostics: ['Runner handshake is required before execution.'],
+    }, 'infrastructure-error'));
+    return;
+  }
   const key = `${request.runId}:${request.nonce}`;
-  if (activeWorkers.has(key)) {
-    finishWorker(activeWorkers.get(key), { status: 'policy-rejected', diagnostics: ['Duplicate active run.'] }, 'policy-rejected');
+  if (activeWorkers.has(key)) return;
+  if (activeWorkers.size > 0) {
+    sendToParent(resultEnvelope(request, {
+      status: 'policy-rejected',
+      diagnostics: ['Runner is busy; retry after the active run completes.'],
+    }, 'policy-rejected'));
     return;
   }
 
@@ -207,6 +227,7 @@ function beginRun(request, { testDisableVmInterrupt = false } = {}) {
   activeWorkers.set(key, state);
   metrics.workersCreated += 1;
   metrics.activeWorkers = activeWorkers.size;
+  metrics.maxActiveWorkers = Math.max(metrics.maxActiveWorkers, metrics.activeWorkers);
   metrics.lastWorkerId = `${request.runId}-${metrics.workersCreated}`;
   state.workerId = metrics.lastWorkerId;
   state.hardTimer = setTimeout(() => {
@@ -254,6 +275,9 @@ function beginRun(request, { testDisableVmInterrupt = false } = {}) {
 }
 
 function cancelRun(message) {
+  if (!handshakeComplete || message.protocol !== PROTOCOL_VERSION || message.kind !== 'cancel'
+    || typeof message.nonce !== 'string' || typeof message.runId !== 'string'
+    || !Number.isInteger(message.sourceRevision)) return;
   const key = `${message.runId}:${message.nonce}`;
   const state = activeWorkers.get(key);
   if (!state || message.sourceRevision !== state.request.sourceRevision) return;
@@ -264,6 +288,14 @@ window.addEventListener('message', (event) => {
   if (event.source !== parent || event.origin !== APP_ORIGIN) return;
   const message = event.data;
   if (!message || typeof message !== 'object' || Array.isArray(message)) return;
+  if (message.kind === 'handshake') {
+    if (message.protocol !== PROTOCOL_VERSION || typeof message.nonce !== 'string'
+      || message.nonce.length < 16 || message.nonce.length > 128 || handshakeComplete) return;
+    handshakeNonce = message.nonce;
+    handshakeComplete = true;
+    sendToParent({ protocol: PROTOCOL_VERSION, kind: 'handshake-ack', nonce: handshakeNonce });
+    return;
+  }
   if (message.kind === 'test-parent-message' && message.message && typeof message.message === 'object') {
     sendToParent(message.message);
     return;
