@@ -137,6 +137,74 @@ describe('isolated supervisor', () => {
 });
 
 describe('real TypeScript + QuickJS evaluator', () => {
+  it.each([
+    ['inherited toJSON returning a nonfinite number', 'class R { toJSON() { return NaN; } } export function longestWindow() { return new R(); }'],
+    ['inherited toJSON returning a sparse array', 'class R { toJSON() { return new Array(2); } } export function longestWindow() { return new R(); }'],
+    ['changing getter', 'export function longestWindow() { let i = 0; return { get start() { return ++i === 1 ? 0 : NaN; }, endExclusive: 0 }; }'],
+    ['plain class instance', 'class R { start = 0; endExclusive = 0; } export function longestWindow() { return new R(); }'],
+    ['poisoned array iterator', `export function longestWindow() {
+      const root: any = ([] as any).constructor.constructor('return globalThis')();
+      root.Array.prototype[root.Symbol.iterator] = function () { return { next: () => ({ done: true }) }; };
+      return { invalid: NaN };
+    }`],
+    ['poisoned ancestor tracking', `export function longestWindow() {
+      const root: any = ([] as any).constructor.constructor('return globalThis')();
+      root.Array.prototype.indexOf = () => -1;
+      root.Array.prototype[root.Symbol.iterator] = function () { return { next: () => ({ done: true }) }; };
+      return { invalid: new Array(2) };
+    }`],
+    ['inherited Object serialization hook', `export function longestWindow() {
+      const root: any = ([] as any).constructor.constructor('return globalThis')();
+      root.Object.prototype.toJSON = () => NaN;
+      return { start: 0, endExclusive: 0 };
+    }`],
+    ['inherited Array serialization hook', `export function longestWindow() {
+      const root: any = ([] as any).constructor.constructor('return globalThis')();
+      root.Array.prototype.toJSON = () => new Array(2);
+      return [1, 2];
+    }`],
+  ])('rejects %s at the VM JSON boundary', async (_label, text) => {
+    const result = await evaluate(workerRequest(text));
+    expect(result.status).toBe('policy-rejected');
+    expect(result.cases).toEqual([]);
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+  });
+  it('does not invoke accessors while snapshotting output', async () => {
+    const result = await evaluate(workerRequest('export function longestWindow() { return { get start(): number { while (true) {} }, endExclusive: 0 }; }'));
+    expect(result.status).toBe('policy-rejected');
+  });
+  it('preserves inert nested data despite poisoned VM intrinsics and prototype fields', async () => {
+    const result = await evaluate(workerRequest(`export function longestWindow() {
+      const root: any = ([] as any).constructor.constructor('return globalThis')();
+      const object = root.Object.create(null);
+      object['__proto__'] = { preserved: true };
+      object.toJSON = 'ordinary data';
+      object.values = [null, true, '雪', 1.5, { nested: [0, false] }];
+      root.Object.prototype.get = () => 99;
+      root.Object.prototype.set = () => 99;
+      root.Array.prototype.indexOf = () => -1;
+      root.Array.prototype[root.Symbol.iterator] = () => ({ next: () => ({ done: true }) });
+      root.Object.getOwnPropertyDescriptor = root.Object.getPrototypeOf = root.Object.create = () => null;
+      root.Object.defineProperty = root.Object.setPrototypeOf = () => null;
+      root.Reflect.ownKeys = () => [];
+      root.Number.isFinite = () => true;
+      root.JSON.stringify = () => 'null';
+      return object;
+    }`));
+    expect(result.status).toBe('ok');
+    expect(result.cases[0]!.actual).toEqual(JSON.parse('{"__proto__":{"preserved":true},"toJSON":"ordinary data","values":[null,true,"雪",1.5,{"nested":[0,false]}]}'));
+  });
+  it.each([
+    ['nested accessor', 'return { nested: { get value() { return 1; } } };'],
+    ['sparse array', 'return new Array(2);'],
+    ['nonfinite nested value', 'return { value: [NaN] };'],
+    ['cycle', 'const v: any = {}; v.self = v; return v;'],
+    ['depth budget', 'let v: any = 0; for (let i = 0; i < 40; i++) v = { v }; return v;'],
+    ['symbol key', "const root: any = ([] as any).constructor.constructor('return globalThis')(); const v: any = {}; v[root.Symbol('hidden')] = 1; return v;"],
+    ['array extra property', 'const v: any = [1]; v.extra = 2; return v;'],
+  ])('rejects %s instead of silently dropping unsupported output', async (_label, body) => {
+    expect((await evaluate(workerRequest(`export function longestWindow() { ${body} }`))).status).toBe('policy-rejected');
+  });
   it('runs all canonical cases from current source and changes results for incorrect source', async () => {
     const result = await evaluate(workerRequest());
     expect(result.status).toBe('ok');

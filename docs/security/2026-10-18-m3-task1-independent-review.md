@@ -6,7 +6,7 @@ Date: 2026-10-18. Requested explicitly by the owner after the bounded implementa
 
 **Reviewer:** independent read-only GPT-6.1 Sol Medium security reviewer. It inspected the new implementation, tests, delivery configuration and governing specifications. It did not edit files, commit, push, deploy, provision resources or launch other agents. This is a new implementation review; the [earlier M3 correction approval](2026-10-18-m3-correction-validation.md) covered the spike corrections only.
 
-**Decision: NO-GO for clearing Task 1 as the Task 2 prerequisite.** One reproducible P2 JSON-boundary conformance blocker remains. No sandbox escape or host API exposure was demonstrated. Production execution remains **NO-GO** independently of this defect.
+**Original decision at `7f4164e`: NO-GO for clearing Task 1 as the Task 2 prerequisite.** One reproducible P2 JSON-boundary conformance blocker was found. No sandbox escape or host API exposure was demonstrated. **Subsequent focused reassessment closed this P2**; see the [correction and independent reassessment](2026-10-18-m3-json-boundary-correction.md). Local Task 1/Task 2 prerequisite is now GO; hosted and production gates remain NO-GO.
 
 **Spec impact: no spec change.** Remediation restores the existing finite/plain/dense JSON boundary and documented policy-rejection semantics in the approved runner architecture. Frozen Shared Contracts v1 need no amendment.
 
@@ -41,4 +41,4 @@ The coordinator independently confirmed both `toJSON` reproductions against the 
 - Before the implementation commit, the coordinator reran **25 runner tests**, **153 application tests**, and both strict typechecks; all passed.
 - Deployed HTTPS/site/cookie/CSP/WASM behavior, parent adapter validation, mobile/cold-cache/offline behavior and cross-browser compatibility remain separate unverified gates.
 
-The implementation commit remains intact for review. This report does not approve Task 2 integration, hosting, production enablement or release. The current requested work commits Task 1 and obtains review; remediation is not included in this handoff.
+The original implementation commit remains intact for review. This report preserves the original finding; the separately requested [correction and reassessment](2026-10-18-m3-json-boundary-correction.md) document closure. Neither report authorizes hosting, production enablement or release.

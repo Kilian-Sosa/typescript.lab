@@ -114,6 +114,16 @@ test('built cross-site runner enforces CSP, actual evaluation, deadlines, recove
     await run('export function longestWindow() { while(true) {} }', 'timeout');
     assert.ok(await page.evaluate(before => ticks > before + 10, before));
     await run('export function longestWindow() { return "x".repeat(70000); }', 'execution-error', 'policy-rejected');
+    for (const source of [
+      'class R { toJSON() { return NaN; } } export function longestWindow() { return new R(); }',
+      'class R { toJSON() { return new Array(2); } } export function longestWindow() { return new R(); }',
+      'export function longestWindow() { return { get start(): number { while(true) {} }, endExclusive: 0 }; }',
+      `export function longestWindow() {
+        const root: any = ([] as any).constructor.constructor('return globalThis')();
+        root.Array.prototype[root.Symbol.iterator] = () => ({ next: () => ({ done: true }) });
+        return { invalid: NaN };
+      }`,
+    ]) await run(source, 'execution-error', 'policy-rejected');
     await run('export function longestWindow(): number { return longestWindow() + 1; }', 'execution-error', 'runtime-error');
     await run('export function longestWindow() { return new Array(100000000).fill(1); }', 'execution-error', 'runtime-error');
     // Cancellation and burst pressure hit the built supervisor, without test commands in its protocol.

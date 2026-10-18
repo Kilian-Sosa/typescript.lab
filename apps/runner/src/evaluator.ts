@@ -2,29 +2,63 @@ import { newQuickJSWASMModule, RELEASE_SYNC, type QuickJSContext, type QuickJSHa
 import { compile } from './compiler';
 import { bytes, json, LIMITS, validWorkerRequest, type WorkerReply, type WorkerRequest } from './protocol';
 
-// Capture serialization functions before learner code can mutate its own VM globals.
+// Snapshot data descriptors once, using pristine intrinsics and inert output containers.
 const SERIALIZER = `(() => {
-  const stringify = JSON.stringify, keys = Object.keys, isArray = Array.isArray,
-    finite = Number.isFinite, hasOwn = Object.hasOwn;
+  const stringify = JSON.stringify, ownKeys = Reflect.ownKeys, isArray = Array.isArray,
+    finite = Number.isFinite, hasOwn = Object.hasOwn, create = Object.create,
+    descriptor = Object.getOwnPropertyDescriptor, prototype = Object.getPrototypeOf,
+    define = Object.defineProperty, setPrototype = Object.setPrototypeOf,
+    objectPrototype = Object.prototype, arrayPrototype = Array.prototype, SafeError = Error;
+  function reject() { throw new SafeError('Output must be finite plain JSON data without accessors or serialization hooks.'); }
+  function data(object, key) {
+    const d = descriptor(object, key);
+    if (!d || !hasOwn(d, 'value')) reject();
+    return d;
+  }
+  function put(object, key, value) {
+    const d = create(null);
+    d.value = value; d.enumerable = true;
+    define(object, key, d);
+  }
   return value => {
     let nodes = 0;
-    const seen = [];
-    function check(v, depth) {
-      if (++nodes > 100000 || depth > 32) throw Error('Output structure exceeds limits.');
-      if (v === null || typeof v === 'string' || typeof v === 'boolean') return;
-      if (typeof v === 'number' && finite(v)) return;
-      if (typeof v !== 'object' || seen.indexOf(v) >= 0) throw Error('Output must be finite JSON data.');
-      seen[seen.length] = v;
+    const ancestors = create(null);
+    function snapshot(v, depth) {
+      if (++nodes > 100000 || depth > 32) reject();
+      if (v === null || typeof v === 'string' || typeof v === 'boolean') return v;
+      if (typeof v === 'number' && finite(v)) return v;
+      if (typeof v !== 'object') reject();
+      for (let i = 0; i < depth; i++) if (ancestors[i] === v) reject();
+      ancestors[depth] = v;
+      const proto = prototype(v), keys = ownKeys(v);
+      if (prototype(objectPrototype) !== null || descriptor(objectPrototype, 'toJSON')) reject();
       if (isArray(v)) {
-        if (v.length > 100000) throw Error('Output structure exceeds limits.');
-        for (let i = 0; i < v.length; i++) { if (!hasOwn(v, i)) throw Error('Sparse output.'); check(v[i], depth + 1); }
-      } else {
-        for (const k of keys(v)) check(v[k], depth + 1);
+        if (proto !== null && proto !== arrayPrototype || prototype(arrayPrototype) !== objectPrototype
+          || descriptor(arrayPrototype, 'toJSON')) reject();
+        const length = data(v, 'length').value;
+        if (typeof length !== 'number' || length < 0 || length > 100000 || length % 1 !== 0
+          || keys.length !== length + 1) reject();
+        const result = [];
+        setPrototype(result, null);
+        for (let i = 0; i < length; i++) {
+          const d = data(v, i);
+          if (!d.enumerable) reject();
+          put(result, i, snapshot(d.value, depth + 1));
+        }
+        return result;
       }
-      seen.length--;
+      if (proto !== null && proto !== objectPrototype) reject();
+      const result = create(null);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        if (typeof key !== 'string') reject();
+        const d = data(v, key);
+        if (!d.enumerable) reject();
+        put(result, key, snapshot(d.value, depth + 1));
+      }
+      return result;
     }
-    check(value, 0);
-    return stringify(value);
+    return stringify(snapshot(value, 0));
   };
 })()`;
 
