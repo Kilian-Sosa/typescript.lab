@@ -1,5 +1,7 @@
 # Local Supabase persistence
 
+The existing hosted project's initial persistence and helper-grant migrations were applied with owner approval on 2026-10-17. Local filenames match the recorded hosted versions; the verified persistence SQL contents are unchanged. See the [hosted verification record](../docs/security/2026-10-17-hosted-persistence-verification.md). This does not authorize pushing later migrations or resetting a hosted database. The platform-helper hardening migration is a no-op when a local environment does not install that helper.
+
 Use Supabase CLI 2.121.0 and run these commands from the Track D worktree so the isolated `typescript-lab-track-d` configuration is selected:
 
 ```powershell

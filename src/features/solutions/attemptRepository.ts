@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AttemptEvaluation, CreateAttemptInput, SolutionAttempt } from '../../../shared/contracts/v1';
 
 export interface AttemptRepository {
-  createAttempt(input: CreateAttemptInput): Promise<SolutionAttempt>;
+  createAttempt(input: CreateAttemptInput, expectedUserId: string): Promise<SolutionAttempt>;
   listAttempts(challengeId?: string): Promise<SolutionAttempt[]>;
   subscribeToSessionChanges(listener: () => void): () => void;
 }
@@ -260,8 +260,11 @@ export function createAttemptRepository(
   };
 
   return {
-    async createAttempt(input) {
+    async createAttempt(input, expectedUserId) {
       const snapshot = await captureVerifiedSession();
+      if (snapshot.userId !== expectedUserId) {
+        throw new AttemptAuthorizationError();
+      }
       const { data, error } = await requestClientFor(snapshot)
         .from('solution_attempts')
         .insert(insertRecord(input))

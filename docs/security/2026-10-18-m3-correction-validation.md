@@ -31,3 +31,11 @@ No remaining blocking finding was identified in this focused reassessment. Fixtu
 - Edge required a narrow approved outside-sandbox invocation after the sandbox failed replacing temporary SiteList files. No approval was bypassed and no dependency was installed for the reassessment.
 
 See the [worker correction evidence](2026-10-17-m3-corrections.md) for the full red/green record. This local decision does not validate deployed TLS, cookie/site separation, actual HTML/Worker CSP, WASM delivery, broader browser/mobile behavior, cold-cache/offline behavior or production activation. Those remain the existing Q5/Q6 and owner approval gates.
+
+## PR #7 reconciliation after PR #6 merge — 2026-10-18
+
+The owner requested resolution of PR #7's conflicts after merging PR #6. The clean `fix/runner-security` worktree merged `origin/main` at `3c1d4fd` without rewriting branch history. The only conflict was adjacent M3/M4 status rows in `ROADMAP.md`: retain this branch's independently validated M3 status and main's current M4 status, then reconcile the overview with both records. No source files conflicted; runner spike code and tests remain unchanged from `83e4889`, and main's sign-out submission correction is preserved.
+
+**Spec impact: no spec change.** This reconciles accepted implementation/gate records under the existing runner design, REQ-07/13, ADR-0002/0003 and frozen contracts. It introduces no new product behavior or gate decision.
+
+Fresh combined-branch verification: all **seven** QuickJS/browser and original isolation tests pass using installed Edge and existing pinned modules; all **153** application unit tests pass. Strict Vue/TypeScript, production app build, shared-contract compilation, four runner JavaScript syntax checks, documentation links and whitespace checks pass. Browser verification ran outside the sandbox using the previously validated local test setup. Generated runner evidence remains ignored. This is integration verification, not a new independent security approval, deployment or learner-execution enablement.

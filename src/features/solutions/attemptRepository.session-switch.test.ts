@@ -135,7 +135,7 @@ describe('attempt repository account-switch transport safety', () => {
       (accessToken) => createScopedDataClient(config, accessToken, transport.fetcher),
     );
 
-    const save = repository.createAttempt(input);
+    const save = repository.createAttempt(input, 'owner-a');
     await transport.userAStarted;
     await signInAs(authClient, 'owner-b');
     transport.releaseUserA();
@@ -153,7 +153,7 @@ describe('attempt repository account-switch transport safety', () => {
       (accessToken) => createScopedDataClient(config, accessToken, transport.fetcher),
     );
 
-    const save = repository.createAttempt(input);
+    const save = repository.createAttempt(input, 'owner-a');
     await transport.attemptWriteStarted;
     await signInAs(authClient, 'owner-b');
     transport.releaseWrite();

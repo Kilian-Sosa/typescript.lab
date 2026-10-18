@@ -1,7 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { captureAuthCallback } from '../features/auth/auth';
+
+// Web history snapshots the initial URL at construction, so scrub before creating it.
+export const initialAuthCallback = captureAuthCallback(window.location.href,
+  (path) => window.history.replaceState(null, '', path));
 
 const routes = [
   { path: '/', redirect: '/explore' },
+  { path: '/auth/callback', name: 'auth-callback', component: () => import('../features/auth/AuthCallbackPage.vue') },
   {
     path: '/explore',
     name: 'explore',
@@ -33,6 +39,14 @@ export const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior(to) {
-    return to.hash ? { el: to.hash } : { top: 0 };
+    if (!to.hash) {
+      return { top: 0 };
+    }
+    try {
+      const anchor = document.getElementById(decodeURIComponent(to.hash.slice(1)));
+      return anchor ? { el: anchor } : { top: 0 };
+    } catch {
+      return { top: 0 };
+    }
   },
 });

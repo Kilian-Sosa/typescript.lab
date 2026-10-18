@@ -10,13 +10,15 @@ These six scoped plans translate the approved [product specification](../specs/2
 | M3 — Untrusted code execution | [Isolated TypeScript Execution](2026-10-16-runner-security.md) |
 | M3 — Approved QuickJS implementation | [Dedicated cross-site runner](2026-10-17-quickjs-runner-implementation.md) |
 | M4 — Supabase and drafts | [Authentication and Private Drafts](2026-10-16-auth-and-drafts.md) |
+| M4 — Frontend recovery | [Authentication, autosave and recovery execution](2026-10-17-m4-frontend-recovery.md) |
+| Preview preparation | [Separate app and runner approval packages](2026-10-17-preview-preparation.md) |
 | M5 — Saved solutions | [Immutable Attempts and Notebook](2026-10-16-notebook-history.md) |
 | M6 — Launch readiness | [Learning Visualization and MVP Release](2026-10-16-release-polish.md) |
 | Current parallel wave | [Runner, Notebook and Reference Visualizer](2026-10-17-runner-notebook-visualizer-wave.md) |
 
 Before implementing a plan, read [AGENTS.md](../../../AGENTS.md), the relevant ADRs, and the current [ROADMAP](../../../ROADMAP.md). Use Superpowers TDD, verification and SDD change tracing. Security, RLS, external service costs and production launch retain their approval gates.
 
-**Current execution:** The owner selected [the initial A–D wave](2026-10-16-initial-parallel-wave.md), then [parallel M3/M5/M6 Task 1](2026-10-17-runner-notebook-visualizer-wave.md) on 2026-10-17. Local Notebook and reference visualization are integrated and verified. Runner **technical feasibility/security validation**, hosted authentication, draft autosave and deployment retain their separate gates. The [Shared Contracts v1 specification](../specs/2026-10-16-shared-contracts-design.md) remains unchanged.
+**Current execution:** The initial waves delivered Notebook and reference visualization. Hosted schema/RLS and the original GitHub session flow were verified on 2026-10-17. [M4 frontend recovery](2026-10-17-m4-frontend-recovery.md) is locally verified and deployed to a protected app Preview pinned to `cf5a040`, with its exact OAuth callback configured; full live acceptance remains pending. See the [deployment record](2026-10-17-preview-preparation.md) and [final M4 security review](../../security/2026-10-18-final-m4-security-review.md). Runner corrections independently passed on separate branch `fix/runner-security` (`83e4889`), clearing its local Task 1 prerequisite; they are not integrated into this auth branch. Runner hosting and production app deployment retain separate gates. The [Shared Contracts v1 specification](../specs/2026-10-16-shared-contracts-design.md) remains unchanged.
 
 **Runner decision (2026-10-17):** dedicated cross-site Vercel runner + sandboxed iframe + disposable Worker + QuickJS/WASM is approved **as an architecture**. The [focused design](../specs/2026-10-17-dedicated-runner-design.md) requires new VM/cross-site feasibility evidence before production code and deployed-origin verification before release. M5 Notebook and M6 reference visualization may proceed in parallel, with shared-page file ownership and final integration gates preserved.
 

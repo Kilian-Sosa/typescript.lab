@@ -11,12 +11,14 @@ import {
 import { exportAttempts } from '../features/solutions/exportAttempts';
 import { findChallenge } from '../features/challenges/registry';
 import { attemptRepositoryKey, notebookSessionKey } from '../features/solutions/session';
+import { authControllerKey } from '../features/auth/auth';
 
 type PageState = 'loading' | 'ready' | 'empty' | 'unconfigured' | 'signed-out' | 'error';
 type ExportFormat = 'typescript' | 'markdown' | 'json';
 
 const repository = inject<AttemptRepository | null>(attemptRepositoryKey, null);
 const session = inject(notebookSessionKey, null);
+const auth = inject(authControllerKey, null);
 const route = useRoute();
 const router = useRouter();
 const slug = computed(() => typeof route.params.slug === 'string' ? route.params.slug : '');
@@ -79,6 +81,8 @@ function attemptStatus(attempt: SolutionAttempt): string {
 function clearAndReload(): void {
   attempts.value = [];
   selectedAttemptId.value = '';
+  showingComparison.value = false;
+  exportError.value = '';
   void loadAttempts();
 }
 
@@ -87,6 +91,8 @@ async function loadAttempts(): Promise<void> {
   const challengeId = slug.value;
   attempts.value = [];
   selectedAttemptId.value = '';
+
+  if (auth && !auth.state.userId) { state.value = 'signed-out'; return; }
 
   if (!repository) {
     state.value = 'unconfigured';
@@ -181,6 +187,7 @@ watch(slug, () => {
   showingComparison.value = false;
   void loadAttempts();
 });
+watch(() => auth?.state.userId, clearAndReload, { flush: 'sync' });
 
 onBeforeUnmount(() => {
   loadRevision += 1;

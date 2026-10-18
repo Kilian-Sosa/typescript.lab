@@ -1,11 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h, provide } from 'vue';
+import { defineComponent, h, provide, reactive } from 'vue';
 import { createMemoryHistory, createRouter, RouterView } from 'vue-router';
 import { describe, expect, it, vi } from 'vitest';
 import type { SolutionAttempt } from '../../../shared/contracts/v1';
 import NotebookPage from '../../pages/NotebookPage.vue';
 import { AttemptAuthorizationError, type AttemptRepository } from './attemptRepository';
 import { attemptRepositoryKey } from './session';
+import { authControllerKey, type AuthController } from '../auth/auth';
 
 const attempt: SolutionAttempt = {
   id: 'attempt-a',
@@ -34,7 +35,7 @@ function makeRepository(listAttempts = vi.fn().mockResolvedValue([])) {
   return { repository, listAttempts, changeSession: () => sessionChanged?.() };
 }
 
-async function mountNotebook(repository: AttemptRepository) {
+async function mountNotebook(repository: AttemptRepository, auth?: AuthController) {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -49,6 +50,7 @@ async function mountNotebook(repository: AttemptRepository) {
   const host = defineComponent({
     setup() {
       provide(attemptRepositoryKey, repository);
+      if (auth) provide(authControllerKey, auth);
       return () => h(RouterView);
     },
   });
@@ -58,6 +60,16 @@ async function mountNotebook(repository: AttemptRepository) {
 }
 
 describe('Notebook list', () => {
+  it('clears private history when UI sign-out starts even if the SDK cannot complete sign-out', async () => {
+    const state = reactive({ userId: 'owner-a' as string | null });
+    const { repository } = makeRepository(vi.fn().mockResolvedValue([attempt]));
+    const { wrapper } = await mountNotebook(repository, { state } as unknown as AuthController);
+    expect(wrapper.text()).toContain(attempt.notes);
+    state.userId = null;
+    await flushPromises();
+    expect(wrapper.text()).not.toContain(attempt.notes);
+    expect(wrapper.find('button[aria-label="Export all attempts as JSON"]').exists()).toBe(false);
+  });
   it('shows a useful empty state without illustrative history', async () => {
     const { repository } = makeRepository();
     const { wrapper } = await mountNotebook(repository);
