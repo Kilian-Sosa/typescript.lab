@@ -55,6 +55,56 @@ test('Vue editor runs its current source through the cross-site iframe and rende
       const run = page.getByRole('button', { name: 'Run tests', exact: true });
       const status = page.locator('#execution-status');
       assert.match(await status.textContent(), /Tests have not run/);
+      if (viewport.width === 1280) {
+        // Verify isolated browser-site storage using the real cross-origin runner document.
+        const appStorage = await page.evaluate(async () => {
+          document.cookie = 'm3-app-canary=private; Path=/; SameSite=Lax';
+          localStorage.setItem('m3-app-canary', 'private');
+          await new Promise((resolve, reject) => {
+            const open = indexedDB.open('m3-app-only-canary', 1);
+            open.onupgradeneeded = () => open.result.createObjectStore('canary');
+            open.onsuccess = () => { open.result.close(); resolve(); };
+            open.onerror = () => reject(open.error);
+          });
+          return {
+            cookie: document.cookie.includes('m3-app-canary=private'),
+            local: localStorage.getItem('m3-app-canary') === 'private',
+            indexedDb: (await indexedDB.databases()).some(db => db.name === 'm3-app-only-canary'),
+          };
+        });
+        assert.deepEqual(appStorage, { cookie: true, local: true, indexedDb: true });
+        await page.evaluate(origin => {
+          const frame = document.createElement('iframe');
+          frame.id = 'storage-isolation-probe';
+          frame.title = 'Storage isolation probe';
+          frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+          frame.src = origin;
+          document.body.append(frame);
+        }, runnerOrigin);
+        const frame = page.frameLocator('#storage-isolation-probe');
+        // The iframe starts at inherited about:blank; wait for the cross-origin navigation boundary.
+        await page.waitForFunction(() => {
+          const child = document.querySelector('#storage-isolation-probe');
+          try { void child.contentWindow.document; return false; }
+          catch (error) { return error instanceof DOMException && error.name === 'SecurityError'; }
+        });
+        await frame.locator('body').waitFor({ state: 'attached' });
+        const storage = await frame.locator('body').evaluate(async () => ({
+          origin: location.origin,
+          appCookie: document.cookie.includes('m3-app-canary'),
+          appStorage: localStorage.getItem('m3-app-canary'),
+          appIndexedDb: (await indexedDB.databases()).some(db => db.name === 'm3-app-only-canary'),
+        }));
+        assert.deepEqual(storage, { origin: runnerOrigin, appCookie: false, appStorage: null, appIndexedDb: false });
+        const parentDomBlocked = await page.evaluate(() => {
+          const child = document.querySelector('#storage-isolation-probe');
+          try { void child.contentWindow.document.body; return false; }
+          catch (error) { return error instanceof DOMException && error.name === 'SecurityError'; }
+        });
+        assert.equal(parentDomBlocked, true);
+        await page.locator('#storage-isolation-probe').evaluate(node => node.remove());
+        console.log('PASS separate-site cookie, localStorage, IndexedDB and parent DOM isolation');
+      }
       const evaluate = async (text, expected) => {
         await source.fill(text);
         await run.focus(); await page.keyboard.press('Enter');
