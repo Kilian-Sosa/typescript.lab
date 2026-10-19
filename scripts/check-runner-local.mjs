@@ -64,7 +64,30 @@ test('Vue editor runs its current source through the cross-site iframe and rende
         assert.equal(await run.evaluate(el => document.activeElement === el), true);
         assert.equal(await page.locator('iframe').count(), 0);
       };
+      const resourceLimit = async (text, label, expected) => {
+        await source.fill(text);
+        await run.click();
+        await page.waitForFunction(() => {
+          const title = document.querySelector('#execution-status')?.textContent;
+          return ['Code is unsupported', 'Execution failed', 'Run timed out', 'Compilation failed', 'Runner unavailable']
+            .includes(title);
+        }, null, { timeout: 20000 });
+        const observed = (await status.textContent()).trim();
+        assert.equal(observed, expected, `Unexpected ${label} failure classification`);
+        assert.equal(await page.locator('iframe').count(), 0);
+        console.log(`PASS bounded resource probe ${label}: ${observed}`);
+      };
       await evaluate(solution, 'All 14 tests passed');
+      // Exercise limits against the actual worker rather than relying only on policy unit tests.
+      if (viewport.width === 1280) {
+        await resourceLimit('export function longestWindow(){return "x".repeat(70000)}', 'output', 'Code is unsupported');
+        await resourceLimit('export function longestWindow(){return new Array(10000000).fill(0)}', 'memory', 'Execution failed');
+        await resourceLimit('export function longestWindow(){function f(): never {return f()} return f()}', 'stack', 'Execution failed');
+        const oversize = 'export function longestWindow(){return {start:0,endExclusive:0}}' + ' '.repeat(32769);
+        await resourceLimit(oversize, 'source', 'Code is unsupported');
+        assert.match(await page.getByRole('list', { name: 'Run diagnostics' }).textContent(), /32 KiB/);
+        await evaluate(solution, 'All 14 tests passed');
+      }
       assert.equal(await page.getByRole('list', { name: 'Test case results' }).getByRole('listitem').count(), 14);
       await evaluate('export function longestWindow() { return { start: 0, endExclusive: 0 }; }', 'Tests failed');
       assert.match(await page.getByRole('list', { name: 'Test case results' }).textContent(), /Expected.*Actual/s);
@@ -86,6 +109,27 @@ test('Vue editor runs its current source through the cross-site iframe and rende
       await page.waitForFunction(() => document.querySelector('#execution-status')?.textContent?.includes('Source changed'));
       assert.equal(await page.locator('iframe').count(), 0);
       await evaluate(solution, 'All 14 tests passed');
+      if (viewport.width === 1280) {
+        // True network isolation: a completely offline child cannot load; retries do not reuse prior success.
+        await context.setOffline(true);
+        await source.fill(solution + ' ');
+        await run.click();
+        await page.waitForFunction(() => document.querySelector('#execution-status')?.textContent?.includes('Runner unavailable'), null, { timeout: 20000 });
+        assert.equal(await page.locator('iframe').count(), 0);
+        await context.setOffline(false);
+        await evaluate(solution, 'All 14 tests passed');
+        // Fresh and warm navigation must preserve exact-origin activation and honest result reporting.
+        await page.reload();
+        await page.getByRole('textbox', { name: 'TypeScript source', exact: true }).waitFor();
+        await evaluate(solution, 'All 14 tests passed');
+        // The live status is announced and reachable with the keyboard.
+        assert.equal(await status.getAttribute('role'), 'status');
+        await run.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForFunction(() => document.querySelector('#execution-status')?.textContent?.includes('All 14 tests passed'));
+        assert.equal(await run.evaluate(el => el === document.activeElement), true);
+        assert.equal(await page.locator('iframe').count(), 0);
+      }
       await source.fill('buffer preserved across modes');
       page.once('dialog', dialog => dialog.accept());
       await page.getByRole('button', { name: 'Learning mode', exact: true }).click();
@@ -111,6 +155,19 @@ test('Vue editor runs its current source through the cross-site iframe and rende
       await evaluate(solution, 'All 14 tests passed');
       const dimensions = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
       assert.ok(dimensions.content <= dimensions.viewport, JSON.stringify(dimensions));
+      // Reduced CSS viewport exercises responsive reflow at zoom without bypassing media queries.
+      if (viewport.width === 1280) {
+        for (const width of [640, 320]) {
+          await page.setViewportSize({ width, height: viewport.height });
+          const zoom = await page.evaluate(() => {
+            const doc = document.documentElement;
+            return { content: doc.scrollWidth, viewport: doc.clientWidth };
+          });
+          assert.ok(zoom.content <= zoom.viewport, 'Horizontal reflow overflow at CSS width '
+            + width + ': ' + JSON.stringify(zoom));
+        }
+        await page.setViewportSize(viewport);
+      }
       await source.focus(); await page.keyboard.press('Tab');
       assert.equal(await source.evaluate(el => document.activeElement !== el), true);
       await mkdir(join(root, 'output/playwright'), { recursive: true });
