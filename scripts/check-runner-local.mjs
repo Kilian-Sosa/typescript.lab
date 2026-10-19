@@ -224,6 +224,51 @@ test('Vue editor runs its current source through the cross-site iframe and rende
       await page.screenshot({ path: join(root, `output/playwright/m3-task2-${viewport.width}.png`), fullPage: true });
       await context.close();
     }
+    // Force real third-party-cookie restrictions in Edge without weakening the iframe security policy.
+    const blockedContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const blockedPage = await blockedContext.newPage();
+    const cdp = await blockedContext.newCDPSession(blockedPage);
+    await cdp.send('Network.enable');
+    await cdp.send('Network.setCookieControls', {
+      enableThirdPartyCookieRestriction: true,
+      disableThirdPartyCookieMetadata: true,
+      disableThirdPartyCookieHeuristics: true,
+    });
+    await blockedContext.addCookies([{
+      name: 'm3-runner-cookie-control', value: 'first-party', domain: 'runner.test',
+      path: '/', sameSite: 'None', secure: true,
+    }]);
+    const firstParty = await blockedContext.newPage();
+    await firstParty.goto(runnerOrigin);
+    assert.match(await firstParty.evaluate(() => document.cookie), /m3-runner-cookie-control=first-party/,
+      'Runner cookie first-party positive control failed');
+    await firstParty.close();
+    await blockedPage.goto(`${appOrigin}/challenges/longest-window`);
+    await blockedPage.evaluate(origin => {
+      const frame = document.createElement('iframe');
+      frame.id = 'cookie-blocked-probe';
+      frame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
+      frame.title = 'Third-party cookie isolation';
+      frame.src = origin;
+      document.body.append(frame);
+    }, runnerOrigin);
+    await blockedPage.waitForFunction(() => {
+      const iframe = document.querySelector('#cookie-blocked-probe');
+      try { void iframe.contentWindow.document; return false; }
+      catch (error) { return error instanceof DOMException && error.name === 'SecurityError'; }
+    });
+    const blockedRunnerCookie = await blockedPage.frameLocator('#cookie-blocked-probe').locator('body')
+      .evaluate(() => document.cookie);
+    assert.doesNotMatch(blockedRunnerCookie, /m3-runner-cookie-control/,
+      'Runner cookie was accessible as an unpartitioned third-party cookie');
+    await blockedPage.locator('#cookie-blocked-probe').evaluate(node => node.remove());
+    const blockedSource = blockedPage.getByRole('textbox', { name: 'TypeScript source', exact: true });
+    await blockedSource.fill(solution);
+    await blockedPage.getByRole('button', { name: 'Run tests', exact: true }).click();
+    await blockedPage.getByText('All 14 tests passed', { exact: true }).waitFor();
+    assert.equal(await blockedPage.locator('iframe').count(), 0);
+    await blockedContext.close();
+    console.log('PASS Edge restricted third-party cookies: first-party control, third-party isolation and 14/14 real tests');
     assert.deepEqual(errors, []);
     console.log('Desktop/mobile: actual pass/fail, semantic errors, policy, runtime, timeout, cancel, stale edits, forged pass, retry, keyboard and overflow checks passed.');
   } finally {
