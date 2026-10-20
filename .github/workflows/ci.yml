@@ -49,6 +49,9 @@ jobs:
           VERCEL_ENV: preview
           VERCEL_TARGET_ENV: preview
       - run: pnpm exec playwright install --with-deps chromium
+      - run: node --test scripts/check-mvp-preview-local.mjs
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
       - run: pnpm test:e2e
       - run: pnpm --dir apps/runner test:browser
         env:
