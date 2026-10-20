@@ -99,6 +99,6 @@ describe('editor and accessible results', () => {
   it('keeps Run disabled without the local security opt-in', () => {
     const wrapper = mount(RunnerControls, { props: { source: '', challengeId: 'longest-window', challengeVersion: '1.0.0' } });
     expect(wrapper.get('button[aria-label="Run tests"]').attributes('disabled')).toBeDefined();
-    expect(wrapper.text()).toContain('deployment verification');
+    expect(wrapper.text()).toContain('unavailable on this deployment');
   });
 });
