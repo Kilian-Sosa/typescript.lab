@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { inject, ref, watch } from 'vue';
-import type { SolutionAttempt } from '../../../shared/contracts/v1';
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
+import type { AttemptEvaluation, CreateAttemptInput, SolutionAttempt } from '../../../shared/contracts/v1';
+import { evaluationLabel } from './evaluationLabel';
 import { authControllerKey } from '../auth/auth';
 import {
   AttemptSessionChangedError,
@@ -13,6 +14,8 @@ const props = defineProps<{
   challengeId: string;
   challengeVersion: string;
   source: string;
+  evaluation?: AttemptEvaluation | undefined;
+  contextRevision?: number;
   recoveryNotes?: { notes: string; timeComplexity: string; spaceComplexity: string };
   returnTo?: string;
 }>();
@@ -32,6 +35,14 @@ const isSaving = ref(false);
 const statusMessage = ref('');
 const errorMessage = ref('');
 const needsSignIn = ref(false);
+const evaluation = computed<AttemptEvaluation>(() => props.evaluation ?? { status: 'untested' });
+let saveGeneration = 0;
+watch(() => [props.source, props.challengeId, props.challengeVersion, props.contextRevision,
+  auth?.state.userId, auth?.state.generation, auth?.state.status, auth?.state.signingOut, auth?.state.signOutFailed], () => {
+  saveGeneration++;
+  statusMessage.value = ''; errorMessage.value = ''; needsSignIn.value = false;
+}, { flush: 'sync' });
+onBeforeUnmount(() => { saveGeneration++; });
 watch(() => props.recoveryNotes, (value) => {
   if (!value) return;
   notes.value = value.notes;
@@ -43,6 +54,7 @@ watch([notes, timeComplexity, spaceComplexity], () => {
 }, { flush: 'sync' });
 
 async function saveAttempt(): Promise<void> {
+  if (isSaving.value) return;
   if (!repository) {
     errorMessage.value = 'Private saving is unavailable until Supabase is configured.';
     return;
@@ -52,24 +64,28 @@ async function saveAttempt(): Promise<void> {
   statusMessage.value = '';
   errorMessage.value = '';
   needsSignIn.value = false;
+  const generation = saveGeneration;
 
   try {
     const userId = auth?.state.userId;
     if (!userId || auth?.state.status !== 'signed-in' || auth.state.signingOut || auth.state.signOutFailed) {
       throw new AuthenticationRequiredError();
     }
-    const attempt = await repository.createAttempt({
+    const snapshot: CreateAttemptInput = {
       challengeId: props.challengeId,
       challengeVersion: props.challengeVersion,
       source: props.source,
       notes: notes.value,
       timeComplexity: timeComplexity.value.trim() || null,
       spaceComplexity: spaceComplexity.value.trim() || null,
-      testSummary: { status: 'untested' },
-    }, userId);
-    statusMessage.value = 'Attempt saved. Test status: Untested.';
+      testSummary: { ...evaluation.value },
+    };
+    const attempt = await repository.createAttempt(snapshot, userId);
+    if (generation !== saveGeneration) return;
+    statusMessage.value = `Attempt saved. Test status: ${evaluationLabel(attempt.testSummary)}.`;
     emit('saved', attempt);
   } catch (error) {
+    if (generation !== saveGeneration) return;
     if (error instanceof AuthenticationRequiredError) {
       errorMessage.value = 'Sign in to save this private attempt.';
       needsSignIn.value = true;
@@ -104,7 +120,9 @@ async function signIn(): Promise<void> {
         <p class="eyebrow">PERSONAL NOTEBOOK</p>
         <h2 id="submission-title">Save this attempt</h2>
       </div>
-      <span class="untested-label">Evaluation: untested</span>
+      <span class="evaluation-label" aria-live="polite"
+        >Evaluation: {{ evaluation.status === 'untested' ? 'untested' : evaluationLabel(evaluation) }}</span
+      >
     </div>
 
     <form class="submission-form" :aria-busy="isSaving" @submit.prevent="saveAttempt">
@@ -131,7 +149,7 @@ async function signIn(): Promise<void> {
 
       <p class="submission-explanation">
         Saving keeps an immutable copy of the current editor source, these notes, and challenge version
-        {{ challengeVersion }}. Tests have not been run by this save action.
+        {{ challengeVersion }}. The evaluation above is saved with this snapshot; saving does not run tests.
       </p>
       <button class="primary-button save-button" type="submit" aria-label="Save attempt" :disabled="isSaving">
         {{ isSaving ? 'Saving…' : 'Save attempt' }}
@@ -168,6 +186,7 @@ async function signIn(): Promise<void> {
 .submission-heading {
   display: flex;
   align-items: start;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 14px;
 }
@@ -181,13 +200,14 @@ async function signIn(): Promise<void> {
   font-size: 19px;
 }
 
-.untested-label {
+.evaluation-label {
   padding: 5px 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--muted);
   font-size: 12px;
-  white-space: nowrap;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .submission-form {

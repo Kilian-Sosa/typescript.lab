@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { SolutionAttempt } from '../../../shared/contracts/v1';
+import { evaluationLabel } from './evaluationLabel';
 
 defineProps<{
   attempts: readonly SolutionAttempt[];
@@ -42,6 +43,7 @@ function attemptNumber(attempts: readonly SolutionAttempt[], index: number): num
             {{ attempt.challengeVersion }}
           </span>
           <time class="timeline-item-date" :datetime="attempt.createdAt">{{ formatDate(attempt.createdAt) }}</time>
+          <span class="timeline-item-version">{{ evaluationLabel(attempt.testSummary) }}</span>
         </button>
       </li>
     </ol>

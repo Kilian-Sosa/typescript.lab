@@ -27,7 +27,7 @@ function fixture() {
       ...active,
       challengeId: 'longest-window',
       status,
-      diagnostics: ['Readable diagnostic <script>'],
+      diagnostics: status === 'passed' || status === 'failed' ? [] : ['Readable diagnostic <script>'],
       ...(reason ? { reason } : {}),
       ...(consoleOutput ? { consoleOutput } : {}),
       cases: longestWindowCases.map((c) => ({
@@ -42,6 +42,48 @@ function fixture() {
 }
 
 describe('editor and accessible results', () => {
+  it('emits only current completed summaries and immediately clears them on run, cancel and reset', async () => {
+    const f = fixture();
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    expect(f.wrapper.emitted('evaluation')?.at(-1)).toEqual([null]);
+    f.reply('passed');
+    await flushPromises();
+    expect(f.wrapper.emitted('evaluation')?.at(-1)).toEqual([
+      expect.objectContaining({
+        source: 'exact unsaved source\n',
+        workspaceRevision: 0,
+        sourceRevision: 0,
+        challengeId: 'longest-window',
+        challengeVersion: '1.0.0',
+        summary: { status: 'passed', passedCases: 14, totalCases: 14 },
+      }),
+    ]);
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    expect(f.wrapper.emitted('evaluation')?.at(-1)).toEqual([null]);
+    await f.wrapper.get('button[aria-label="Cancel test run"]').trigger('click');
+    f.reply('passed');
+    await flushPromises();
+    expect(f.wrapper.emitted('evaluation')?.at(-1)).toEqual([null]);
+    await f.wrapper.setProps({ resetKey: 1 });
+    expect(f.wrapper.emitted('evaluation')?.at(-1)).toEqual([null]);
+    f.wrapper.unmount();
+  });
+
+  it('records startup rejection as infrastructure-error rather than reusing a prior pass', async () => {
+    const run = vi.fn<RunChallenge>().mockRejectedValue(new Error('unavailable'));
+    const wrapper = mount(RunnerControls, {
+      props: { source: 'source', challengeId: 'longest-window', challengeVersion: '1.0.0' },
+      global: { provide: { [runChallengeKey as symbol]: run } },
+    });
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+    expect(wrapper.emitted('evaluation')?.at(-1)).toEqual([
+      expect.objectContaining({
+        summary: { status: 'infrastructure-error', passedCases: 0, totalCases: 14 },
+      }),
+    ]);
+    wrapper.unmount();
+  });
   const logs = {
     truncated: true,
     entries: [

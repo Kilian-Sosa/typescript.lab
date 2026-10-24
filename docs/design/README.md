@@ -103,3 +103,7 @@ Solve places a labelled Console region below Test feedback in the editor panel. 
 The prototype uses example identities, timestamps, challenge data and solution history solely to demonstrate composition. Its interactions intentionally do not access GitHub, user accounts, production databases, an arbitrary code runner or Vercel.
 
 Reviewers should assess visual hierarchy, content density, responsive states and the three primary journeys. Passing these screenshots does not imply acceptance of backend, security or execution semantics.
+
+## Saved evaluation (issue #20)
+
+Solve shows the current source's completed evaluation and case counts beside Save. Edits/revert, a new run, cancellation, challenge changes and auth transitions invalidate prior evaluation; saving without a valid current completion records Untested. Save captures source, notes, version and evaluation together. Success reports the stored status/counts. Notebook detail and timeline show the recorded evaluation; export retains that same snapshot. The existing Solve/Notebook mockup remains the visual reference; its sample statuses do not define executable evaluation semantics. See the [focused implementation record](../superpowers/plans/2026-10-24-run-submit-evaluation.md).
