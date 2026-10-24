@@ -63,3 +63,19 @@ test('desired main policy requires strict checks, findings, PRs and no bypass', 
     },
   ]);
 });
+
+test('release acceptance keeps compiled modes and synthetic recovery in CI without live hosted validation', () => {
+  const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+  for (const command of [
+    'node --test scripts/check-mvp-preview-local.mjs',
+    'node --test scripts/check-mvp-production-local.mjs',
+    'node --test scripts/check-production-hosted.test.mjs',
+    'node scripts/check-recovery.mjs --workers=2',
+  ])
+    assert.ok(workflow.includes(command), 'Missing local acceptance command: ' + command);
+  assert.ok(!/node\s+scripts\/check-production-hosted\.mjs/.test(workflow), 'CI must not run live hosted acceptance');
+  assert.ok(
+    !/VERCEL_TOKEN|VERCEL_AUTOMATION_BYPASS_SECRET|\$\{\{\s*secrets\./.test(workflow),
+    'Synthetic acceptance must not receive hosted credentials',
+  );
+});

@@ -1,6 +1,6 @@
 # MVP Production activation and release acceptance
 
-**Status:** PR 1 implementation approved by owner with corrections on 2026-10-24. Production exposure remains gated by hosted validation and security approval. PR 2 is planned separately.
+**Status:** PR 1 merged as #35; owner authorized PR 2 implementation on 2026-10-24. Production exposure remains gated by separate hosted validation, security approval and owner release decision. See the [PR 2 execution record](../plans/2026-10-24-mvp-production-acceptance.md).
 
 **Authority:** Product design REQ-04/05/06/09/10/12/13; dedicated-runner design; ADR-0002/0003; Shared Contracts v1; existing MVP Preview and Run/Submit evaluation plans.
 
