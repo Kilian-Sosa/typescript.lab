@@ -349,7 +349,7 @@ function beginRun(request, { testDisableVmInterrupt = false } = {}) {
     sourceRevision: request.sourceRevision,
     source: request.source,
     cases: request.cases.map(({ id, input }) => ({ id, input })),
-    probeUrl: `${APP_ORIGIN}/probe-target`,
+    probePort: Number(new URL(APP_ORIGIN).port),
     ...(testDisableVmInterrupt ? { testDisableVmInterrupt: true } : {}),
   };
   try {

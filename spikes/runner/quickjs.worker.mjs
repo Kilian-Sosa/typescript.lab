@@ -354,12 +354,12 @@ self.addEventListener('message', async (event) => {
   const workerPayloadKeys = Object.keys(payload).sort();
   const hasExpectedValues = payload.cases.some((item) => Object.hasOwn(item, 'expected'));
   let workerNetworkBlocked = false;
-  try {
-    if (typeof payload.probeUrl === 'string') {
-      await fetch(payload.probeUrl, { method: 'POST', mode: 'no-cors' });
+  if (Number.isInteger(payload.probePort) && payload.probePort > 0 && payload.probePort <= 65535) {
+    try {
+      await fetch(`http://app.test:${payload.probePort}/probe-target`, { method: 'POST', mode: 'no-cors' });
+    } catch {
+      workerNetworkBlocked = true;
     }
-  } catch {
-    workerNetworkBlocked = true;
   }
   try {
     const result = await evaluateRun(payload);

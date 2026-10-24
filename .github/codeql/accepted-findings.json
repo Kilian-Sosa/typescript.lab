@@ -21,9 +21,18 @@
     "ruleId": "js/missing-origin-check",
     "path": "spikes/runner/quickjs.worker.mjs",
     "line": 338,
-    "sourceSha256": "bbefe7628270223d298aec58f0534c65cc075ddd80f3b3067c363ae8ff3b02b6",
+    "sourceSha256": "fa6f17d2879f144394c1e2a8e6fd22cc214887387cc1366a25205132205e3b27",
     "owner": "Kilian-Sosa",
     "expires": "2027-01-24",
     "reason": "This listener is in a dedicated Worker global, not a Window. Its implicit port is reachable through the private Worker object owned by the runner frame, and messages are schema-validated before execution. Cross-document origin/source checks are enforced by the frame and parent. A Window-origin guard here would not establish the relevant Worker trust boundary. Preserve the dedicated Worker and frame validation design when renewing this source-pinned review."
+  },
+  {
+    "ruleId": "js/client-side-request-forgery",
+    "path": "spikes/runner/quickjs.worker.mjs",
+    "line": 359,
+    "sourceSha256": "fa6f17d2879f144394c1e2a8e6fd22cc214887387cc1366a25205132205e3b27",
+    "owner": "Kilian-Sosa",
+    "expires": "2027-01-24",
+    "reason": "The archived, locally run CSP proof sends only a validated TCP port from its fixed app.test fixture; the Worker constructs the literal http://app.test hostname and /probe-target path itself. The hostname cannot be selected by the Worker message, and the test's separate-site CSP denies the request. The alert tracks the dynamic port despite the fixed destination; production runner code does not contain this probe. The source hash and exact SARIF rule/location must continue to match."
   }
 ]
