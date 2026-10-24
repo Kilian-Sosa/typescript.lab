@@ -1,9 +1,11 @@
 import { longestWindowCases } from '../../../challenges/longest-window/cases';
 import { CONTRACT_VERSION, type RunResult } from '../../../shared/contracts/v1';
 import { bytes, dense, equalJson, exactKeys, identifier, json, LIMITS, record, revision } from '../../../apps/runner/src/protocol';
+import { validConsoleOutput, type ConsoleTranscript } from '../../../apps/runner/src/console-output';
 
 export interface RunContext { runId: string; sourceRevision: number; challengeVersion: string }
-export type RunChallenge = (source: string, challengeId: string, context: RunContext, signal?: AbortSignal) => Promise<RunResult>;
+export type RunFeedback = RunResult & { readonly consoleOutput?: ConsoleTranscript };
+export type RunChallenge = (source: string, challengeId: string, context: RunContext, signal?: AbortSignal) => Promise<RunFeedback>;
 
 export function newRunId(): string {
   return Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
@@ -91,7 +93,7 @@ export function createIframeRunner(runnerOrigin: string): RunChallenge {
     let phase: 'loading' | 'handshake' | 'running' | 'done' = 'loading';
     let timer: ReturnType<typeof setTimeout>;
     const send = (message: object) => frame.contentWindow?.postMessage({ protocol: 1, nonce, ...message }, runnerOrigin);
-    function finish(result: RunResult) {
+    function finish(result: RunFeedback) {
       if (phase === 'done') return;
       phase = 'done'; clearTimeout(timer);
       window.removeEventListener('message', receive);
@@ -122,9 +124,12 @@ export function createIframeRunner(runnerOrigin: string): RunChallenge {
         if (phase !== 'running') { failure(); return; }
         if (record(m.result) && (m.result.runId !== context.runId || m.result.sourceRevision !== context.sourceRevision
           || m.result.challengeId !== challengeId || m.result.challengeVersion !== context.challengeVersion)) return;
-        if (!exactKeys(m, ['protocol', 'kind', 'nonce', 'result']) || m.protocol !== 1 || m.kind !== 'run-result'
+        const keys = ['protocol', 'kind', 'nonce', 'result'];
+        if (!exactKeys(m, 'consoleOutput' in m ? [...keys, 'consoleOutput'] : keys) || m.protocol !== 1 || m.kind !== 'run-result'
           || !validResult(m.result)) { failure(); return; }
-        finish(m.result);
+        if ('consoleOutput' in m && !validConsoleOutput(m.consoleOutput, longestWindowCases.map(c => c.id))) { failure(); return; }
+        if (bytes(JSON.stringify(m)) > LIMITS.output) { failure(); return; }
+        finish({ ...m.result, ...('consoleOutput' in m ? { consoleOutput: m.consoleOutput as ConsoleTranscript } : {}) });
       } catch { failure(); }
     }
     timer = setTimeout(failure, 15000);

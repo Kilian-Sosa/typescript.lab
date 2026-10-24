@@ -1,4 +1,5 @@
 import type { JsonValue } from '../../../shared/contracts/v1';
+import type { ConsoleTranscript } from './console-output';
 
 export const LIMITS = Object.freeze({ source: 32768, input: 1048576, output: 65536, cases: 100,
   memory: 33554432, stack: 131072, executionMs: 2000, hardMs: 3000, sessionRuns: 128 });
@@ -63,6 +64,7 @@ export type WorkerStatus = 'ok' | 'compile-error' | 'policy-rejected' | 'executi
 export interface WorkerReply {
   runId: string; sourceRevision: number; status: WorkerStatus;
   cases: { caseId: string; actual: JsonValue }[]; diagnostics: string[];
+  consoleOutput?: ConsoleTranscript;
 }
 export function validRun(v: Record<string, unknown>): v is Record<string, unknown> & RunRequest {
   return exactKeys(v, ['protocol', 'kind', 'nonce', 'runId', 'sourceRevision', 'challengeId', 'challengeVersion', 'source'])

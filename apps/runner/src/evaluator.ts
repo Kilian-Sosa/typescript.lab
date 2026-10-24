@@ -1,6 +1,7 @@
 import { newQuickJSWASMModule, RELEASE_SYNC, type QuickJSContext, type QuickJSHandle } from 'quickjs-emscripten';
 import { compile } from './compiler';
 import { bytes, json, LIMITS, validWorkerRequest, type WorkerReply, type WorkerRequest } from './protocol';
+import { CONSOLE_BOOTSTRAP, CONSOLE_LIMITS, type ConsoleTranscript, type ConsoleLevel } from './console-output';
 
 // Snapshot data descriptors once, using pristine intrinsics and inert output containers.
 const SERIALIZER = `(() => {
@@ -73,11 +74,13 @@ function errorMessage(context: QuickJSContext, handle: QuickJSHandle) {
 
 export async function evaluate(payload: WorkerRequest): Promise<WorkerReply> {
   const base = { runId: payload.runId, sourceRevision: payload.sourceRevision };
+  const consoleOutput: ConsoleTranscript = { entries: [], truncated: false };
+  let consoleBytes = 0;
   const fail = (status: WorkerReply['status'], message: string): WorkerReply =>
-    ({ ...base, status, diagnostics: [message], cases: [] });
+    ({ ...base, status, diagnostics: [message], cases: [], consoleOutput });
   if (!validWorkerRequest(payload)) return fail('policy-rejected', 'Invalid or oversized Worker request.');
   const checked = compile(payload.source);
-  if (checked.status !== 'ok') return { ...base, ...checked, cases: [] };
+  if (checked.status !== 'ok') return { ...base, ...checked, cases: [], consoleOutput };
   const QuickJS = await newQuickJSWASMModule(RELEASE_SYNC);
   const runtime = QuickJS.newRuntime();
   const deadline = performance.now() + LIMITS.executionMs;
@@ -92,7 +95,13 @@ export async function evaluate(payload: WorkerRequest): Promise<WorkerReply> {
       const context = runtime.newContext();
       const handles: QuickJSHandle[] = [];
       const keep = (h: QuickJSHandle) => { handles.push(h); return h; };
+      let consoleState: QuickJSHandle | undefined;
       try {
+        const bootstrap = context.evalCode(`${CONSOLE_BOOTSTRAP}(${CONSOLE_LIMITS.entries - consoleOutput.entries.length}, ${CONSOLE_LIMITS.totalBytes - consoleBytes})`);
+        if (bootstrap.error) throw new Error(errorMessage(context, bootstrap.error));
+        const collector = keep(bootstrap.value);
+        consoleState = keep(context.getProp(collector, 'state'));
+        context.setProp(context.global, 'console', keep(context.getProp(collector, 'console')));
         const serializeResult = context.evalCode(SERIALIZER);
         if (serializeResult.error) throw new Error(errorMessage(context, serializeResult.error));
         const serialize = keep(serializeResult.value);
@@ -124,11 +133,27 @@ export async function evaluate(payload: WorkerRequest): Promise<WorkerReply> {
       } catch (error) {
         return fail(interrupted ? 'timeout' : 'execution-error', error instanceof Error ? error.message.slice(0, 450) : 'VM execution failed.');
       } finally {
+        // Read only private inert state via property handles, even after VM interruption.
+        // No learner values or functions are evaluated during extraction.
+        if (consoleState) {
+          const count = context.getNumber(keep(context.getProp(consoleState, 'count')));
+          const truncated = context.getProp(consoleState, 'truncated');
+          consoleOutput.truncated ||= context.eq(truncated, context.true); truncated.dispose();
+          const entries = keep(context.getProp(consoleState, 'entries'));
+          for (let i = 0; i < count; i++) {
+            const entry = keep(context.getProp(entries, i));
+            const level = context.getString(keep(context.getProp(entry, 'level'))) as ConsoleLevel;
+            const encoded = context.getString(keep(context.getProp(entry, 'text')));
+            const text = JSON.parse(encoded) as string;
+            consoleBytes += bytes(encoded) - 2;
+            consoleOutput.entries.push({ sequence: consoleOutput.entries.length, caseId: c.id, level, text });
+          }
+        }
         for (let i = handles.length - 1; i >= 0; i--) handles[i]!.dispose();
         context.dispose();
       }
     }
-    const reply: WorkerReply = { ...base, status: 'ok', diagnostics: [], cases };
+    const reply: WorkerReply = { ...base, status: 'ok', diagnostics: [], cases, consoleOutput };
     return bytes(JSON.stringify(reply)) <= LIMITS.output ? reply : fail('policy-rejected', 'Output exceeds the JSON budget.');
   } finally { runtime.dispose(); }
 }
