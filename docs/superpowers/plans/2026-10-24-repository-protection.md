@@ -1,6 +1,6 @@
 # Repository protection implementation plan
 
-> **Draft for owner review.** After design approval, execute inline using Superpowers executing-plans, test-driven-development and verification-before-completion. No automatic review delegation. Publication, merge and deployment are separate actions.
+> **Approved by owner on 2026-10-24.** execute inline using Superpowers executing-plans, test-driven-development and verification-before-completion. No automatic review delegation. Publication, merge and deployment are separate actions.
 
 **Goal:** Deliver issue #24's real PR security checks and independently verified merge enforcement.
 **Architecture:** Preserve functional CI; add distinct lint, dependency, CodeQL and Gitleaks checks. Enforce job completion and actual CodeQL findings through a single strict `main` ruleset after hosted validation.
@@ -32,8 +32,8 @@
 - [ ] Confirm design approval, status, base and branch. Resolve current official action releases/runtime support and complete SHA pins; include pnpm's maintained successor in the audit.
 - [ ] Add policy regressions for exact job names, immutable action refs, least privilege, unprivileged PR triggers and preservation of functional commands. Run before editing CI; expect failure for absent gates and mutable pins.
 - [ ] Add bounded ESLint rules for JS/TS/Vue, with narrowly justified fixture exclusions. Correct actual baseline lint errors without broad application refactors or cosmetic reformatting.
-- [ ] Add pinned Actions updates and separate `lint`/`dependency-audit` jobs. Audit root, runner and spike production/development dependency graphs; handle findings explicitly rather than suppressing the gate.
-- [ ] Run policy tests, lint, all three audits and existing typecheck/unit/build checks. Any unavailable audit or unresolved high/critical advisory is a failure to report and fix, not a passing gate.
+- [ ] Add pinned Actions updates and separate `lint`/`dependency-audit` jobs. Consume issue #23 auditing for root and runner production/development dependency graphs; retain its documented historical-spike exclusion; handle findings explicitly rather than suppressing the gate.
+- [ ] Run policy tests, lint, both active-boundary audits and existing typecheck/unit/build checks. Any unavailable audit or unresolved high/critical advisory is a failure to report and fix, not a passing gate.
 
 ### Task 2: Real static-security and credential scans
 
@@ -61,3 +61,14 @@
 
 - 2026-10-24: issue/spec/ADR/workflow/manifests inspected; no existing lint or audit infrastructure. Browser independently confirms no rulesets/classic branch protection, CodeQL not configured, Secret Protection and Push protection enabled.
 - Created work branch and proposed design/plan only. No dependency installation, production-code edits, workflow edits, publication or hosted setting changes yet. Design and administrator/emergency policy await owner approval.
+
+## Integration and hosted verification record
+
+- Owner approved design/inline implementation, coordination with #22/#23, and publication. Work isolated in the native repository-protection worktree. No unrelated shared-checkout work was staged.
+- Task 1 consumes #27 audit commits and #29 lint/format commit. Named contexts observed from GitHub Actions app 15368: verify, lint, Dependency vulnerability audit, static-security, secret-scan.
+- Local: app 220 tests, runner 167 tests, both strict builds, lint/format, 45 combined tooling tests, real source/history/bundle scans and both live audits passed before hosted publication.
+- Hosted initial CodeQL flagged two real local-fixture path traversal weaknesses, an over-specific lowercase test assertion, and one medium false positive for a checksum-verified download. Both fixture servers now use a pre-enumerated public-file map; traversal regressions and both real Edge suites pass. The assertion is case-insensitive. CodeQL combined SARIF references now resolve extension tool components, with a red-to-green regression reproducing the actual format.
+- One false-positive review is bound to js/http-to-file-access, scanner source SHA-256, exact file/line, Kilian-Sosa ownership and expiry 2027-01-24. Changed source or expired review fails closed. Native CodeQL alert #4 was dismissed as false positive with the same evidence; no global query/path exclusion was added.
+- First hosted verify also caught the callback wait lost while combining formatted prerequisite code; restored it and reran the exact Preview Edge test successfully.
+- Active ruleset 25784626 was saved and independently read back through the GitHub connector: exact main target, five Actions contexts, strict checks, PR/conversation requirements, medium+ CodeQL/error thresholds, no bypass actors, deletion/force-push blocks.
+- An unstarted, unimported temporary HTTP/command-injection fixture was published at ec17ed0 solely to verify a real CodeQL failure. It must be removed before final handoff; clean final hosted results and bootstrap eligibility are still pending.

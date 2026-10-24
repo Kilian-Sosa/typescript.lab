@@ -73,3 +73,7 @@ Administrators use the same checked PR path for ordinary and emergency fixes. Th
 - Local: 220 app tests and 167 runner tests passed; both production builds/typechecks passed. Real Gitleaks regressions detect current content, removed commit history and built bundles with redacted output; all source/history/app/runner scans passed after the exact synthetic-fixture exception.
 - Hosted checks, safe CodeQL finding proof and saved settings readback: pending publication/configuration. Do not interpret the desired JSON or local policy tests as hosted enforcement.
 - Environment-variable contract: unchanged. No feature flags, long-lived credentials, deployment or provider changes.
+
+### CodeQL false-positive review
+
+The checksum-verified Gitleaks download triggers js/http-to-file-access because the analysis does not model the fixed official SHA-256 validation. The sole accepted entry in .github/codeql/accepted-findings.json is pinned to its exact source SHA-256, rule, file and line; owner Kilian-Sosa; expiry 2027-01-24. Changing the source or letting the review expire fails the static-security gate. The native alert is dismissed as false positive with matching evidence. All other results remain subject to the normal thresholds. No query or source tree is excluded. Review the checksum trust boundary again before renewing this entry.
