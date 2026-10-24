@@ -72,8 +72,8 @@ function isPlainJson(value, seen = new Set()) {
   seen.add(value);
   const valid = Array.isArray(value)
     ? value.every((item) => isPlainJson(item, seen))
-    : Object.getPrototypeOf(value) === Object.prototype
-      && Object.values(value).every((item) => isPlainJson(item, seen));
+    : Object.getPrototypeOf(value) === Object.prototype &&
+      Object.values(value).every((item) => isPlainJson(item, seen));
   seen.delete(value);
   return valid;
 }
@@ -90,9 +90,11 @@ function policyViolation(sourceFile) {
       violation = 'Static imports are not supported.';
       return;
     }
-    if (ts.isCallExpression(node)
-      && ((node.expression.kind === ts.SyntaxKind.ImportKeyword)
-        || (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) {
+    if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === 'require'))
+    ) {
       violation = 'Dynamic imports and require are not supported.';
       return;
     }
@@ -100,8 +102,10 @@ function policyViolation(sourceFile) {
       violation = 'import.meta is not supported.';
       return;
     }
-    if (ts.isAwaitExpression(node)
-      || (ts.isFunctionLike(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword))) {
+    if (
+      ts.isAwaitExpression(node) ||
+      (ts.isFunctionLike(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.AsyncKeyword))
+    ) {
       violation = 'Asynchronous code is not supported.';
       return;
     }
@@ -153,8 +157,7 @@ function checkTypes(source) {
   };
 
   const program = ts.createProgram([LIB_FILE, SOURCE_FILE], options, host);
-  const diagnostics = ts.getPreEmitDiagnostics(program)
-    .filter((item) => item.category === ts.DiagnosticCategory.Error);
+  const diagnostics = ts.getPreEmitDiagnostics(program).filter((item) => item.category === ts.DiagnosticCategory.Error);
   if (diagnostics.length > 0) {
     return { status: 'compile-error', diagnostics: diagnostics.map(flatten) };
   }
@@ -167,8 +170,7 @@ function checkTypes(source) {
       strict: true,
     },
   });
-  const emitErrors = (transpiled.diagnostics ?? [])
-    .filter((item) => item.category === ts.DiagnosticCategory.Error);
+  const emitErrors = (transpiled.diagnostics ?? []).filter((item) => item.category === ts.DiagnosticCategory.Error);
   if (emitErrors.length > 0) {
     return { status: 'compile-error', diagnostics: emitErrors.map(flatten) };
   }
@@ -312,9 +314,16 @@ async function evaluateRun(payload) {
 }
 
 function validate(payload) {
-  if (!payload || payload.kind !== 'run' || typeof payload.runId !== 'string'
-    || !Number.isInteger(payload.sourceRevision) || typeof payload.source !== 'string'
-    || !Array.isArray(payload.cases) || payload.cases.length === 0 || payload.cases.length > LIMITS.maxCases) {
+  if (
+    !payload ||
+    payload.kind !== 'run' ||
+    typeof payload.runId !== 'string' ||
+    !Number.isInteger(payload.sourceRevision) ||
+    typeof payload.source !== 'string' ||
+    !Array.isArray(payload.cases) ||
+    payload.cases.length === 0 ||
+    payload.cases.length > LIMITS.maxCases
+  ) {
     return 'Invalid run envelope.';
   }
   if (utf8Bytes(payload.source) > LIMITS.sourceBytes) return 'Source exceeds 32 KiB.';
@@ -331,7 +340,15 @@ self.addEventListener('message', async (event) => {
   const workerId = typeof payload?.workerId === 'string' ? payload.workerId : 'invalid-worker';
   const error = validate(payload);
   if (error) {
-    self.postMessage({ kind: 'result', workerId, runId: payload?.runId ?? '', sourceRevision: payload?.sourceRevision ?? -1, status: 'policy-rejected', diagnostics: [error], cases: [] });
+    self.postMessage({
+      kind: 'result',
+      workerId,
+      runId: payload?.runId ?? '',
+      sourceRevision: payload?.sourceRevision ?? -1,
+      status: 'policy-rejected',
+      diagnostics: [error],
+      cases: [],
+    });
     return;
   }
   const workerPayloadKeys = Object.keys(payload).sort();

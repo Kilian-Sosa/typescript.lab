@@ -67,10 +67,32 @@ async function run() {
 <template>
   <div class="runner-controls">
     <div class="run-actions">
-      <button ref="runButton" type="button" class="primary-button" aria-label="Run tests" :disabled="!runChallenge" :aria-disabled="running" @click="run">Run tests</button>
-      <button v-if="running" ref="cancelButton" type="button" class="text-button" aria-label="Cancel test run" @click="cancel">Cancel run</button>
+      <button
+        ref="runButton"
+        type="button"
+        class="primary-button"
+        aria-label="Run tests"
+        :disabled="!runChallenge"
+        :aria-disabled="running"
+        @click="run"
+      >
+        Run tests
+      </button>
+      <button
+        v-if="running"
+        ref="cancelButton"
+        type="button"
+        class="text-button"
+        aria-label="Cancel test run"
+        @click="cancel"
+      >
+        Cancel run
+      </button>
     </div>
-    <p v-if="!runChallenge" class="runner-gate">Run tests is unavailable on this deployment. The isolated runner must be enabled on an approved app/runner origin pair. Your source can still be edited and saved.</p>
+    <p v-if="!runChallenge" class="runner-gate">
+      Run tests is unavailable on this deployment. The isolated runner must be enabled on an approved app/runner origin
+      pair. Your source can still be edited and saved.
+    </p>
     <TestResults :result="result" :stale="stale" />
     <ConsoleOutput :result="result" :stale="stale" />
   </div>

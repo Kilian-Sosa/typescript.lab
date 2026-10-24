@@ -115,7 +115,11 @@ async function revealExplanation(): Promise<void> {
           <h1 id="challenge-title">{{ challenge.title }}</h1>
           <p class="challenge-objective">{{ challenge.objective }}</p>
           <div class="challenge-meta">
-            <span class="difficulty-badge" :class="`difficulty-${challenge.difficulty}`">{{ challenge.difficulty }}</span>
+            <span
+              class="difficulty-badge"
+              :class="`difficulty-${challenge.difficulty}`"
+              >{{ challenge.difficulty }}</span
+            >
             <span>{{ challenge.estimatedMinutes }} min</span>
             <span v-if="isLearningMode" class="challenge-tags" aria-label="Challenge topics">
               {{ challenge.tags.join(' · ') }}
@@ -207,7 +211,11 @@ async function revealExplanation(): Promise<void> {
           :reset-key="challenge.version"
         />
 
-        <section v-if="challenge.slug === 'longest-window'" class="learning-section" aria-label="Reference algorithm visualization">
+        <section
+          v-if="challenge.slug === 'longest-window'"
+          class="learning-section"
+          aria-label="Reference algorithm visualization"
+        >
           <button
             v-if="!showVisualizer"
             type="button"

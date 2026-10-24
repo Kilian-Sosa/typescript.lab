@@ -4,16 +4,22 @@ import { checksFor, QA, runProbe } from './m3-public-qa-probe.mjs';
 
 const makeResponse = (kind, override = {}) => {
   const headers = {
-    'location': kind === 'sso' ? 'https://vercel.com/sso-api?url=synthetic' : '',
-    'content-type': kind === 'html' ? 'text/html; charset=utf-8'
-      : kind === 'worker' ? 'application/javascript'
-      : kind === 'wasm' ? 'application/wasm' : 'text/plain',
+    location: kind === 'sso' ? 'https://vercel.com/sso-api?url=synthetic' : '',
+    'content-type':
+      kind === 'html'
+        ? 'text/html; charset=utf-8'
+        : kind === 'worker'
+          ? 'application/javascript'
+          : kind === 'wasm'
+            ? 'application/wasm'
+            : 'text/plain',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'no-referrer',
     'cache-control': 'no-store',
-    'content-security-policy': kind === 'worker'
-      ? "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'"
-      : `default-src 'none'; frame-ancestors ${QA.app}`,
+    'content-security-policy':
+      kind === 'worker'
+        ? "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'"
+        : `default-src 'none'; frame-ancestors ${QA.app}`,
   };
   return new Response(kind === 'html' ? '<title>TypeScript Lab isolated runner</title>' : null, {
     status: kind === 'sso' ? 302 : kind === '404' ? 404 : 200,
@@ -21,8 +27,8 @@ const makeResponse = (kind, override = {}) => {
   });
 };
 
-const fixtures = phase => new Map(checksFor(phase).map(([, url, kind]) => [url, makeResponse(kind)]));
-const mock = fixtures => async (url, options) => {
+const fixtures = (phase) => new Map(checksFor(phase).map(([, url, kind]) => [url, makeResponse(kind)]));
+const mock = (fixtures) => async (url, options) => {
   assert.equal(options.redirect, 'manual');
   assert.equal(options.credentials, 'omit');
   assert.ok(['GET', 'HEAD'].includes(options.method));
@@ -59,7 +65,10 @@ test('public runner fails closed on wrong CSP, missing asset and SSO redirect', 
     [QA.runner + QA.worker, makeResponse('worker', { 'content-security-policy': "script-src 'self'" })],
     [QA.runner + QA.wasm, makeResponse('sso')],
     [QA.runner + '/nonexistent-m3-public-qa-asset', makeResponse('html')],
-    [QA.runner + '/nonexistent-m3-public-qa-asset', makeResponse('404', { 'content-security-policy': "default-src 'self'" })],
+    [
+      QA.runner + '/nonexistent-m3-public-qa-asset',
+      makeResponse('404', { 'content-security-policy': "default-src 'self'" }),
+    ],
   ];
   for (const [url, response] of fixes) {
     const f = fixtures('public');
@@ -69,5 +78,11 @@ test('public runner fails closed on wrong CSP, missing asset and SSO redirect', 
 });
 
 test('invalid probe phase cannot cause requests', async () => {
-  await assert.rejects(() => runProbe('production', () => { throw Error('Should not fetch'); }), /Mode must/);
+  await assert.rejects(
+    () =>
+      runProbe('production', () => {
+        throw Error('Should not fetch');
+      }),
+    /Mode must/,
+  );
 });

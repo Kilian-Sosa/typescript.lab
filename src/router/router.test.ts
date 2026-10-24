@@ -9,14 +9,7 @@ describe('application routes', () => {
   it('registers guest routes before authentication or challenge data is present', () => {
     const paths = router.getRoutes().map((route) => route.path);
 
-    expect(paths).toEqual(
-      expect.arrayContaining([
-        '/explore',
-        '/challenges/:slug',
-        '/notebook',
-        '/notebook/:slug',
-      ]),
-    );
+    expect(paths).toEqual(expect.arrayContaining(['/explore', '/challenges/:slug', '/notebook', '/notebook/:slug']));
   });
 
   it('matches unrecognized paths to the not-found page', () => {

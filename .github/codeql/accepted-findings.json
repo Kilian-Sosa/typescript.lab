@@ -1,0 +1,29 @@
+[
+  {
+    "ruleId": "js/http-to-file-access",
+    "path": "scripts/scan-secrets.mjs",
+    "line": 44,
+    "sourceSha256": "6774e333f6d0f79bc6c1bdd87516c236586dcc1055e926d921dc005dc764bf0b",
+    "owner": "Kilian-Sosa",
+    "expires": "2027-01-24",
+    "reason": "The only network-derived archive write occurs after SHA-256 equality with the exact official release asset pin. The destination is a fresh temporary directory and extraction/execution happens only after that verification. CodeQL does not model this cryptographic validation."
+  },
+  {
+    "ruleId": "js/missing-origin-check",
+    "path": "apps/runner/src/worker.ts",
+    "line": 7,
+    "sourceSha256": "9480eeff141c57df43bd32e83bc048fa3d4d669e23cf5f559a46cce2c2cfce7c",
+    "owner": "Kilian-Sosa",
+    "expires": "2027-01-24",
+    "reason": "This listener is in a dedicated Worker global, not a Window. Its implicit port is reachable through the private Worker object owned by the runner frame, and messages are schema-validated before execution. Cross-document origin/source checks are enforced by the frame and parent. A Window-origin guard here would not establish the relevant Worker trust boundary. Preserve the dedicated Worker and frame validation design when renewing this source-pinned review."
+  },
+  {
+    "ruleId": "js/missing-origin-check",
+    "path": "spikes/runner/quickjs.worker.mjs",
+    "line": 338,
+    "sourceSha256": "bbefe7628270223d298aec58f0534c65cc075ddd80f3b3067c363ae8ff3b02b6",
+    "owner": "Kilian-Sosa",
+    "expires": "2027-01-24",
+    "reason": "This listener is in a dedicated Worker global, not a Window. Its implicit port is reachable through the private Worker object owned by the runner frame, and messages are schema-validated before execution. Cross-document origin/source checks are enforced by the frame and parent. A Window-origin guard here would not establish the relevant Worker trust boundary. Preserve the dedicated Worker and frame validation design when renewing this source-pinned review."
+  }
+]

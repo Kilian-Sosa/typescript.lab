@@ -19,9 +19,12 @@ describe('ExampleExplorer', () => {
   it('starts from the documented tie example and labels the canonical output clearly', () => {
     const wrapper = mountExplorer();
 
-    expect((wrapper.get('#example-events-json').element as HTMLTextAreaElement).value)
-      .toBe('[\n  "A",\n  "B",\n  "A",\n  "C",\n  "B",\n  "B"\n]');
-    expect((wrapper.get('input[aria-label="Maximum distinct identifiers"]').element as HTMLInputElement).value).toBe('2');
+    expect((wrapper.get('#example-events-json').element as HTMLTextAreaElement).value).toBe(
+      '[\n  "A",\n  "B",\n  "A",\n  "C",\n  "B",\n  "B"\n]',
+    );
+    expect((wrapper.get('input[aria-label="Maximum distinct identifiers"]').element as HTMLInputElement).value).toBe(
+      '2',
+    );
     expect(wrapper.get('[data-testid="example-output"]').text()).toBe('{ start: 0, endExclusive: 3 }');
     expect(wrapper.text()).toMatch(/canonical reference for these example inputs/i);
     expect(wrapper.text()).not.toMatch(/your code passed|tests passed/i);
@@ -81,8 +84,9 @@ describe('ExampleExplorer', () => {
     expect(wrapper.get('[data-testid="example-output"]').text()).toBe('{ start: 0, endExclusive: 3 }');
 
     await wrapper.get('select[aria-label="Example preset"]').setValue('empty-string-identifier');
-    expect((wrapper.get('#example-events-json').element as HTMLTextAreaElement).value)
-      .toBe('[\n  "",\n  "A",\n  "",\n  "B"\n]');
+    expect((wrapper.get('#example-events-json').element as HTMLTextAreaElement).value).toBe(
+      '[\n  "",\n  "A",\n  "",\n  "B"\n]',
+    );
     expect(wrapper.get('[data-testid="example-output"]').text()).toBe('{ start: 0, endExclusive: 3 }');
   });
 });

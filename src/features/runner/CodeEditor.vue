@@ -7,10 +7,17 @@ defineEmits<{ 'update:modelValue': [value: string] }>();
   <div class="code-editor">
     <label class="source-label" for="learner-source">Your TypeScript implementation</label>
     <p id="source-help">Use Tab to move to the next control. Run tests checks this exact buffer.</p>
-    <textarea id="learner-source" :value="modelValue" aria-label="TypeScript source"
-      aria-describedby="source-help source-persistence execution-status" class="source-editor"
-      spellcheck="false" autocapitalize="off" autocomplete="off"
-      @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)" />
+    <textarea
+      id="learner-source"
+      :value="modelValue"
+      aria-label="TypeScript source"
+      aria-describedby="source-help source-persistence execution-status"
+      class="source-editor"
+      spellcheck="false"
+      autocapitalize="off"
+      autocomplete="off"
+      @input="$emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
+    />
   </div>
 </template>
 

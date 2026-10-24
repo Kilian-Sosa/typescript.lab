@@ -11,21 +11,30 @@ const MAX_REQUESTS = 400;
 const MAX_BYTES = 256 * 1024 * 1024;
 const MAX_MS = 20 * 60 * 1000;
 const start = Date.now();
-let requests = 0, responseBytes = 0;
+let requests = 0,
+  responseBytes = 0;
 let blocked = false;
 const matrix = [
   ['Edge desktop', chromium, { channel: 'msedge', viewport: { width: 1280, height: 900 } }],
   ['Edge mobile-sized', chromium, { channel: 'msedge', viewport: { width: 390, height: 844 }, isMobile: true }],
 ];
 if (mode === 'plan') {
-  for (const [label, engine, options] of matrix) {
+  for (const [label, , options] of matrix) {
     const ready = 'External Edge channel; verify by launch';
     console.log(JSON.stringify({ label, readiness: ready, viewport: options.viewport }));
   }
-  console.log(JSON.stringify({ requestsLimit: MAX_REQUESTS, responseBodyBytesLimit: MAX_BYTES,
-    testingMsLimit: MAX_MS, hostedWrites: false, authenticationBypass: false,
-    firefox: 'EXPLICITLY OUT OF SCOPE', webkit: 'EXPLICITLY OUT OF SCOPE',
-    physicalMobile: 'NOT TESTED' }));
+  console.log(
+    JSON.stringify({
+      requestsLimit: MAX_REQUESTS,
+      responseBodyBytesLimit: MAX_BYTES,
+      testingMsLimit: MAX_MS,
+      hostedWrites: false,
+      authenticationBypass: false,
+      firefox: 'EXPLICITLY OUT OF SCOPE',
+      webkit: 'EXPLICITLY OUT OF SCOPE',
+      physicalMobile: 'NOT TESTED',
+    }),
+  );
   process.exit(0);
 }
 
@@ -35,27 +44,34 @@ for (const [label, engine, { channel, viewport, isMobile }] of matrix) {
     assert.ok(Date.now() - start < MAX_MS, '20-minute test cutoff');
     browser = await engine.launch({ headless: true, ...(channel ? { channel } : {}) });
     const context = await browser.newContext({
-      viewport, isMobile: isMobile ?? false, serviceWorkers: 'block',
+      viewport,
+      isMobile: isMobile ?? false,
+      serviceWorkers: 'block',
       // Keep default HTTPS/TLS and cookie policies; no host mapping or CSP bypass.
     });
     const page = await context.newPage();
     const failures = [];
-    page.on('pageerror', error => failures.push(error.message));
+    page.on('pageerror', (error) => failures.push(error.message));
     page.on('request', () => {
       requests++;
       if (requests > MAX_REQUESTS) blocked = true;
     });
-    page.on('requestfinished', async request => {
+    page.on('requestfinished', async (request) => {
       try {
         const sizes = await request.sizes();
         responseBytes += Math.max(0, sizes.responseBodySize);
         if (responseBytes > MAX_BYTES) blocked = true;
-      } catch { blocked = true; }
+      } catch {
+        blocked = true;
+      }
     });
     const response = await page.goto(QA.runner, { waitUntil: 'load', timeout: 20000 });
     assert.ok(response && response.status() === 200, 'Runner must load directly without SSO');
     const headers = response.headers();
-    assert.match(headers['content-security-policy'] ?? '', /frame-ancestors https:\/\/typescript-lab-m3-app-qa\.vercel\.app/);
+    assert.match(
+      headers['content-security-policy'] ?? '',
+      /frame-ancestors https:\/\/typescript-lab-m3-app-qa\.vercel\.app/,
+    );
     assert.match(headers['x-content-type-options'] ?? '', /nosniff/);
     assert.match(await page.title(), /TypeScript Lab isolated runner/);
     assert.equal(failures.length, 0, JSON.stringify(failures));
@@ -70,6 +86,15 @@ for (const [label, engine, { channel, viewport, isMobile }] of matrix) {
     await browser?.close();
   }
 }
-console.log(JSON.stringify({ requests, responseBytes, maxRequests: MAX_REQUESTS, maxBytes: MAX_BYTES,
-  elapsedMs: Date.now() - start, physicalMobile: 'NOT TESTED', normalAppIframe: 'SEPARATE AUTHENTICATED BROWSER GATE' }));
+console.log(
+  JSON.stringify({
+    requests,
+    responseBytes,
+    maxRequests: MAX_REQUESTS,
+    maxBytes: MAX_BYTES,
+    elapsedMs: Date.now() - start,
+    physicalMobile: 'NOT TESTED',
+    normalAppIframe: 'SEPARATE AUTHENTICATED BROWSER GATE',
+  }),
+);
 if (blocked) process.exitCode = 1;

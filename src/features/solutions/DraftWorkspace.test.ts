@@ -9,16 +9,40 @@ import type { DraftRepository } from './draftRepository';
 import DraftWorkspace from './DraftWorkspace.vue';
 import { createDraftRecovery } from './draftRecovery';
 
-beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
+beforeEach(() => {
+  localStorage.clear();
+  sessionStorage.clear();
+});
 async function fixture() {
-  const state = reactive({ status: 'signed-in', userId: 'a' as string | null, generation: 0, message: '', signingOut: false });
+  const state = reactive({
+    status: 'signed-in',
+    userId: 'a' as string | null,
+    generation: 0,
+    message: '',
+    signingOut: false,
+  });
   const auth = { state, signIn: vi.fn(), client: {} as SupabaseClient } as unknown as AuthController;
-  const repository: DraftRepository = { loadDraft: vi.fn().mockResolvedValue(null), saveDraft: vi.fn().mockRejectedValue(new Error('offline')) };
-  const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/challenges/:slug', component: DraftWorkspace,
-    props: { challengeId: 'longest-window', challengeVersion: '1.0.0', starter: 'starter' } }] });
+  const repository: DraftRepository = {
+    loadDraft: vi.fn().mockResolvedValue(null),
+    saveDraft: vi.fn().mockRejectedValue(new Error('offline')),
+  };
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      {
+        path: '/challenges/:slug',
+        component: DraftWorkspace,
+        props: { challengeId: 'longest-window', challengeVersion: '1.0.0', starter: 'starter' },
+      },
+    ],
+  });
   await router.push('/challenges/longest-window');
   const wrapper = mount(RouterView, {
-    global: { plugins: [router], provide: { [authControllerKey as symbol]: auth, [draftRepositoryKey as symbol]: repository } } });
+    global: {
+      plugins: [router],
+      provide: { [authControllerKey as symbol]: auth, [draftRepositoryKey as symbol]: repository },
+    },
+  });
   await flushPromises();
   return { wrapper, state, repository };
 }
@@ -26,11 +50,21 @@ async function fixture() {
 describe('editor recovery presentation', () => {
   it('refreshes recovery entries when another tab changes matching content', async () => {
     const { wrapper, state } = await fixture();
-    state.userId = null; await flushPromises();
+    state.userId = null;
+    await flushPromises();
     await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('matching work');
     const other = createDraftRecovery(localStorage, 'other');
-    const buffer = { ownerId: null, challengeId: 'longest-window', challengeVersion: '1.0.0', source: 'matching work',
-      expectedRevision: null, dirty: true, notes: '', timeComplexity: '', spaceComplexity: '' };
+    const buffer = {
+      ownerId: null,
+      challengeId: 'longest-window',
+      challengeVersion: '1.0.0',
+      source: 'matching work',
+      expectedRevision: null,
+      dirty: true,
+      notes: '',
+      timeComplexity: '',
+      spaceComplexity: '',
+    };
     other.write(buffer);
     window.dispatchEvent(new StorageEvent('storage'));
     await flushPromises();
@@ -40,8 +74,11 @@ describe('editor recovery presentation', () => {
     await flushPromises();
     expect(wrapper.text()).not.toContain('Currently open');
     const review = wrapper.findAll('button').find((button) => button.text().startsWith('Review buffer'))!;
-    await review.trigger('click'); await flushPromises();
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('other tab newer edits');
+    await review.trigger('click');
+    await flushPromises();
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe(
+      'other tab newer edits',
+    );
     wrapper.unmount();
   });
 
@@ -49,17 +86,26 @@ describe('editor recovery presentation', () => {
     const { wrapper, state } = await fixture();
     await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('private A source');
     await wrapper.get('textarea[aria-label="Learning notes"]').setValue('private A notes');
-    state.userId = null; state.generation += 1;
+    state.userId = null;
+    state.generation += 1;
     await flushPromises();
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('starter');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe(
+      'starter',
+    );
     expect((wrapper.get('textarea[aria-label="Learning notes"]').element as HTMLTextAreaElement).value).toBe('');
-    state.userId = 'b'; state.generation += 1;
+    state.userId = 'b';
+    state.generation += 1;
     await flushPromises();
     expect(wrapper.text()).not.toContain('private A');
-    state.userId = 'a'; state.generation += 1;
+    state.userId = 'a';
+    state.generation += 1;
     await flushPromises();
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('private A source');
-    expect((wrapper.get('textarea[aria-label="Learning notes"]').element as HTMLTextAreaElement).value).toBe('private A notes');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe(
+      'private A source',
+    );
+    expect((wrapper.get('textarea[aria-label="Learning notes"]').element as HTMLTextAreaElement).value).toBe(
+      'private A notes',
+    );
   });
 
   it('labels guest storage honestly and offers a portable download', async () => {

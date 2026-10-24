@@ -80,9 +80,7 @@ const hasCatalog = computed(() => props.challenges.length > 0);
     <div v-else class="empty-state" role="status">
       <h3>No challenges match those filters</h3>
       <p>Try a different search or difficulty.</p>
-      <button class="text-button" type="button" @click="search = ''; difficulty = 'all'">
-        Clear filters
-      </button>
+      <button class="text-button" type="button" @click="search = ''; difficulty = 'all'">Clear filters</button>
     </div>
   </section>
 </template>

@@ -2,8 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { captureAuthCallback } from '../features/auth/auth';
 
 // Web history snapshots the initial URL at construction, so scrub before creating it.
-export const initialAuthCallback = captureAuthCallback(window.location.href,
-  (path) => window.history.replaceState(null, '', path));
+export const initialAuthCallback = captureAuthCallback(window.location.href, (path) =>
+  window.history.replaceState(null, '', path),
+);
 
 const routes = [
   { path: '/', redirect: '/explore' },

@@ -6,9 +6,14 @@ import { resolveConfig } from 'vite';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const denied = [
-  [undefined, undefined], ['production', 'production'], ['production', 'preview'],
-  ['preview', 'production'], ['development', 'development'], ['preview', undefined],
-  [undefined, 'preview'], ['preview', 'staging'],
+  [undefined, undefined],
+  ['production', 'production'],
+  ['production', 'preview'],
+  ['preview', 'production'],
+  ['development', 'development'],
+  ['preview', undefined],
+  [undefined, 'preview'],
+  ['preview', 'staging'],
 ];
 
 test('QA Vite configuration rejects missing or non-Preview deployment metadata', async () => {
@@ -19,7 +24,10 @@ test('QA Vite configuration rejects missing or non-Preview deployment metadata',
       else process.env.VERCEL_ENV = environment;
       if (target === undefined) delete process.env.VERCEL_TARGET_ENV;
       else process.env.VERCEL_TARGET_ENV = target;
-      await assert.rejects(resolveConfig({ mode: 'm3-hosted-qa', envDir: false, logLevel: 'silent' }, 'build'), /requires explicit Preview deployment metadata/);
+      await assert.rejects(
+        resolveConfig({ mode: 'm3-hosted-qa', envDir: false, logLevel: 'silent' }, 'build'),
+        /requires explicit Preview deployment metadata/,
+      );
     }
     process.env.VERCEL_ENV = 'preview';
     process.env.VERCEL_TARGET_ENV = 'preview';

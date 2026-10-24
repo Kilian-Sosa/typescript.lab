@@ -25,7 +25,9 @@ async function retry() {
     <h1 id="callback-title">GitHub sign-in</h1>
     <p v-if="checking" role="status">Verifying your sign-in…</p>
     <div v-else class="notice-panel" role="alert">
-      <p>{{ retryError || auth?.state.message || 'Sign-in could not be verified. Restart sign-in; your local work is retained.' }}</p>
+      <p>
+        {{ retryError || auth?.state.message || 'Sign-in could not be verified. Restart sign-in; your local work is retained.' }}
+      </p>
       <button v-if="auth" type="button" class="primary-button" @click="retry">Restart GitHub sign-in</button>
       <p><RouterLink :to="auth?.state.returnTo ?? '/explore'">Return to your work as a guest</RouterLink></p>
     </div>

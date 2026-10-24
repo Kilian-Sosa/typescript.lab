@@ -5,7 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 // Reject an unsafe target before running builds or replacing any prepared artifacts.
 if (process.env.VERCEL_ENV !== 'preview' || process.env.VERCEL_TARGET_ENV !== 'preview') {
-  throw new Error('M3 QA requires explicit Preview deployment metadata: VERCEL_ENV=preview and VERCEL_TARGET_ENV=preview.');
+  throw new Error(
+    'M3 QA requires explicit Preview deployment metadata: VERCEL_ENV=preview and VERCEL_TARGET_ENV=preview.',
+  );
 }
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -21,7 +23,9 @@ for (const key of Object.keys(guestEnv)) {
 
 const run = (cwd, bin, args, extra = {}) => {
   const result = spawnSync(process.execPath, [bin, ...args], {
-    cwd, stdio: 'inherit', env: { ...guestEnv, ...extra },
+    cwd,
+    stdio: 'inherit',
+    env: { ...guestEnv, ...extra },
   });
   if (result.status !== 0) throw new Error(`Build failed: ${bin} (${result.status})`);
 };
@@ -43,14 +47,21 @@ const headers = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
 };
 
-await writeFile(resolve(output, 'config.json'), JSON.stringify({
-  version: 3,
-  routes: [
-    { src: '/(.*)', headers, continue: true },
-    { handle: 'filesystem' },
-    { src: '/(.*)', dest: '/index.html' },
-  ],
-}, null, 2));
+await writeFile(
+  resolve(output, 'config.json'),
+  JSON.stringify(
+    {
+      version: 3,
+      routes: [
+        { src: '/(.*)', headers, continue: true },
+        { handle: 'filesystem' },
+        { src: '/(.*)', dest: '/index.html' },
+      ],
+    },
+    null,
+    2,
+  ),
+);
 
 // A prebuilt Preview upload must never silently include the real authentication backend.
 const index = await readFile(resolve(output, 'static/index.html'), 'utf8');

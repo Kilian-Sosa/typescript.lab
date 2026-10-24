@@ -28,7 +28,9 @@ function makeRepository(listAttempts = vi.fn().mockResolvedValue([])) {
     createAttempt: vi.fn().mockResolvedValue(attempt),
     subscribeToSessionChanges: vi.fn((listener: () => void) => {
       sessionChanged = listener;
-      return () => { sessionChanged = undefined; };
+      return () => {
+        sessionChanged = undefined;
+      };
     }),
   } as unknown as AttemptRepository;
 
@@ -93,9 +95,7 @@ describe('Notebook list', () => {
   });
 
   it('shows an error and no export action when the authenticated repository rejects a record', async () => {
-    const { repository } = makeRepository(
-      vi.fn().mockRejectedValue(new AttemptAuthorizationError()),
-    );
+    const { repository } = makeRepository(vi.fn().mockRejectedValue(new AttemptAuthorizationError()));
     const { wrapper } = await mountNotebook(repository);
 
     expect(wrapper.get('[role="alert"]').text()).toMatch(/could not load/i);
@@ -104,9 +104,7 @@ describe('Notebook list', () => {
   });
 
   it('clears the old account history immediately when the session changes', async () => {
-    const listAttempts = vi.fn()
-      .mockResolvedValueOnce([attempt])
-      .mockResolvedValueOnce([]);
+    const listAttempts = vi.fn().mockResolvedValueOnce([attempt]).mockResolvedValueOnce([]);
     const { repository, changeSession } = makeRepository(listAttempts);
     const { wrapper } = await mountNotebook(repository);
 

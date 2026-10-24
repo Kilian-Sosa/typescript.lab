@@ -17,9 +17,17 @@ const summary = computed(() => {
   <section class="console-output" aria-label="Console output" :aria-busy="result?.status === 'running'">
     <h3>Console</h3>
     <p class="console-summary" aria-live="polite" aria-atomic="true">{{ summary }}</p>
-    <p v-if="result" class="console-context">Run <code>{{ result.runId }}</code> · Revision {{ result.sourceRevision }} · {{ result.status }}</p>
+    <p v-if="result" class="console-context">
+      Run <code>{{ result.runId }}</code> · Revision {{ result.sourceRevision }} · {{ result.status }}
+    </p>
     <p v-if="output?.truncated" class="console-limit">Console output was truncated to stay within display limits.</p>
-    <div v-if="output?.entries.length" class="console-messages" role="region" aria-label="Console messages" tabindex="0">
+    <div
+      v-if="output?.entries.length"
+      class="console-messages"
+      role="region"
+      aria-label="Console messages"
+      tabindex="0"
+    >
       <ol>
         <li v-for="entry in output.entries" :key="entry.sequence">
           <span class="console-level">{{ entry.level }}</span> <span class="console-case">{{ entry.caseId }}</span>

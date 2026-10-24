@@ -24,7 +24,9 @@ describe('LongestWindowStepper', () => {
     expect(wrapper.get('[data-testid="visualizer-left-pointer"]').text()).toContain('0');
     expect(wrapper.get('[data-testid="visualizer-right-pointer"]').text()).toMatch(/before scanning/i);
     expect(wrapper.get('[data-testid="visualizer-best-range"]').text()).toContain('[0, 0)');
-    expect(wrapper.get('[aria-live="polite"][data-testid="visualizer-explanation"]').text()).toMatch(/start before the first event/i);
+    expect(wrapper.get('[aria-live="polite"][data-testid="visualizer-explanation"]').text()).toMatch(
+      /start before the first event/i,
+    );
     expect(wrapper.get('[aria-label="Event positions and current window"]').text()).toContain('Index 0');
   });
 

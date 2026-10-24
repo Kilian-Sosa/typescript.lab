@@ -2,11 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 import LearningHints from './LearningHints.vue';
 
-const hints = [
-  'First progressive hint.',
-  'Second progressive hint.',
-  'Third progressive hint.',
-] as const;
+const hints = ['First progressive hint.', 'Second progressive hint.', 'Third progressive hint.'] as const;
 
 describe('LearningHints', () => {
   it('keeps hints out of the page until Learning Mode is active', async () => {

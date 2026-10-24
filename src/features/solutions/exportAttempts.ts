@@ -42,7 +42,12 @@ export class PortableAttemptFormatError extends Error {
 }
 
 function safeFilePart(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'attempt';
+  return (
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '') || 'attempt'
+  );
 }
 
 function codeFence(source: string): string {
@@ -111,19 +116,18 @@ function isEvaluation(value: unknown): value is AttemptEvaluation {
   if (value.status === 'untested') {
     return Object.keys(value).length === 1;
   }
-  const validStatuses = [
-    'passed', 'failed', 'compile-error', 'timeout', 'execution-error', 'infrastructure-error',
-  ];
-  return typeof value.status === 'string'
-    && validStatuses.includes(value.status)
-    && Number.isSafeInteger(value.totalCases)
-    && Number.isSafeInteger(value.passedCases)
-    && (value.totalCases as number) >= 0
-    && (value.passedCases as number) >= 0
-    && (value.passedCases as number) <= (value.totalCases as number)
-    && Object.keys(value).every((key) => ['status', 'totalCases', 'passedCases'].includes(key))
-    && (value.status !== 'passed'
-      || ((value.totalCases as number) > 0 && value.totalCases === value.passedCases));
+  const validStatuses = ['passed', 'failed', 'compile-error', 'timeout', 'execution-error', 'infrastructure-error'];
+  return (
+    typeof value.status === 'string' &&
+    validStatuses.includes(value.status) &&
+    Number.isSafeInteger(value.totalCases) &&
+    Number.isSafeInteger(value.passedCases) &&
+    (value.totalCases as number) >= 0 &&
+    (value.passedCases as number) >= 0 &&
+    (value.passedCases as number) <= (value.totalCases as number) &&
+    Object.keys(value).every((key) => ['status', 'totalCases', 'passedCases'].includes(key)) &&
+    (value.status !== 'passed' || ((value.totalCases as number) > 0 && value.totalCases === value.passedCases))
+  );
 }
 
 function decodePortableDocument(value: unknown): PortableAttemptDocument {
@@ -133,22 +137,29 @@ function decodePortableDocument(value: unknown): PortableAttemptDocument {
 
   const attempt = value.attempt;
   const expectedKeys = [
-    'id', 'challengeId', 'challengeVersion', 'source', 'notes', 'timeComplexity',
-    'spaceComplexity', 'testSummary', 'createdAt',
+    'id',
+    'challengeId',
+    'challengeVersion',
+    'source',
+    'notes',
+    'timeComplexity',
+    'spaceComplexity',
+    'testSummary',
+    'createdAt',
   ];
   if (
-    Object.keys(value).length !== 2
-    || Object.keys(attempt).length !== expectedKeys.length
-    || Object.keys(attempt).some((key) => !expectedKeys.includes(key))
-    || typeof attempt.id !== 'string'
-    || typeof attempt.challengeId !== 'string'
-    || typeof attempt.challengeVersion !== 'string'
-    || typeof attempt.source !== 'string'
-    || typeof attempt.notes !== 'string'
-    || (attempt.timeComplexity !== null && typeof attempt.timeComplexity !== 'string')
-    || (attempt.spaceComplexity !== null && typeof attempt.spaceComplexity !== 'string')
-    || typeof attempt.createdAt !== 'string'
-    || !isEvaluation(attempt.testSummary)
+    Object.keys(value).length !== 2 ||
+    Object.keys(attempt).length !== expectedKeys.length ||
+    Object.keys(attempt).some((key) => !expectedKeys.includes(key)) ||
+    typeof attempt.id !== 'string' ||
+    typeof attempt.challengeId !== 'string' ||
+    typeof attempt.challengeVersion !== 'string' ||
+    typeof attempt.source !== 'string' ||
+    typeof attempt.notes !== 'string' ||
+    (attempt.timeComplexity !== null && typeof attempt.timeComplexity !== 'string') ||
+    (attempt.spaceComplexity !== null && typeof attempt.spaceComplexity !== 'string') ||
+    typeof attempt.createdAt !== 'string' ||
+    !isEvaluation(attempt.testSummary)
   ) {
     throw new PortableAttemptFormatError();
   }
@@ -218,17 +229,20 @@ export function parsePortableAttemptsJson(json: string): PortableAttemptCollecti
   try {
     const value = JSON.parse(json) as unknown;
     if (
-      !isRecord(value)
-      || value.formatVersion !== 1
-      || !Array.isArray(value.attempts)
-      || Object.keys(value).length !== 2
+      !isRecord(value) ||
+      value.formatVersion !== 1 ||
+      !Array.isArray(value.attempts) ||
+      Object.keys(value).length !== 2
     ) {
       throw new PortableAttemptFormatError();
     }
-    const attempts = value.attempts.map((attempt) => decodePortableDocument({
-      formatVersion: 1,
-      attempt,
-    }).attempt);
+    const attempts = value.attempts.map(
+      (attempt) =>
+        decodePortableDocument({
+          formatVersion: 1,
+          attempt,
+        }).attempt,
+    );
     return { formatVersion: 1, attempts };
   } catch (error) {
     if (error instanceof PortableAttemptFormatError) {

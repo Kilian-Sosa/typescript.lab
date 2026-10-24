@@ -167,6 +167,19 @@ const wrongVersion: RunResult = {
   contractVersion: '2.0.0',
 };
 
-void [statuses, completedStatuses, updateDraft, attempt, failedAttempt, malformedCase,
-  malformedInput, invalidParameters, missingHints, ownerSuppliedDraft, ownerSuppliedAttempt,
-  runningEvaluation, neverRunEvaluation, wrongVersion];
+void [
+  statuses,
+  completedStatuses,
+  updateDraft,
+  attempt,
+  failedAttempt,
+  malformedCase,
+  malformedInput,
+  invalidParameters,
+  missingHints,
+  ownerSuppliedDraft,
+  ownerSuppliedAttempt,
+  runningEvaluation,
+  neverRunEvaluation,
+  wrongVersion,
+];

@@ -16,26 +16,35 @@ function tokenFor(userId: string): string {
 }
 
 function userResponse(userId: string): Response {
-  return new Response(JSON.stringify({
-    id: userId,
-    aud: 'authenticated',
-    role: 'authenticated',
-    email: `${userId}@example.test`,
-    app_metadata: { provider: 'github', providers: ['github'] },
-    user_metadata: {},
-    created_at: '2026-10-17T10:00:00.000Z',
-  }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  return new Response(
+    JSON.stringify({
+      id: userId,
+      aud: 'authenticated',
+      role: 'authenticated',
+      email: `${userId}@example.test`,
+      app_metadata: { provider: 'github', providers: ['github'] },
+      user_metadata: {},
+      created_at: '2026-10-17T10:00:00.000Z',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
 }
 
-function makeTransport(options: {
-  holdAttemptWrite?: boolean;
-} = {}) {
+function makeTransport(
+  options: {
+    holdAttemptWrite?: boolean;
+  } = {},
+) {
   let releaseUserA: (() => void) | undefined;
   let userARequestStarted: (() => void) | undefined;
   let releaseWrite: (() => void) | undefined;
   let writeStarted: (() => void) | undefined;
-  const userAStarted = new Promise<void>((resolve) => { userARequestStarted = resolve; });
-  const attemptWriteStarted = new Promise<void>((resolve) => { writeStarted = resolve; });
+  const userAStarted = new Promise<void>((resolve) => {
+    userARequestStarted = resolve;
+  });
+  const attemptWriteStarted = new Promise<void>((resolve) => {
+    writeStarted = resolve;
+  });
   let shouldHoldUserA = false;
   const writeAuthorizations: string[] = [];
 
@@ -47,7 +56,9 @@ function makeTransport(options: {
       if (authorization === `Bearer ${tokenFor('owner-a')}` && shouldHoldUserA) {
         shouldHoldUserA = false;
         userARequestStarted?.();
-        await new Promise<void>((resolve) => { releaseUserA = resolve; });
+        await new Promise<void>((resolve) => {
+          releaseUserA = resolve;
+        });
       }
       const userId = authorization === `Bearer ${tokenFor('owner-a')}` ? 'owner-a' : 'owner-b';
       return userResponse(userId);
@@ -57,22 +68,27 @@ function makeTransport(options: {
       writeAuthorizations.push(authorization);
       writeStarted?.();
       if (options.holdAttemptWrite) {
-        await new Promise<void>((resolve) => { releaseWrite = resolve; });
+        await new Promise<void>((resolve) => {
+          releaseWrite = resolve;
+        });
       }
 
       const userId = authorization === `Bearer ${tokenFor('owner-a')}` ? 'owner-a' : 'owner-b';
-      return new Response(JSON.stringify({
-        id: 'attempt-1',
-        user_id: userId,
-        challenge_id: 'longest-window',
-        challenge_version: '1.0.0',
-        source: 'function answer() {}',
-        notes: '',
-        declared_time_complexity: null,
-        declared_space_complexity: null,
-        test_summary: { status: 'untested' },
-        created_at: '2026-10-17T10:30:00.000Z',
-      }), { status: 201, headers: { 'Content-Type': 'application/json' } });
+      return new Response(
+        JSON.stringify({
+          id: 'attempt-1',
+          user_id: userId,
+          challenge_id: 'longest-window',
+          challenge_version: '1.0.0',
+          source: 'function answer() {}',
+          notes: '',
+          declared_time_complexity: null,
+          declared_space_complexity: null,
+          test_summary: { status: 'untested' },
+          created_at: '2026-10-17T10:30:00.000Z',
+        }),
+        { status: 201, headers: { 'Content-Type': 'application/json' } },
+      );
     }
 
     return new Response('Not found', { status: 404 });
@@ -83,7 +99,9 @@ function makeTransport(options: {
     userAStarted,
     attemptWriteStarted,
     writeAuthorizations,
-    holdNextUserARequest: () => { shouldHoldUserA = true; },
+    holdNextUserARequest: () => {
+      shouldHoldUserA = true;
+    },
     releaseUserA: () => releaseUserA?.(),
     releaseWrite: () => releaseWrite?.(),
   };
@@ -130,9 +148,8 @@ describe('attempt repository account-switch transport safety', () => {
     const authClient = createAuthClient(transport.fetcher);
     await signInAs(authClient, 'owner-a');
     transport.holdNextUserARequest();
-    const repository = createAttemptRepository(
-      authClient,
-      (accessToken) => createScopedDataClient(config, accessToken, transport.fetcher),
+    const repository = createAttemptRepository(authClient, (accessToken) =>
+      createScopedDataClient(config, accessToken, transport.fetcher),
     );
 
     const save = repository.createAttempt(input, 'owner-a');
@@ -148,9 +165,8 @@ describe('attempt repository account-switch transport safety', () => {
     const transport = makeTransport({ holdAttemptWrite: true });
     const authClient = createAuthClient(transport.fetcher);
     await signInAs(authClient, 'owner-a');
-    const repository = createAttemptRepository(
-      authClient,
-      (accessToken) => createScopedDataClient(config, accessToken, transport.fetcher),
+    const repository = createAttemptRepository(authClient, (accessToken) =>
+      createScopedDataClient(config, accessToken, transport.fetcher),
     );
 
     const save = repository.createAttempt(input, 'owner-a');

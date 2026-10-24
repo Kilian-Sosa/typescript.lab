@@ -10,10 +10,8 @@ import {
 
 describe('notebook session provider', () => {
   it('rejects OAuth redirect paths that resolve outside the current site', () => {
-    expect(() => buildSameOriginRedirectUrl('/\\evil.example', 'https://typescript.lab'))
-      .toThrow(/same site/i);
-    expect(buildSameOriginRedirectUrl('/notebook', 'https://typescript.lab'))
-      .toBe('https://typescript.lab/notebook');
+    expect(() => buildSameOriginRedirectUrl('/\\evil.example', 'https://typescript.lab')).toThrow(/same site/i);
+    expect(buildSameOriginRedirectUrl('/notebook', 'https://typescript.lab')).toBe('https://typescript.lab/notebook');
   });
 
   it('fails closed when public Supabase configuration is absent', () => {
@@ -40,10 +38,12 @@ describe('notebook session provider', () => {
   });
 
   it('rejects partial public configuration instead of creating an unauthenticated client', () => {
-    expect(() => createNotebookSessionProvider({
-      url: 'http://127.0.0.1:55321',
-      publishableKey: '',
-    })).toThrow(/both.*URL.*publishable key/i);
+    expect(() =>
+      createNotebookSessionProvider({
+        url: 'http://127.0.0.1:55321',
+        publishableKey: '',
+      }),
+    ).toThrow(/both.*URL.*publishable key/i);
   });
 
   it('provides one configured authenticated repository without requesting privileged credentials', () => {

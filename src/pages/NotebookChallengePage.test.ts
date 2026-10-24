@@ -87,7 +87,9 @@ describe('Notebook challenge detail', () => {
 
     await wrapper.get('button[aria-label^="Open attempt 1,"]').trigger('click');
     expect(wrapper.get('[aria-label="Saved TypeScript source"]').text()).toBe(olderAttempt.source);
-    expect(wrapper.text()).toContain('The original challenge statement for that revision is unavailable in this build.');
+    expect(wrapper.text()).toContain(
+      'The original challenge statement for that revision is unavailable in this build.',
+    );
   });
 
   it('compares selected versions with explicit Added and Removed labels', async () => {
@@ -132,9 +134,7 @@ describe('Notebook challenge detail', () => {
   });
 
   it('does not expose source or export actions after authentication fails', async () => {
-    const { repository } = makeRepository(
-      vi.fn().mockRejectedValue(new AuthenticationRequiredError()),
-    );
+    const { repository } = makeRepository(vi.fn().mockRejectedValue(new AuthenticationRequiredError()));
     const { wrapper } = await mountDetail(repository);
 
     expect(wrapper.text()).toMatch(/sign in to view/i);

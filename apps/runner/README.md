@@ -12,6 +12,8 @@ From the repository root in PowerShell, with Node 24 and pinned pnpm 11.25.0:
 
 ```powershell
 pnpm --dir apps/runner install --ignore-workspace --frozen-lockfile
+pnpm --dir apps/runner lint
+pnpm --dir apps/runner format:check
 pnpm --dir apps/runner test
 $env:VITE_RUNNER_PARENT_ORIGIN = 'https://lab-app.vercel.app'
 $env:VITE_RUNNER_ORIGIN = 'https://lab-runner.vercel.app'
