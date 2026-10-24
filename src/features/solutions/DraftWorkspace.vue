@@ -33,16 +33,19 @@ const noteFields = computed(() => ({ notes: sync.state.notes, timeComplexity: sy
 watch(() => auth?.state.userId ?? null, (owner) => { void sync.connect(owner); }, { immediate: true, flush: 'sync' });
 const offline = () => sync.setOffline();
 const online = () => { void sync.retry(); };
+const storageChanged = () => sync.refreshRecoveries();
 function preventLoss(event: BeforeUnloadEvent) {
   if (sync.state.localError) { event.preventDefault(); event.returnValue = ''; }
 }
 onBeforeRouteLeave(() => !sync.state.localError || window.confirm('Browser recovery is unavailable. Download or copy your work before leaving. Leave anyway?'));
 onMounted(() => {
   window.addEventListener('offline', offline); window.addEventListener('online', online);
+  window.addEventListener('storage', storageChanged);
   window.addEventListener('beforeunload', preventLoss);
 });
 onBeforeUnmount(() => {
   window.removeEventListener('offline', offline); window.removeEventListener('online', online);
+  window.removeEventListener('storage', storageChanged);
   window.removeEventListener('beforeunload', preventLoss); sync.dispose();
 });
 </script>

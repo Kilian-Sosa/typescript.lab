@@ -7,6 +7,7 @@ import { authControllerKey, type AuthController } from '../auth/auth';
 import { draftRepositoryKey } from './session';
 import type { DraftRepository } from './draftRepository';
 import DraftWorkspace from './DraftWorkspace.vue';
+import { createDraftRecovery } from './draftRecovery';
 
 beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
 async function fixture() {
@@ -23,6 +24,27 @@ async function fixture() {
 }
 
 describe('editor recovery presentation', () => {
+  it('refreshes recovery entries when another tab changes matching content', async () => {
+    const { wrapper, state } = await fixture();
+    state.userId = null; await flushPromises();
+    await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('matching work');
+    const other = createDraftRecovery(localStorage, 'other');
+    const buffer = { ownerId: null, challengeId: 'longest-window', challengeVersion: '1.0.0', source: 'matching work',
+      expectedRevision: null, dirty: true, notes: '', timeComplexity: '', spaceComplexity: '' };
+    other.write(buffer);
+    window.dispatchEvent(new StorageEvent('storage'));
+    await flushPromises();
+    expect(wrapper.findAll('button').filter((button) => button.text().includes('Currently open'))).toHaveLength(1);
+    other.write({ ...buffer, source: 'other tab newer edits' });
+    window.dispatchEvent(new StorageEvent('storage'));
+    await flushPromises();
+    expect(wrapper.text()).not.toContain('Currently open');
+    const review = wrapper.findAll('button').find((button) => button.text().startsWith('Review buffer'))!;
+    await review.trigger('click'); await flushPromises();
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('other tab newer edits');
+    wrapper.unmount();
+  });
+
   it('retains source and notes over a reload, and synchronously clears them across accounts', async () => {
     const { wrapper, state } = await fixture();
     await wrapper.get('textarea[aria-label="TypeScript source"]').setValue('private A source');

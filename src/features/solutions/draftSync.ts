@@ -2,7 +2,7 @@ import { reactive, readonly } from 'vue';
 import type { SolutionDraft } from '../../../shared/contracts/v1';
 import { AuthenticationRequiredError, AttemptSessionChangedError } from './attemptRepository';
 import type { DraftRepository } from './draftRepository';
-import type { DraftRecovery, LocalDraftBuffer } from './draftRecovery';
+import { sameDraftContent, type DraftRecovery, type LocalDraftBuffer } from './draftRecovery';
 
 export type DraftSaveState = 'loading' | 'idle' | 'guest' | 'saving' | 'saved' | 'offline' | 'error' | 'conflict' | 'auth-required';
 interface DraftState {
@@ -15,7 +15,7 @@ interface DraftState {
   revision: number | null;
   remoteDraft: SolutionDraft | null;
   guestAvailable: boolean;
-  otherRecoveries: { tabId: string; updatedAt: number }[];
+  otherRecoveries: { tabId: string; updatedAt: number; current: boolean }[];
   localError: boolean;
 }
 
@@ -33,6 +33,7 @@ export function createDraftSync(options: {
   let disposed = false;
   let connected = false;
   let dirty = false;
+  let bufferVersion = challenge.version;
   let loaded = false;
   let flight: number | null = null;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -44,20 +45,34 @@ export function createDraftSync(options: {
     try { return recovery.read(owner, challenge.id, tab); } catch { storageFailures.add(owner); state.localError = true; return null; }
   }
 
-  function persist() {
-    if (!connected) return;
-    const buffer = { ownerId: state.ownerId, challengeId: challenge.id, challengeVersion: challenge.version,
+  function currentBuffer() {
+    return { ownerId: state.ownerId, challengeId: challenge.id, challengeVersion: bufferVersion,
       source: state.source, expectedRevision: state.revision, dirty, notes: state.notes,
       timeComplexity: state.timeComplexity, spaceComplexity: state.spaceComplexity };
+  }
+
+  function refreshRecoveries() {
+    try {
+      state.otherRecoveries = recovery.others(state.ownerId, challenge.id).map((buffer) => ({
+        tabId: buffer.tabId, updatedAt: buffer.updatedAt, current: sameDraftContent(buffer, currentBuffer()),
+      }));
+    } catch { state.localError = true; }
+  }
+
+  function persist() {
+    if (!connected) return;
+    const buffer = currentBuffer();
     memoryBuffers.set(state.ownerId, { ...buffer, tabId: recovery.tabId, updatedAt: Date.now() });
     try {
       recovery.write(buffer);
       storageFailures.delete(state.ownerId);
       state.localError = storageFailures.size > 0;
     } catch { storageFailures.add(state.ownerId); state.localError = true; }
+    refreshRecoveries();
   }
 
   function restore(buffer: LocalDraftBuffer) {
+    bufferVersion = buffer.challengeVersion;
     state.source = buffer.source;
     state.notes = buffer.notes;
     state.timeComplexity = buffer.timeComplexity;
@@ -69,10 +84,7 @@ export function createDraftSync(options: {
   function preserveBeforeReplace(): boolean {
     if (!dirty && !state.notes && !state.timeComplexity && !state.spaceComplexity) return true;
     try {
-      recovery.archive({ ownerId: state.ownerId, challengeId: challenge.id, challengeVersion: challenge.version,
-        source: state.source, expectedRevision: state.revision, dirty, notes: state.notes,
-        timeComplexity: state.timeComplexity, spaceComplexity: state.spaceComplexity });
-      state.otherRecoveries = recovery.others(state.ownerId, challenge.id).map(({ tabId, updatedAt }) => ({ tabId, updatedAt }));
+      recovery.archive(currentBuffer());
       return true;
     } catch { state.localError = true; return false; }
   }
@@ -97,12 +109,12 @@ export function createDraftSync(options: {
     loaded = false;
     connected = true;
     dirty = false;
+    bufferVersion = challenge.version;
     Object.assign(state, { ownerId, source: challenge.starter, notes: '', timeComplexity: '', spaceComplexity: '',
       revision: null, remoteDraft: null, status: ownerId ? 'loading' : 'guest', localError: storageFailures.size > 0, guestAvailable: false, otherRecoveries: [] });
     const local = read(ownerId);
     if (local) restore(local);
-    try { state.otherRecoveries = recovery.others(ownerId, challenge.id).map(({ tabId, updatedAt }) => ({ tabId, updatedAt })); }
-    catch { state.localError = true; }
+    refreshRecoveries();
     if (!ownerId) { loaded = true; return; }
     const guest = read(null);
     state.guestAvailable = !!guest && (guest.source !== challenge.starter || guest.notes !== '');
@@ -131,6 +143,7 @@ export function createDraftSync(options: {
         state.revision = cloud?.revision ?? null;
         state.status = cloud && state.source === cloud.source ? 'saved' : 'idle';
       }
+      refreshRecoveries();
     } catch (error) {
       if (!disposed && epoch === generation) failure(error);
     }
@@ -199,6 +212,7 @@ export function createDraftSync(options: {
       state.status = state.remoteDraft ? 'saved' : 'idle';
     } else { dirty = true; state.status = 'idle'; }
     state.revision = state.remoteDraft?.revision ?? null;
+    bufferVersion = challenge.version;
     persist();
     if (choice === 'local') await flush();
   }
@@ -208,6 +222,7 @@ export function createDraftSync(options: {
     const guest = read(null);
     if (!guest) return;
     if (!preserveBeforeReplace()) return;
+    bufferVersion = challenge.version;
     state.source = guest.source;
     state.notes = guest.notes;
     state.timeComplexity = guest.timeComplexity;
@@ -221,6 +236,7 @@ export function createDraftSync(options: {
   async function recoverBuffer(tabId: string) {
     const buffer = read(state.ownerId, tabId);
     if (!buffer) return;
+    if (sameDraftContent(buffer, currentBuffer())) { refreshRecoveries(); return; }
     if (!preserveBeforeReplace()) return;
     restore(buffer);
     dirty = true;
@@ -229,7 +245,7 @@ export function createDraftSync(options: {
   }
 
   return {
-    state: readonly(state), connect, edit, editNotes, flush, retry, resolveConflict, importGuest, recoverBuffer,
+    state: readonly(state), connect, edit, editNotes, flush, retry, resolveConflict, importGuest, recoverBuffer, refreshRecoveries,
     guestBuffer: () => read(null),
     setOffline() { clearTimeout(timer); if (state.ownerId && dirty) state.status = 'offline'; persist(); },
     dispose() { persist(); disposed = true; generation += 1; clearTimeout(timer); },
