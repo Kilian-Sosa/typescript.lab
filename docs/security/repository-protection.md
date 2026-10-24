@@ -4,13 +4,13 @@ Issue [#24](https://github.com/Kilian-Sosa/typescript.lab/issues/24) implements 
 
 ## Required checks
 
-| Check context | Purpose |
-| --- | --- |
-| `verify` | Existing app/runner functional tests, typechecks, builds and browser suites. |
-| `lint` | App and runner ESLint/Prettier gates from issue #22. |
-| `Dependency vulnerability audit` | Both active installation graphs, high/critical policy and explicit time-bounded waivers from issue #23. The historical runner spike is outside active CI installations. |
-| `static-security` | CodeQL security-extended JavaScript/TypeScript analysis, including Vue extraction, followed by a fail-closed SARIF severity check. Medium+ security findings and non-security errors fail. |
-| `secret-scan` | Checksum-pinned Gitleaks scans tracked current content, all commits reachable from HEAD, and fresh app/runner web artifacts. Real negative-fixture tests also run in this job. |
+| Check context                    | Purpose                                                                                                                                                                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `verify`                         | Existing app/runner functional tests, typechecks, builds and browser suites.                                                                                                               |
+| `lint`                           | App and runner ESLint/Prettier gates from issue #22.                                                                                                                                       |
+| `Dependency vulnerability audit` | Both active installation graphs, high/critical policy and explicit time-bounded waivers from issue #23. The historical runner spike is outside active CI installations.                    |
+| `static-security`                | CodeQL security-extended JavaScript/TypeScript analysis, including Vue extraction, followed by a fail-closed SARIF severity check. Medium+ security findings and non-security errors fail. |
+| `secret-scan`                    | Checksum-pinned Gitleaks scans tracked current content, all commits reachable from HEAD, and fresh app/runner web artifacts. Real negative-fixture tests also run in this job.             |
 
 Checks run for PRs targeting main and main pushes without path filtering. A first-time fork contributor may need the normal GitHub workflow approval; no repository secrets, deployment keys or OIDC permissions are needed. Only the CodeQL job requests security-events write permission, using GitHub's supported public PR upload flow. There is no pull_request_target or privileged workflow_run bridge.
 
@@ -38,11 +38,11 @@ Reports print rule IDs, file locations, line numbers and commit IDs with values 
 
 Reviewed 2026-10-24 against official releases/action manifests:
 
-| Action | Release | Immutable commit |
-| --- | --- | --- |
-| actions/checkout | [v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1) | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
-| actions/setup-node | [v7.1.0](https://github.com/actions/setup-node/releases/tag/v7.1.0) | `949feb2413d6458794dcd2491c4babbbce0c15c1` |
-| pnpm/setup | [v3.1.1](https://github.com/pnpm/setup/releases/tag/v3.1.1) | `a0881977cd8ea73b1ed212236c99ca10dcc80cf4` |
+| Action               | Release                                                                 | Immutable commit                           |
+| -------------------- | ----------------------------------------------------------------------- | ------------------------------------------ |
+| actions/checkout     | [v7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1)       | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| actions/setup-node   | [v7.1.0](https://github.com/actions/setup-node/releases/tag/v7.1.0)     | `949feb2413d6458794dcd2491c4babbbce0c15c1` |
+| pnpm/setup           | [v3.1.1](https://github.com/pnpm/setup/releases/tag/v3.1.1)             | `a0881977cd8ea73b1ed212236c99ca10dcc80cf4` |
 | github/codeql-action | [v4.38.3](https://github.com/github/codeql-action/releases/tag/v4.38.3) | `24c54180a607b1449ed407dd24f251e4e9147c8d` |
 
 All four manifests use Node 24. pnpm/setup is the maintained successor linked by pnpm/action-setup; its automatic install is explicitly disabled to retain the existing frozen-install steps. Checkout credentials are not persisted. Dependabot proposes weekly Actions updates; review the release, runtime, permissions and new full commit before accepting an update.
@@ -75,6 +75,8 @@ Administrators use the same checked PR path for ordinary and emergency fixes. Th
 - Environment-variable contract: unchanged. No feature flags, long-lived credentials, deployment or provider changes.
 
 ### CodeQL false-positive review
+
+The post-merge `main` CodeQL analysis reported `js/client-side-request-forgery` for the archived spike Worker's network-denial probe. The earlier spike passed an arbitrary URL through a Worker message solely to test CSP, but that interface was unnecessarily broad. The probe now accepts only an integer port and constructs the fixed `http://app.test:<port>/probe-target` fixture URL, preserving the actual cross-origin blocked-request test without accepting a caller-selected host or path. CodeQL still flags the dynamic port, so a fourth, exact rule/path/line/source-hash review documents why the fixture cannot choose an arbitrary host. It expires on 2027-01-24 and fails closed if the source changes; it does not exclude this query elsewhere. The existing Worker-listener review was re-pinned after the source change.
 
 The checksum-verified Gitleaks download triggers js/http-to-file-access because the analysis does not model the fixed official SHA-256 validation. The download entry in .github/codeql/accepted-findings.json is pinned to its exact source SHA-256, rule, file and line; owner Kilian-Sosa; expiry 2027-01-24. Changing the source or letting the review expire fails the static-security gate. The native alert is dismissed as false positive with matching evidence. All other results remain subject to the normal thresholds. No query or source tree is excluded. Review the checksum trust boundary again before renewing this entry.
 
