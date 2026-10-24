@@ -63,9 +63,9 @@ function download() {
     </details>
     <details v-if="state.otherRecoveries.length" class="draft-review">
       <summary>Recover another local buffer ({{ state.otherRecoveries.length }})</summary>
-      <p>Buffers from other or interrupted tabs remain separate. Recovering one opens it for review.</p>
-      <button v-for="buffer in state.otherRecoveries" :key="buffer.tabId" type="button" class="text-button" @click="sync.recoverBuffer(buffer.tabId)">
-        Review buffer from {{ new Date(buffer.updatedAt).toLocaleString() }}
+      <p>Each entry is distinct local content from another or interrupted tab. Recovering it opens it for review and preserves your current work.</p>
+      <button v-for="buffer in state.otherRecoveries" :key="buffer.tabId" type="button" class="text-button" :disabled="buffer.current" @click="sync.recoverBuffer(buffer.tabId)">
+        {{ buffer.current ? 'Currently open' : 'Review buffer' }} from {{ new Date(buffer.updatedAt).toLocaleString() }}
       </button>
     </details>
     <p v-if="state.notes || state.timeComplexity || state.spaceComplexity">Notes and declared complexity are {{ state.localError ? 'kept in this page; browser recovery is unavailable' : 'retained on this browser' }}. Save an attempt to store them privately in your immutable history.</p>

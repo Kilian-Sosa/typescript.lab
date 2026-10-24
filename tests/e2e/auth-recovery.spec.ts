@@ -236,6 +236,43 @@ test('two tabs preserve conflicting edits and require an explicit revision choic
   expect(backend.rows.get(ownerA)?.source).toBe('second tab update');
 });
 
+test('reviewing local buffers repeatedly remains bounded and reversible after reload and sign-in', async ({ page, context }) => {
+  const backend = await api(context); backend.seed(ownerA, 'private cloud');
+  await page.goto('/challenges/longest-window');
+  await sourceField(page).fill('first guest buffer');
+  const other = await context.newPage();
+  await other.goto('/challenges/longest-window');
+  await sourceField(other).fill('second guest buffer');
+  await other.close();
+  await page.reload();
+  await expect(sourceField(page)).toHaveValue('first guest buffer');
+  const recovery = page.locator('details').filter({ has: page.locator('summary').filter({ hasText: 'Recover another local buffer' }) });
+  await recovery.locator('summary').click();
+  const storageSize = () => page.evaluate(() => Object.keys(localStorage).filter((key) => key.startsWith('typescript-lab-buffer-v1:')).length);
+  await recovery.getByRole('button', { name: /^Review buffer/ }).click();
+  await expect(sourceField(page)).toHaveValue('second guest buffer');
+  await expect(recovery.getByRole('button', { name: /^Currently open/ })).toBeDisabled();
+  await expect(recovery.locator('summary')).toContainText('(2)');
+  const size = await storageSize();
+  for (let index = 0; index < 10; index += 1) {
+    await recovery.getByRole('button', { name: /^Review buffer/ }).click();
+  }
+  expect(await storageSize()).toBeLessThanOrEqual(size + 1);
+  await expect(sourceField(page)).toHaveValue('second guest buffer');
+  await notesField(page).fill('distinct notes');
+  await expect(recovery.getByRole('button', { name: /^Currently open/ })).toHaveCount(0);
+  await page.reload();
+  await expect(sourceField(page)).toHaveValue('second guest buffer');
+  await expect(notesField(page)).toHaveValue('distinct notes');
+  await login(page);
+  await expect(sourceField(page)).toHaveValue('private cloud');
+  await page.getByText('Review guest draft for import', { exact: true }).click();
+  await page.getByRole('button', { name: 'Import guest draft into this account' }).click();
+  await expect(page.locator('#source-persistence')).toContainText('Saved privately');
+  await expect(sourceField(page)).toHaveValue('second guest buffer');
+  await expect(notesField(page)).toHaveValue('distinct notes');
+});
+
 test('offline recovery survives reload and retries without falsely reporting Saved', async ({ page, context }) => {
   const backend = await api(context); backend.seed(ownerA, 'cloud baseline');
   await page.goto('/challenges/longest-window'); await login(page);

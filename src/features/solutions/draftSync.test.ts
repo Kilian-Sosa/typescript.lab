@@ -31,6 +31,106 @@ beforeEach(() => { localStorage.clear(); vi.useFakeTimers(); });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('resilient draft synchronization', () => {
+  it('bounds repeated and alternating reviews while retaining distinct guest edits over reload and import', async () => {
+    const backend = server(draft('cloud'));
+    const one = controller(backend.repository);
+    const two = controller(backend.repository, 'tab-two');
+    await one.connect(null); one.edit('first');
+    await two.connect(null); two.edit('second'); two.dispose();
+    await one.recoverBuffer('tab-two');
+    const size = localStorage.length;
+    for (let index = 0; index < 10; index += 1) await one.recoverBuffer('tab-two');
+    expect(localStorage.length).toBe(size);
+    expect(one.state.otherRecoveries).toHaveLength(2);
+    for (let index = 0; index < 10; index += 1) {
+      const first = createDraftRecovery(localStorage, 'observer').others(null, challenge.id).find((row) => row.source === 'first')!;
+      await one.recoverBuffer(first.tabId);
+      await one.recoverBuffer('tab-two');
+    }
+    expect(localStorage.length).toBeLessThanOrEqual(size + 1);
+    one.editNotes({ notes: 'distinct reasoning', timeComplexity: 'O(n)', spaceComplexity: 'O(1)' });
+    await one.recoverBuffer('tab-two');
+    expect(one.state.otherRecoveries).toHaveLength(3);
+    one.dispose();
+    const reload = controller(backend.repository, 'reload');
+    await reload.connect(null);
+    expect(reload.state.otherRecoveries).toHaveLength(3);
+    await reload.recoverBuffer('tab-two');
+    await reload.connect('a');
+    expect(reload.state.source).toBe('cloud');
+    expect(reload.state.otherRecoveries).toHaveLength(0);
+    await reload.importGuest();
+    expect(backend.current()?.source).toBe('second');
+    const signedInSize = localStorage.length;
+    for (let index = 0; index < 10; index += 1) await reload.importGuest();
+    expect(localStorage.length).toBeLessThanOrEqual(signedInSize + 1);
+    await reload.connect(null);
+    expect(reload.state.otherRecoveries).toHaveLength(3);
+    reload.dispose();
+  });
+
+  it('keeps two-tab conflict recovery bounded without overwriting cloud or losing either local version', async () => {
+    const backend = server(draft('cloud'));
+    const one = controller(backend.repository);
+    const two = controller(backend.repository, 'tab-two');
+    await one.connect('a'); await two.connect('a');
+    one.edit('first'); await one.flush();
+    two.edit('second'); await two.flush();
+    expect(two.state.status).toBe('conflict');
+    one.edit('first unsaved');
+    await two.recoverBuffer('tab-one');
+    const size = localStorage.length;
+    for (let index = 0; index < 10; index += 1) await two.recoverBuffer('tab-one');
+    expect(localStorage.length).toBe(size);
+    expect(two.state.otherRecoveries).toHaveLength(2);
+    expect(backend.current()?.source).toBe('first');
+    const second = createDraftRecovery(localStorage, 'observer').others('a', challenge.id).find((row) => row.source === 'second')!;
+    await two.recoverBuffer(second.tabId);
+    expect(two.state.source).toBe('second');
+    await two.resolveConflict('local');
+    expect(backend.current()?.source).toBe('second');
+    one.dispose(); two.dispose();
+  });
+
+  it('blocks replacement when a distinct current buffer cannot be archived', async () => {
+    const backend = server();
+    const other = controller(backend.repository, 'other');
+    await other.connect(null); other.edit('other text'); other.dispose();
+    const storage = { getItem: (key: string) => localStorage.getItem(key),
+      setItem: (key: string, value: string) => {
+        if (key.includes('archive-')) throw new Error('quota');
+        localStorage.setItem(key, value);
+      }, removeItem: (key: string) => localStorage.removeItem(key),
+      key: (index: number) => localStorage.key(index), get length() { return localStorage.length; } };
+    const sync = createDraftSync({ repository: backend.repository, recovery: createDraftRecovery(storage, 'current'), challenge, isOnline: () => true });
+    await sync.connect(null); sync.edit('irreplaceable current');
+    await sync.recoverBuffer('other');
+    expect(sync.state.source).toBe('irreplaceable current');
+    expect(sync.state.localError).toBe(true);
+    expect(createDraftRecovery(localStorage, 'other').read(null, challenge.id)?.source).toBe('other text');
+    sync.dispose();
+  });
+
+  it('keeps recovered challenge versions distinct through replacement and reload', async () => {
+    const backend = server();
+    const recovery = createDraftRecovery(localStorage, 'old-tab');
+    recovery.write({ ownerId: null, challengeId: challenge.id, challengeVersion: '0.9.0', source: 'old version source',
+      expectedRevision: null, dirty: true, notes: '', timeComplexity: '', spaceComplexity: '' });
+    const sync = controller(backend.repository);
+    await sync.connect(null); sync.edit('current version source');
+    await sync.recoverBuffer('old-tab');
+    expect(sync.state.otherRecoveries.find((row) => row.tabId === 'old-tab')?.current).toBe(true);
+    sync.dispose();
+    const reloaded = controller(backend.repository);
+    await reloaded.connect(null);
+    const currentVersion = recovery.others(null, challenge.id).find((row) => row.source === 'current version source')!;
+    await reloaded.recoverBuffer(currentVersion.tabId);
+    const oldCopies = recovery.others(null, challenge.id).filter((row) => row.source === 'old version source');
+    expect(oldCopies).toHaveLength(1);
+    expect(oldCopies[0]?.challengeVersion).toBe('0.9.0');
+    reloaded.dispose();
+  });
+
   it('copies reload recovery into a new page buffer without sharing writes with a duplicated tab', () => {
     const old = createDraftRecovery(localStorage, 'old-page');
     old.write({ ownerId: 'a', challengeId: challenge.id, challengeVersion: challenge.version, source: 'before duplicate',
