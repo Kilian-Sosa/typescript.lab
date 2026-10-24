@@ -14,6 +14,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependency-audit:
+    name: Dependency vulnerability audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+          run_install: false
+      - name: Verify audit policy with controlled advisory fixtures
+        run: node --test scripts/audit-dependencies.test.mjs
+      - name: Audit app and independent runner lockfiles
+        run: node scripts/audit-dependencies.mjs
   verify:
     runs-on: ubuntu-latest
     steps:

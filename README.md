@@ -27,6 +27,11 @@ pnpm test:e2e
 
 On Windows, the browser suite can use installed Edge by setting `PLAYWRIGHT_BROWSER_CHANNEL=msedge`. Set `PLAYWRIGHT_PORT` if the default test port `4173` is occupied.
 
+CI separately audits both the app and runner lockfiles for dependency vulnerabilities.
+Run `pnpm audit:dependencies` locally. High/critical findings (including unpatched
+advisories) block; lower severities remain visible. See the
+[audit policy and exception procedure](docs/security/dependency-auditing.md).
+
 For a local exercise, edit [the starter](challenges/longest-window/starter.ts), then run `pnpm test:practice`. That explicit suite fails until the starter is implemented; the default CI suite tests the separate canonical solution. Read the [challenge contract](challenges/longest-window/README.md) first.
 
 The [local database guide](supabase/README.md) covers the pinned Supabase CLI, isolated migrations and `pnpm test:db`. It uses disposable local PostgreSQL, never a hosted migration. The [QuickJS feasibility report](docs/security/quickjs-feasibility.md) records passing local probes and the remaining production NO-GO gates; the [approved design](docs/superpowers/specs/2026-10-17-dedicated-runner-design.md) defines the execution boundary.
