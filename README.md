@@ -121,6 +121,55 @@ npm.cmd exec --yes --package=typescript@7.0.2 --call "tsc --project shared/contr
 
 Vue 3 + Vite + Vue Router + strict TypeScript, Vitest, Playwright and Supabase/PostgreSQL with RLS. The app pins TypeScript 5.9.3 for compatibility with `vue-tsc`; shared contracts also pass their standalone TypeScript 7.0.2 check. GitHub Actions and Vercel SPA configuration are present. The protected app Preview is deployed; full live PKCE/recovery acceptance, production app deployment and learner execution remain gated. Nuxt is deferred.
 
+## Production artifact preparation (no deployment)
+
+The separate `mvp-production` mode is governed by the [Production design](docs/superpowers/specs/2026-10-24-mvp-production-design.md).
+An ordinary `pnpm build` stays execution-disabled. Production origins have one source of truth in
+`shared/deployment/production.ts`; both app/runner artifacts and their headers derive from it.
+Both Production compilers ignore local env files and arbitrary public `VITE_*` values.
+
+Use explicit process configuration in PowerShell (safe illustrative public values below):
+
+```powershell
+$env:VERCEL_ENV = 'production'
+$env:VERCEL_TARGET_ENV = 'production'
+$env:VITE_SUPABASE_URL = 'https://example.supabase.co'
+$env:VITE_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_<approved-public-key>'
+node scripts/build-mvp-production.mjs
+```
+
+Supply the approved environment's public URL/key through your build process; never supply a secret/service-role key.
+Use temporary process values and restore prior values afterward. These commands do not write user-level settings.
+`VERCEL_ENV` and `VERCEL_TARGET_ENV` must both be `production`; these values are guards, not deployment attestation.
+The URL must be an exact HTTPS `*.supabase.co` origin (one optional trailing slash). The publishable key must start
+with `sb_publishable_` and contain only key characters. Fixture values in CI never authorize real authentication.
+
+`VITE_RUNNER_PARENT_ORIGIN` and `VITE_RUNNER_ORIGIN` are optional assertions in Production: when supplied,
+they must equal the pinned app and runner origins exactly, without trailing slashes or ports.
+`LAB_RUNNER_LOCAL_TEST` must be unset/empty. `VITE_MVP_PRODUCTION_DEPLOYMENT_ENV` is compiler-owned;
+setting it or any Preview activation flag in the environment cannot enable another build mode.
+
+The complete pair appears only after successful builds at `output/mvp-production/app/.vercel/output` and
+`output/mvp-production/runner/.vercel/output`. `output/mvp-production/manifest.json` records source SHA, source-tree
+fingerprint, dirty state and SHA-256 hashes including response configurations. Source changes during compilation
+reject publication. Failed builds invalidate old paired output.
+The manifest is local evidence, not hosted acceptance; dirty builds cannot serve as a reviewed release candidate.
+Never deploy fixture configuration. Use the paired builder, not a raw Vite output directory, for release artifacts.
+
+Production app responses intentionally omit Preview's blanket `noindex, nofollow`; the static runner retains it.
+Strict app/runner/Worker CSP, `nosniff` and `no-referrer` remain enforced. Generated deployment URLs intentionally
+cannot activate execution, and must additionally remain protected or canonicalized during hosted acceptance.
+
+The [PR 1 plan](docs/superpowers/plans/2026-10-24-mvp-production-activation.md) records implementation evidence.
+PR 2 will supply compiled-artifact browser acceptance and reusable hosted-validation scripts. Genuine OAuth,
+Supabase RLS, exact-alias HTTPS isolation and an independent match of Vercel target/SHA/hashes/headers remain
+separate hosted gates using disposable test accounts/data. Preserve the existing private draft.
+Stage protected Production artifacts without domain assignment, then expose the reviewed static runner while the
+exact app alias stays authenticated; release the app only after hosted/security approval. See
+[Vercel staging](https://vercel.com/docs/cli/deploy#skip-domain),
+[promotion without rebuilding](https://vercel.com/docs/deployments/promoting-a-deployment) and
+[protection settings](https://vercel.com/docs/deployment-protection).
+
 ## Contributions and licensing
 
 The repository is public, but a license and contribution rules must be selected before accepting external contributions. Until a license is explicitly added, do not assume the content or source is licensed for reuse.

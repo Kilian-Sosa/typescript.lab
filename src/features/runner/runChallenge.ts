@@ -12,6 +12,7 @@ import {
   revision,
 } from '../../../apps/runner/src/protocol';
 import { validConsoleOutput, type ConsoleTranscript } from '../../../apps/runner/src/console-output';
+import { PRODUCTION_ORIGINS } from '../../../shared/deployment/production';
 
 export interface RunContext {
   runId: string;
@@ -33,6 +34,23 @@ export function newRunId(): string {
 // Hosted activation requires the dedicated QA mode and its validated Preview build metadata.
 export const M3_QA_APP_ORIGIN = 'https://typescript-lab-m3-app-qa.vercel.app';
 export const M3_QA_RUNNER_ORIGIN = 'https://typescript-lab-m3-runner-qa.vercel.app';
+
+// Build metadata guards activation; independent hosted verification attests delivery.
+export function mvpProductionRunnerOrigin(
+  mode: string,
+  runner: string | undefined,
+  parent: string,
+  dev: boolean,
+  deploymentEnvironment: string | undefined,
+): string | null {
+  return !dev &&
+    mode === 'mvp-production' &&
+    deploymentEnvironment === 'production' &&
+    parent === PRODUCTION_ORIGINS.app &&
+    runner === PRODUCTION_ORIGINS.runner
+    ? PRODUCTION_ORIGINS.runner
+    : null;
+}
 
 export function hostedQaRunnerOrigin(
   mode: string,

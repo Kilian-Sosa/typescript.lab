@@ -76,6 +76,12 @@ The main app must never directly `eval` transpiled learner code. No privileged t
 
 ## Dependency impact
 
+Production activation is specified separately by the [approved MVP Production design](2026-10-24-mvp-production-design.md).
+Its dedicated `mvp-production` mode and pinned existing project domains do not replace Q5/Q6 or authorize hosted
+exposure. Both app and runner must ignore implicit local environment files in that mode. Production build metadata
+is a guard only; independently verify platform target, source identity, hashes, exact aliases and response policies
+before release. Synthetic compiled-artifact acceptance is separate from live OAuth/RLS/HTTPS evidence.
+
 - **M5 Notebook:** SQL RLS/immutable attempts, typed repository, auth UI, timelines, comparison, export and fresh retry can proceed independently. Save `untested` while there is no trustworthy current run. Only final live-result-to-attempt wiring and end-to-end run+submit checks wait for M3.
 - **M6 Task 1:** reference algorithm stepper, spoiler gates, accessibility and keyboard controls do not depend on learner execution. It may proceed independently if one agent owns edits to the shared challenge page.
 - **M6 Task 2:** release readiness and runner-specific editor/timeout/E2E/preview header checks **do** wait for the production runner, deployed-origin verification and M4/M5 integrations. No production release until those checks and owner approval.

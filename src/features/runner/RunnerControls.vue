@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import type { RunFeedback } from './runChallenge';
-import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreviewRunnerOrigin,
+import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreviewRunnerOrigin, mvpProductionRunnerOrigin,
   newRunId, runOutcome } from './runChallenge';
 import { runChallengeKey } from './session';
 import TestResults from './TestResults.vue';
@@ -17,7 +17,9 @@ const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABL
     import.meta.env.VITE_M3_QA_DEPLOYMENT_ENV)
   ?? mvpPreviewRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_MVP_PREVIEW_RUNNER,
     import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV,
-    import.meta.env.VITE_MVP_PREVIEW_DEPLOYMENT_ENV);
+    import.meta.env.VITE_MVP_PREVIEW_DEPLOYMENT_ENV)
+  ?? mvpProductionRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_RUNNER_ORIGIN,
+    window.location.origin, import.meta.env.DEV, import.meta.env.VITE_MVP_PRODUCTION_DEPLOYMENT_ENV);
 const runChallenge = inject(runChallengeKey, null) ?? (origin ? createIframeRunner(origin) : null);
 const result = shallowRef<RunFeedback | null>(null);
 const stale = ref(false);
