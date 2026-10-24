@@ -6,8 +6,10 @@ import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreview
 import { runChallengeKey } from './session';
 import TestResults from './TestResults.vue';
 import ConsoleOutput from './ConsoleOutput.vue';
+import { summarizeRun, type SourceEvaluation } from './runEvaluation';
 
 const props = defineProps<{ source: string; challengeId: string; challengeVersion: string; resetKey?: number }>();
+const emit = defineEmits<{ evaluation: [value: SourceEvaluation | null] }>();
 const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABLE_LOCAL_RUNNER,
   import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin)
   ?? hostedQaRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_M3_QA_RUNNER,
@@ -27,6 +29,7 @@ let generation = 0;
 let controller: AbortController | null = null;
 
 function invalidate() {
+  emit('evaluation', null);
   generation++; revision++; controller?.abort(); controller = null;
   result.value = null; running.value = false; stale.value = true;
 }
@@ -34,6 +37,7 @@ watch(() => [props.source, props.challengeId, props.challengeVersion, props.rese
 onBeforeUnmount(invalidate);
 
 function cancel() {
+  emit('evaluation', null);
   const restoreFocus = document.activeElement === cancelButton.value;
   generation++;
   controller?.abort();
@@ -45,7 +49,9 @@ function cancel() {
 async function run() {
   if (!runChallenge || running.value) return;
   const epoch = ++generation;
+  emit('evaluation', null);
   const source = props.source, challengeId = props.challengeId;
+  const workspaceRevision = props.resetKey ?? 0;
   const context = { runId: newRunId(), sourceRevision: revision, challengeVersion: props.challengeVersion };
   controller = new AbortController();
   running.value = true; stale.value = false;
@@ -56,8 +62,16 @@ async function run() {
     if (next.runId !== context.runId || next.sourceRevision !== revision || next.challengeId !== props.challengeId
       || next.challengeVersion !== props.challengeVersion || props.source !== source) return;
     result.value = next;
+    const summary = summarizeRun(next);
+    if (summary) emit('evaluation', { source, challengeId, challengeVersion: context.challengeVersion,
+      sourceRevision: context.sourceRevision, workspaceRevision, summary });
   } catch {
-    if (epoch === generation) result.value = runOutcome(challengeId, context, 'infrastructure-error', 'Runner could not start. Retry Run tests.');
+    if (epoch === generation) {
+      result.value = runOutcome(challengeId, context, 'infrastructure-error', 'Runner could not start. Retry Run tests.');
+      const summary = summarizeRun(result.value);
+      if (summary) emit('evaluation', { source, challengeId, challengeVersion: context.challengeVersion,
+        sourceRevision: context.sourceRevision, workspaceRevision, summary });
+    }
   } finally {
     if (epoch === generation) { running.value = false; controller = null; }
   }

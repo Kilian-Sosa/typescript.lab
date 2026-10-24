@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import type { AttemptEvaluation } from '../../../shared/contracts/v1';
+import type { SourceEvaluation } from '../runner/runEvaluation';
 import { onBeforeRouteLeave, useRoute } from 'vue-router';
 import { authControllerKey } from '../auth/auth';
 import { draftRepositoryKey } from './session';
@@ -29,6 +31,20 @@ const sync = createDraftSync({ repository, recovery: createDraftRecovery(storage
   (owner, challenge, tab) => sessionStorage.setItem(pointerKey(owner, challenge), tab)),
   challenge: { id: props.challengeId, version: props.challengeVersion, starter: props.starter }, fresh: !!fresh, isOnline: () => navigator.onLine });
 const source = computed({ get: () => sync.state.source, set: (value) => sync.edit(value) });
+const workspaceRevision = ref(0);
+const evaluated = shallowRef<SourceEvaluation | null>(null);
+// Observe the underlying buffer synchronously: edit/revert in one render must still invalidate a pass.
+watch(() => [sync.state.source, props.challengeId, props.challengeVersion, auth?.state.userId,
+  auth?.state.generation, auth?.state.status, auth?.state.signingOut, auth?.state.signOutFailed], () => {
+  workspaceRevision.value++;
+  evaluated.value = null;
+}, { flush: 'sync' });
+const evaluation = computed<AttemptEvaluation>(() => {
+  const current = evaluated.value;
+  return current && current.workspaceRevision === workspaceRevision.value && current.source === source.value
+    && current.challengeId === props.challengeId && current.challengeVersion === props.challengeVersion
+    ? current.summary : { status: 'untested' };
+});
 const noteFields = computed(() => ({ notes: sync.state.notes, timeComplexity: sync.state.timeComplexity, spaceComplexity: sync.state.spaceComplexity }));
 watch(() => auth?.state.userId ?? null, (owner) => { void sync.connect(owner); }, { immediate: true, flush: 'sync' });
 const offline = () => sync.setOffline();
@@ -58,13 +74,16 @@ onBeforeUnmount(() => {
       :source="source"
       :challenge-id="challengeId"
       :challenge-version="challengeVersion"
-      :reset-key="auth?.state.generation ?? 0"
+      :reset-key="workspaceRevision"
+      @evaluation="evaluated = $event"
     />
     <AttemptSubmissionPanel
       :key="auth?.state.generation ?? 0"
       :challenge-id="challengeId"
       :challenge-version="challengeVersion"
       :source="source"
+      :evaluation="evaluation"
+      :context-revision="workspaceRevision"
       :recovery-notes="noteFields"
       :return-to="route.fullPath"
       @notes-changed="sync.editNotes"

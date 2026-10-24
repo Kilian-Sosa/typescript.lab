@@ -76,6 +76,8 @@ test(
     const errors = [];
     const runnerRequests = [];
     const authRequests = [];
+    const attempts = [];
+    let draft = null;
     let workerRequests = 0;
     try {
       const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -119,8 +121,42 @@ test(
               user,
             });
           } else if (url.pathname === '/auth/v1/user') await respond(user);
-          else if (url.pathname === '/rest/v1/solution_drafts' && request.method() === 'GET') await respond([]);
-          else await respond({ message: 'Unexpected fixture request' }, 400);
+          else if (url.pathname === '/rest/v1/solution_attempts') {
+            assert.equal(request.headers().authorization, `Bearer ${jwt}`, 'Attempt request lost its captured session');
+            if (request.method() === 'POST') {
+              const input = request.postDataJSON();
+              assert.equal(input.user_id, undefined, 'Client must not assign attempt ownership');
+              assert.deepEqual(
+                Object.keys(input.test_summary).sort(),
+                input.test_summary.status === 'untested' ? ['status'] : ['passedCases', 'status', 'totalCases'],
+              );
+              const attempt = {
+                ...input,
+                user_id: userId,
+                id: `attempt-${attempts.length + 1}`,
+                created_at: new Date(Date.UTC(2026, 9, 24, 10, 0, attempts.length)).toISOString(),
+              };
+              attempts.unshift(attempt);
+              await respond(attempt, 201);
+            } else {
+              assert.equal(request.method(), 'GET');
+              assert.equal(url.searchParams.get('user_id'), `eq.${userId}`);
+              await respond(attempts);
+            }
+          } else if (url.pathname === '/rest/v1/solution_drafts') {
+            assert.equal(request.headers().authorization, `Bearer ${jwt}`);
+            if (request.method() === 'GET') await respond(draft ? [draft] : []);
+            else {
+              const input = request.postDataJSON();
+              draft = {
+                ...input,
+                user_id: userId,
+                revision: draft ? draft.revision + 1 : 0,
+                updated_at: new Date().toISOString(),
+              };
+              await respond(request.method() === 'POST' ? draft : [draft]);
+            }
+          } else await respond({ message: 'Unexpected fixture request' }, 400);
           return;
         }
         if (url.origin !== appOrigin && url.origin !== runnerOrigin && url.origin !== wrongOrigin) {
@@ -210,13 +246,64 @@ test(
         authRequests.some((path) => path.includes('/auth/v1/token')),
         'The test did not exercise the synthetic PKCE token exchange',
       );
-      // Session UI updates before the callback component finishes routing.
       await page.waitForURL(appOrigin + '/challenges/longest-window');
       assert.equal(new URL(page.url()).pathname, '/challenges/longest-window');
       assert.equal(new URL(page.url()).search, '', 'OAuth callback query remained visible');
       await source.fill(solution);
       await run.click();
       await page.getByText('All 14 tests passed', { exact: true }).waitFor({ timeout: 25000 });
+      const notes = 'A verified run saved with the exact source and revision.';
+      await page.getByRole('textbox', { name: 'Learning notes', exact: true }).fill(notes);
+      await page.getByRole('button', { name: 'Save attempt', exact: true }).click();
+      await page.getByText('Attempt saved. Test status: passed · 14/14 cases.', { exact: true }).waitFor();
+      assert.equal(attempts.length, 1);
+      assert.equal(attempts[0].source, solution);
+      assert.equal(attempts[0].notes, notes);
+      assert.equal(attempts[0].challenge_version, '1.0.0');
+      assert.deepEqual(attempts[0].test_summary, { status: 'passed', totalCases: 14, passedCases: 14 });
+      const passedSnapshot = structuredClone(attempts[0]);
+      await page.goto(appOrigin + '/notebook/longest-window');
+      await page.locator('.attempt-status-label').getByText('passed · 14/14 cases', { exact: true }).waitFor();
+      await page.locator('.attempt-timeline').getByText('passed · 14/14 cases', { exact: true }).waitFor();
+      await page.getByText(notes, { exact: true }).waitFor();
+      const downloading = page.waitForEvent('download');
+      await page.getByRole('button', { name: 'Download JSON', exact: true }).click();
+      const stream = await (await downloading).createReadStream();
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+      const exported = JSON.parse(Buffer.concat(chunks).toString('utf8')).attempt;
+      assert.equal(exported.source, solution);
+      assert.equal(exported.notes, notes);
+      assert.equal(exported.challengeVersion, '1.0.0');
+      assert.deepEqual(exported.testSummary, passedSnapshot.test_summary);
+      assert.deepEqual(Object.keys(exported.testSummary).sort(), ['passedCases', 'status', 'totalCases']);
+      await page.setViewportSize({ width: 390, height: 844 });
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth),
+        true,
+      );
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto(appOrigin + '/challenges/longest-window');
+      await page.getByRole('button', { name: 'Sign out', exact: true }).waitFor();
+      await source.fill(solution + '\n// edited after passing');
+      await source.fill(solution);
+      await page.getByRole('button', { name: 'Save attempt', exact: true }).click();
+      await page.getByText('Attempt saved. Test status: Untested.', { exact: true }).waitFor();
+      assert.deepEqual(attempts[0].test_summary, { status: 'untested' });
+      assert.deepEqual(attempts[1], passedSnapshot, 'Later saves must not alter immutable passed history');
+      await source.fill(
+        'export function longestWindow(_events: string[], _k: number) { return { start: 0, endExclusive: 0 }; }',
+      );
+      await run.click();
+      await page.getByText('Tests failed', { exact: true }).waitFor();
+      await page.getByRole('button', { name: 'Save attempt', exact: true }).click();
+      await page.getByText(/Attempt saved\. Test status: failed/).waitFor();
+      assert.equal(attempts[0].test_summary.status, 'failed');
+      assert.equal(attempts[0].test_summary.totalCases, 14);
+      assert.ok(attempts[0].test_summary.passedCases < 14);
+      console.log(
+        'PASS actual QuickJS 14/14 → synthetic authenticated snapshot → Notebook/timeline → JSON; edit/revert untested and failed saves',
+      );
       assert.ok(
         runnerRequests.some((path) => path === '/'),
         'Runner document was not requested',

@@ -112,7 +112,7 @@ export function runOutcome(
   };
 }
 
-function validResult(value: unknown): value is RunResult {
+export function validResult(value: unknown): value is RunResult {
   if (!json(value) || bytes(JSON.stringify(value)) > LIMITS.output || !record(value)) return false;
   const keys = [
     'contractVersion',

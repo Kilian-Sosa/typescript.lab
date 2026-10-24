@@ -1,8 +1,8 @@
 import { flushPromises, mount } from '@vue/test-utils';
-import { defineComponent, h, provide } from 'vue';
+import { defineComponent, h, provide, reactive } from 'vue';
 import { authControllerKey, type AuthController } from '../auth/auth';
 import { describe, expect, it, vi } from 'vitest';
-import type { SolutionAttempt } from '../../../shared/contracts/v1';
+import type { AttemptEvaluation, CreateAttemptInput, SolutionAttempt } from '../../../shared/contracts/v1';
 import { AuthenticationRequiredError, type AttemptRepository } from './attemptRepository';
 import AttemptSubmissionPanel from './AttemptSubmissionPanel.vue';
 import { attemptRepositoryKey, notebookSessionKey, type NotebookSessionProvider } from './session';
@@ -32,7 +32,7 @@ function makeRepository(createAttempt = vi.fn().mockResolvedValue(savedAttempt))
 }
 
 function mountPanel(
-  props: { challengeId: string; challengeVersion: string; source: string },
+  props: { challengeId: string; challengeVersion: string; source: string; evaluation?: AttemptEvaluation },
   repository: AttemptRepository,
   session?: NotebookSessionProvider,
   authState: Partial<AuthController['state']> | null = { status: 'signed-in', userId: 'owner-a' },
@@ -42,6 +42,7 @@ function mountPanel(
       challengeId: { type: String, required: true },
       challengeVersion: { type: String, required: true },
       source: { type: String, required: true },
+      evaluation: { type: Object, required: false },
     },
     setup(hostProps) {
       provide(attemptRepositoryKey, repository);
@@ -54,6 +55,7 @@ function mountPanel(
           challengeId: hostProps.challengeId,
           challengeVersion: hostProps.challengeVersion,
           source: hostProps.source,
+          evaluation: hostProps.evaluation as AttemptEvaluation | undefined,
         });
     },
   });
@@ -61,6 +63,70 @@ function mountPanel(
 }
 
 describe('AttemptSubmissionPanel', () => {
+  it('captures a detached evaluation/source/notes snapshot and reports the actual saved summary', async () => {
+    let finish!: (attempt: SolutionAttempt) => void;
+    const create = vi.fn(
+      (_input: CreateAttemptInput) =>
+        new Promise<SolutionAttempt>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { repository } = makeRepository(create);
+    const evaluation = reactive({ status: 'passed' as const, passedCases: 14, totalCases: 14 });
+    const wrapper = mountPanel(
+      { challengeId: 'longest-window', challengeVersion: '1.0.0', source: 'snapshot', evaluation },
+      repository,
+    );
+    await wrapper.get('textarea').setValue('snapshot notes');
+    await wrapper.get('form').trigger('submit');
+    await wrapper.get('form').trigger('submit');
+    expect(create).toHaveBeenCalledOnce();
+    evaluation.passedCases = 0;
+    expect(create.mock.calls[0]![0]).toMatchObject({
+      source: 'snapshot',
+      notes: 'snapshot notes',
+      testSummary: { status: 'passed', passedCases: 14, totalCases: 14 },
+    });
+    finish({ ...savedAttempt, testSummary: { status: 'failed', passedCases: 13, totalCases: 14 } });
+    await flushPromises();
+    expect(wrapper.get('[role="status"]').text()).toContain('failed · 13/14');
+    wrapper.unmount();
+  });
+
+  it.each(['source', 'version', 'auth', 'unmount'] as const)(
+    'suppresses obsolete save completion after %s changes',
+    async (change) => {
+      let finish!: (attempt: SolutionAttempt) => void;
+      const { repository } = makeRepository(
+        vi.fn(
+          () =>
+            new Promise<SolutionAttempt>((resolve) => {
+              finish = resolve;
+            }),
+        ),
+      );
+      const state = reactive({ status: 'signed-in' as const, userId: 'owner-a', generation: 0 });
+      const wrapper = mountPanel(
+        { challengeId: 'longest-window', challengeVersion: '1.0.0', source: 'snapshot' },
+        repository,
+        undefined,
+        state,
+      );
+      const panel = wrapper.getComponent(AttemptSubmissionPanel);
+      await wrapper.get('form').trigger('submit');
+      if (change === 'source') await wrapper.setProps({ source: 'later revision' });
+      if (change === 'version') await wrapper.setProps({ challengeVersion: '2.0.0' });
+      if (change === 'auth') state.generation++;
+      if (change === 'unmount') wrapper.unmount();
+      finish(savedAttempt);
+      await flushPromises();
+      expect(panel.emitted('saved')).toBeUndefined();
+      if (change !== 'unmount') {
+        expect(wrapper.find('[role="status"]').exists()).toBe(false);
+        wrapper.unmount();
+      }
+    },
+  );
   it.each([
     null,
     { status: 'checking' as const, userId: 'owner-a' },

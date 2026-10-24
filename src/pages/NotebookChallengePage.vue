@@ -12,6 +12,7 @@ import { exportAttempts } from '../features/solutions/exportAttempts';
 import { findChallenge } from '../features/challenges/registry';
 import { attemptRepositoryKey, notebookSessionKey } from '../features/solutions/session';
 import { authControllerKey } from '../features/auth/auth';
+import { evaluationLabel } from '../features/solutions/evaluationLabel';
 
 type PageState = 'loading' | 'ready' | 'empty' | 'unconfigured' | 'signed-out' | 'error';
 type ExportFormat = 'typescript' | 'markdown' | 'json';
@@ -69,14 +70,6 @@ const versionNotice = computed(() => {
   }
   return `This attempt was saved with challenge version ${selectedAttempt.value.challengeVersion}. The current challenge is version ${challenge.value.version}; the saved source and notes remain unchanged. The original challenge statement for that revision is unavailable in this build.`;
 });
-
-function attemptStatus(attempt: SolutionAttempt): string {
-  if (attempt.testSummary.status === 'untested') {
-    return 'Untested';
-  }
-  const { status, passedCases, totalCases } = attempt.testSummary;
-  return `${status} · ${passedCases}/${totalCases} cases`;
-}
 
 function clearAndReload(): void {
   attempts.value = [];
@@ -259,7 +252,7 @@ onBeforeUnmount(() => {
             <p class="eyebrow">ATTEMPT {{ selectedAttemptNumber }} OF {{ orderedAttempts.length }}</p>
             <h2>Saved solution</h2>
           </div>
-          <span class="attempt-status-label">{{ attemptStatus(selectedAttempt) }}</span>
+          <span class="attempt-status-label">{{ evaluationLabel(selectedAttempt.testSummary) }}</span>
         </header>
 
         <p class="attempt-version">Challenge version {{ selectedAttempt.challengeVersion }}</p>
@@ -311,7 +304,7 @@ onBeforeUnmount(() => {
           </div>
           <div>
             <dt>Saved evaluation</dt>
-            <dd>{{ attemptStatus(selectedAttempt) }}</dd>
+            <dd>{{ evaluationLabel(selectedAttempt.testSummary) }}</dd>
           </div>
         </dl>
 
