@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { longestWindowCases } from '../../../challenges/longest-window/cases';
-import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, M3_QA_APP_ORIGIN, M3_QA_RUNNER_ORIGIN } from './runChallenge';
+import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreviewRunnerOrigin,
+  M3_QA_APP_ORIGIN, M3_QA_RUNNER_ORIGIN } from './runChallenge';
 
 const context = { runId: 'test-run', sourceRevision: 3, challengeVersion: '1.0.0' };
 const origin = 'http://runner.test:4567';
@@ -59,6 +60,24 @@ describe('hosted QA-only activation gate', () => {
 
   it.each([undefined, '', 'production', 'development', 'staging'])('rejects deployment metadata %s even at the QA origins', deployment => {
     expect(hostedQaRunnerOrigin('m3-hosted-qa', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, deployment)).toBeNull();
+  });
+});
+
+describe('authenticated MVP Preview activation gate', () => {
+  it('permits only the exact reviewed Preview pair and a non-development build attestation', () => {
+    expect(mvpPreviewRunnerOrigin('mvp-preview', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, 'preview'))
+      .toBe(M3_QA_RUNNER_ORIGIN);
+    for (const [mode, enabled, runner, parent, dev, target] of [
+      ['production', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, 'preview'],
+      ['mvp-preview', undefined, M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, 'preview'],
+      ['mvp-preview', '1', 'https://other.vercel.app', M3_QA_APP_ORIGIN, false, 'preview'],
+      ['mvp-preview', '1', M3_QA_RUNNER_ORIGIN, 'https://other.vercel.app', false, 'preview'],
+      ['mvp-preview', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, true, 'preview'],
+      ['mvp-preview', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, 'production'],
+      ['mvp-preview', '1', M3_QA_RUNNER_ORIGIN, M3_QA_APP_ORIGIN, false, undefined],
+    ] as const) {
+      expect(mvpPreviewRunnerOrigin(mode, enabled, runner, parent, dev, target)).toBeNull();
+    }
   });
 });
 

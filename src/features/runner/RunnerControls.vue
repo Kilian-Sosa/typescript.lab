@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import type { RunResult } from '../../../shared/contracts/v1';
-import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, newRunId, runOutcome } from './runChallenge';
+import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreviewRunnerOrigin,
+  newRunId, runOutcome } from './runChallenge';
 import { runChallengeKey } from './session';
 import TestResults from './TestResults.vue';
 
@@ -10,7 +11,10 @@ const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABL
   import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin)
   ?? hostedQaRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_M3_QA_RUNNER,
     import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV,
-    import.meta.env.VITE_M3_QA_DEPLOYMENT_ENV);
+    import.meta.env.VITE_M3_QA_DEPLOYMENT_ENV)
+  ?? mvpPreviewRunnerOrigin(import.meta.env.MODE, import.meta.env.VITE_ENABLE_MVP_PREVIEW_RUNNER,
+    import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV,
+    import.meta.env.VITE_MVP_PREVIEW_DEPLOYMENT_ENV);
 const runChallenge = inject(runChallengeKey, null) ?? (origin ? createIframeRunner(origin) : null);
 const result = shallowRef<RunResult | null>(null);
 const stale = ref(false);
@@ -62,7 +66,7 @@ async function run() {
       <button ref="runButton" type="button" class="primary-button" aria-label="Run tests" :disabled="!runChallenge" :aria-disabled="running" @click="run">Run tests</button>
       <button v-if="running" ref="cancelButton" type="button" class="text-button" aria-label="Cancel test run" @click="cancel">Cancel run</button>
     </div>
-    <p v-if="!runChallenge" class="runner-gate">Execution is disabled pending isolated-site deployment verification. Your source can still be edited and saved.</p>
+    <p v-if="!runChallenge" class="runner-gate">Run tests is unavailable on this deployment. The isolated runner must be enabled on an approved app/runner origin pair. Your source can still be edited and saved.</p>
     <TestResults :result="result" :stale="stale" />
   </div>
 </template>

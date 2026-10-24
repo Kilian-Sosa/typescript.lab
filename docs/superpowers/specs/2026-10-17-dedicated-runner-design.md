@@ -51,6 +51,16 @@ The main app must never directly `eval` transpiled learner code. No privileged t
 - Initial tunable acceptance budgets (subject to spike evidence): source <= 32 KiB, serialized inputs <= 1 MiB, <= 100 cases, serialized output <= 64 KiB, QuickJS memory <= 32 MiB and max execution <= 2 s with an independent 3 s hard Worker deadline. Document tradeoffs for slow mobile devices. These are **application limits**, not guaranteed total browser process limits. Test CPU/memory growth and concurrent-run throttling before shipping.
 - Only pure synchronous TypeScript algorithm functions supported for MVP. Explicitly reject `import`/`require`, dynamic imports, arbitrary dependencies, asynchronous APIs and unsupported VM features; distinguish a source-policy rejection from a compilation error. `transpileModule` alone must never be treated as semantic type-checking.
 
+## Supported numeric source library (issue #11, 2026-10-24)
+
+**Spec impact:** Update existing runner spec to make the restricted numeric ECMAScript surface explicit, restoring REQ-04 real execution. Compiler declarations must match APIs verified inside the pinned QuickJS VM. Keep `noLib: true` and strict semantic checking; do not import ambient DOM/Node libraries to supply standard globals. The current textarea editor has no separate language-service library.
+
+- `Math`: ES2022 numeric constants `E`, `LN10`, `LN2`, `LOG10E`, `LOG2E`, `PI`, `SQRT1_2`, `SQRT2`; deterministic methods `abs`, `acos`, `acosh`, `asin`, `asinh`, `atan`, `atanh`, `atan2`, `cbrt`, `ceil`, `clz32`, `cos`, `cosh`, `exp`, `expm1`, `floor`, `fround`, `hypot`, `imul`, `log`, `log1p`, `log10`, `log2`, `max`, `min`, `pow`, `round`, `sign`, `sin`, `sinh`, `sqrt`, `tan`, `tanh`, `trunc`. `random` is outside the declared deterministic subset. This type surface is not a runtime security boundary.
+- `Number(value?)`: primitive numeric conversion; constants `EPSILON`, `MAX_SAFE_INTEGER`, `MIN_SAFE_INTEGER`, `MAX_VALUE`, `MIN_VALUE`, `NaN`, `POSITIVE_INFINITY`, `NEGATIVE_INFINITY`; static helpers `isFinite`, `isInteger`, `isNaN`, `isSafeInteger`, `parseFloat`, `parseInt`. Boxed Number construction and additional Number instance methods remain outside this subset.
+- Global `Infinity`, existing `NaN`, `isFinite`, `isNaN`, `parseFloat`, `parseInt`. Nonfinite intermediate numbers are allowed; final output must still be finite bounded JSON.
+- `console` stays undeclared and absent from the VM until [issue #14](https://github.com/Kilian-Sosa/typescript.lab/issues/14) implements bounded isolated capture, validated transport and accessible display. No type-only, no-op or host-forwarded console is permitted as part of this correction.
+- Compiler and real QuickJS regressions cover every newly declared numeric method/constant/global, wrong argument types, forbidden browser/Node APIs and imports, nonfinite output rejection and all 14 canonical cases using `Math.floor`/`Math.max`. Browser verification exercises the built Worker with the same canonical source. No changes to resource budgets, shared contracts or hosted activation gates.
+
 ## Required proof before building Task 1/2
 
 | Gate | Evidence required |

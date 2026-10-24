@@ -19,6 +19,13 @@ export function hostedQaRunnerOrigin(mode: string, enabled: string | undefined, 
     && parent === M3_QA_APP_ORIGIN && raw === M3_QA_RUNNER_ORIGIN ? M3_QA_RUNNER_ORIGIN : null;
 }
 
+// The authenticated MVP Preview uses the same reviewed isolated site pair but a separate build gate.
+export function mvpPreviewRunnerOrigin(mode: string, enabled: string | undefined, raw: string | undefined,
+  parent: string, dev: boolean, deploymentEnvironment: string | undefined): string | null {
+  return !dev && mode === 'mvp-preview' && enabled === '1' && deploymentEnvironment === 'preview'
+    && parent === M3_QA_APP_ORIGIN && raw === M3_QA_RUNNER_ORIGIN ? M3_QA_RUNNER_ORIGIN : null;
+}
+
 // Ordinary development runs only on the two synthetic local test sites.
 export function localRunnerOrigin(dev: boolean, enabled: string | undefined, raw: string | undefined, parent: string): string | null {
   if (!dev || enabled !== '1' || !raw) return null;

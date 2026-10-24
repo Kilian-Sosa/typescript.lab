@@ -40,6 +40,10 @@ The supervisor allows one active Worker, rejects concurrent requests before allo
 
 TypeScript 5.9.3 performs strict syntactic and semantic checking with the explicit synthetic declarations in `src/supported-lib.txt`, followed by CommonJS emission targeting ES2022. This is a restricted library, **not full TypeScript standard-library or DOM support**. It covers the canonical algorithm’s arrays, strings and Map operations; unsupported declarations produce compile diagnostics. Static/dynamic imports, re-exports from modules, import types/import.meta, require calls, async/await and generators are rejected. Only synchronous pure functions are supported. QuickJS has no browser/Node APIs, module loader, timers, console bridge or host callbacks. The selected interpreter is the pinned MIT-licensed QuickJS 0.32.0 release synchronous variant; the upstream package also emits unused variant assets, while the browser loads the selected synchronous WASM.
 
+The numeric library also supports deterministic ES2022 `Math` methods/constants (including `floor` and `max`), primitive `Number(value?)` conversion, Number constants and static predicates/parsers, and global `Infinity`, `NaN`, `isFinite`, `isNaN`, `parseFloat` and `parseInt`. See the [exact supported surface](../../docs/superpowers/specs/2026-10-17-dedicated-runner-design.md#supported-numeric-source-library-issue-11-2026-10-24) and `tests/standard-globals.test.ts` for compiler + actual QuickJS coverage of every added API. `Math.random` and boxed Number construction are outside the declared subset. Nonfinite intermediate values are valid, but nonfinite output is rejected by the JSON boundary. These declarations do not add any native host capability or replace the VM isolation boundary.
+
+`console.log`/`info`/`warn`/`error` remain compile errors until [issue #14](https://github.com/Kilian-Sosa/typescript.lab/issues/14) supplies bounded isolated output capture and display. This fix does not install a fake console that silently discards messages.
+
 | Resource | Limit |
 | --- | --- |
 | Source | 32 KiB UTF-8 |

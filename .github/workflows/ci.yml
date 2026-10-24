@@ -36,11 +36,22 @@ jobs:
           VITE_RUNNER_PARENT_ORIGIN: https://lab-app.vercel.app
           VITE_RUNNER_ORIGIN: https://lab-runner.vercel.app
       - run: node --test scripts/check-m3-qa-build.test.mjs
+      - run: node --test scripts/check-mvp-preview-build.test.mjs
+      # Synthetic public values validate the build only; this artifact is never deployed.
+      - run: node scripts/build-mvp-preview.mjs
+        env:
+          VERCEL_ENV: preview
+          VERCEL_TARGET_ENV: preview
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_fixture
       - run: node scripts/build-m3-qa.mjs
         env:
           VERCEL_ENV: preview
           VERCEL_TARGET_ENV: preview
       - run: pnpm exec playwright install --with-deps chromium
+      - run: node --test scripts/check-mvp-preview-local.mjs
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
       - run: pnpm test:e2e
       - run: pnpm --dir apps/runner test:browser
         env:
