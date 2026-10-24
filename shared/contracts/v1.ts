@@ -1,7 +1,6 @@
 export const CONTRACT_VERSION = '1.0.0' as const;
 
-export type JsonValue = null | boolean | number | string
-  | readonly JsonValue[] | { readonly [key: string]: JsonValue };
+export type JsonValue = null | boolean | number | string | readonly JsonValue[] | { readonly [key: string]: JsonValue };
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 export interface ChallengeSummary {
@@ -45,8 +44,15 @@ export interface ChallengeDefinition<
   };
 }
 
-export type RunStatus = 'not-run' | 'running' | 'passed' | 'failed'
-  | 'compile-error' | 'timeout' | 'execution-error' | 'infrastructure-error';
+export type RunStatus =
+  | 'not-run'
+  | 'running'
+  | 'passed'
+  | 'failed'
+  | 'compile-error'
+  | 'timeout'
+  | 'execution-error'
+  | 'infrastructure-error';
 export type CompletedRunStatus = Exclude<RunStatus, 'not-run' | 'running'>;
 
 export interface CaseResult {

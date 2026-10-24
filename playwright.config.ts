@@ -3,9 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 // Playwright forces color in its workers and web server; avoid conflicting inherited settings.
 delete process.env.NO_COLOR;
 
-const browserChannel = process.env.PLAYWRIGHT_BROWSER_CHANNEL === 'msedge'
-  ? { channel: 'msedge' as const }
-  : {};
+const browserChannel = process.env.PLAYWRIGHT_BROWSER_CHANNEL === 'msedge' ? { channel: 'msedge' as const } : {};
 const serverPort = process.env.PLAYWRIGHT_PORT ?? '4173';
 const baseURL = `http://127.0.0.1:${serverPort}`;
 

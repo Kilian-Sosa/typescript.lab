@@ -208,12 +208,16 @@ onBeforeUnmount(() => {
 
     <p v-if="state === 'loading'" class="notice-panel" role="status">Loading your private attempts…</p>
 
-    <section v-else-if="state === 'unconfigured' || state === 'signed-out'" class="notice-panel guest-gate" aria-labelledby="detail-gate-title">
+    <section
+      v-else-if="state === 'unconfigured' || state === 'signed-out'"
+      class="notice-panel guest-gate"
+      aria-labelledby="detail-gate-title"
+    >
       <div>
         <h2 id="detail-gate-title">Sign in to view this challenge’s attempts</h2>
         <p v-if="state === 'unconfigured'">
-          Private notebook access needs the public Supabase URL and publishable key in this environment.
-          No saved source is shown.
+          Private notebook access needs the public Supabase URL and publishable key in this environment. No saved source
+          is shown.
         </p>
         <p v-else>Sign in to load private history. No saved source is available while signed out.</p>
         <button
@@ -280,7 +284,12 @@ onBeforeUnmount(() => {
           <div class="section-heading-row">
             <h3 id="saved-notes-heading">Learning notes</h3>
             <div class="export-actions" aria-label="Export attempt">
-              <button class="text-button" type="button" aria-label="Download Markdown" @click="downloadAttempt('markdown')">
+              <button
+                class="text-button"
+                type="button"
+                aria-label="Download Markdown"
+                @click="downloadAttempt('markdown')"
+              >
                 Markdown
               </button>
               <button class="text-button" type="button" aria-label="Download JSON" @click="downloadAttempt('json')">

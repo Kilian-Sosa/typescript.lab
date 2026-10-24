@@ -45,7 +45,9 @@ test('Interview Mode hides spoilers and Learning Mode reveals them only after co
   await expect(page.getByRole('button', { name: 'Show hint 1' })).toBeVisible();
 
   await page.getByRole('button', { name: 'Show hint 1' }).click();
-  await expect(page.getByRole('listitem').filter({ hasText: 'Grow a candidate range from left to right' })).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: 'Grow a candidate range from left to right' }),
+  ).toBeVisible();
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: 'Reveal reference explanation' }).click();
@@ -82,10 +84,11 @@ test('primary navigation and theme work with keyboard focus', async ({ page }) =
   await page.keyboard.press('Enter');
   await expect(page.locator('#main-content')).toBeFocused();
 
-  const navigation = page.locator((page.viewportSize()?.width ?? 0) < 700
-    ? '.mobile-navigation' : '.sidebar');
-  await expect(navigation.getByRole('link', { name: 'Practice challenges' }))
-    .toHaveAttribute('href', '/challenges/longest-window');
+  const navigation = page.locator((page.viewportSize()?.width ?? 0) < 700 ? '.mobile-navigation' : '.sidebar');
+  await expect(navigation.getByRole('link', { name: 'Practice challenges' })).toHaveAttribute(
+    'href',
+    '/challenges/longest-window',
+  );
   await expect(navigation.locator('.router-link-active')).toHaveCount(1);
 
   const themeToggle = page.getByRole('button', { name: 'Switch to dark theme' });

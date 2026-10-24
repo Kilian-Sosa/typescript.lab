@@ -18,17 +18,25 @@ const label = (id: string) => longestWindowCases.find(c => c.id === id)?.name ??
   <section class="test-results" aria-label="Test feedback" :aria-busy="result?.status === 'running'">
     <p id="execution-status" role="status" aria-live="polite" aria-atomic="true">{{ title }}</p>
     <p v-if="result?.status === 'infrastructure-error'">Your code is preserved; retry Run tests.</p>
-    <p v-if="result?.status === 'timeout'">The execution limit was reached. Check for loops or expensive operations and try again.</p>
+    <p v-if="result?.status === 'timeout'">
+      The execution limit was reached. Check for loops or expensive operations and try again.
+    </p>
     <ul v-if="result?.diagnostics.length" aria-label="Run diagnostics">
       <li v-for="(message, index) in result.diagnostics" :key="index">{{ message }}</li>
     </ul>
-    <p v-if="result?.status === 'passed' || result?.status === 'failed'">Current-source educational feedback. This is not an authoritative score.</p>
+    <p v-if="result?.status === 'passed' || result?.status === 'failed'">
+      Current-source educational feedback. This is not an authoritative score.
+    </p>
     <ol v-if="result?.status === 'passed' || result?.status === 'failed'" aria-label="Test case results">
       <li v-for="test in result.cases" :key="test.caseId">
         <strong>{{ test.status === 'passed' ? 'Pass' : 'Fail' }} — {{ label(test.caseId) }}</strong>
         <template v-if="test.status === 'failed'">
-          <div>Expected <code>{{ JSON.stringify(test.expected) }}</code></div>
-          <div>Actual <code>{{ JSON.stringify(test.actual) }}</code></div>
+          <div>
+            Expected <code>{{ JSON.stringify(test.expected) }}</code>
+          </div>
+          <div>
+            Actual <code>{{ JSON.stringify(test.actual) }}</code>
+          </div>
         </template>
       </li>
     </ol>

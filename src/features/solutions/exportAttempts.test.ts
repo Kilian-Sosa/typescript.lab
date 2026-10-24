@@ -47,10 +47,7 @@ describe('exportAttempts', () => {
   });
 
   it('uses safe unique names and keeps an empty export empty', () => {
-    const files = exportAttempts([
-      attempt,
-      { ...attempt, id: 'second-attempt', source: 'export {};' },
-    ]);
+    const files = exportAttempts([attempt, { ...attempt, id: 'second-attempt', source: 'export {};' }]);
 
     expect(files).toHaveLength(2);
     expect(files[0]?.typescript.name).not.toContain('..');

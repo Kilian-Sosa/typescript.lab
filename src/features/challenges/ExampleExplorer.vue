@@ -84,8 +84,8 @@ const outputText = computed(() => output.value
     </div>
 
     <p class="example-explainer">
-      Edit the JSON array and finite numeric limit to explore the expected result. The output comes from the
-      canonical reference for these example inputs; it does not run or assess editor code.
+      Edit the JSON array and finite numeric limit to explore the expected result. The output comes from the canonical
+      reference for these example inputs; it does not run or assess editor code.
     </p>
 
     <div class="example-inputs">
@@ -114,7 +114,8 @@ const outputText = computed(() => output.value
         @input="updateLimit"
       />
       <p id="example-input-help" class="example-input-help">
-        Positive fractional limits allow at most their whole-number floor. Empty arrays and non-positive limits return an empty range.
+        Positive fractional limits allow at most their whole-number floor. Empty arrays and non-positive limits return
+        an empty range.
       </p>
       <p v-if="validationError" id="example-validation-error" class="example-error" role="alert">
         {{ validationError.message }}

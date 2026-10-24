@@ -35,10 +35,13 @@ window.addEventListener('message', async (event) => {
   } catch {
     pageNetworkBlocked = true;
   }
-  parent.postMessage({
-    protocol: 1,
-    kind: 'fixture-inspection',
-    nonce: event.data.nonce,
-    evidence: { ...inspectRunnerRealm(), pageNetworkBlocked, runnerMetrics: window.__runnerMetrics ?? null },
-  }, window.__RUNNER_APP_ORIGIN__);
+  parent.postMessage(
+    {
+      protocol: 1,
+      kind: 'fixture-inspection',
+      nonce: event.data.nonce,
+      evidence: { ...inspectRunnerRealm(), pageNetworkBlocked, runnerMetrics: window.__runnerMetrics ?? null },
+    },
+    window.__RUNNER_APP_ORIGIN__,
+  );
 });

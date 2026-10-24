@@ -1,7 +1,4 @@
-export function longestWindow(
-  events: string[],
-  k: number,
-): { start: number; endExclusive: number } {
+export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } {
   // TODO: Return the earliest longest window that contains at most k distinct identifiers.
   void events;
   void k;

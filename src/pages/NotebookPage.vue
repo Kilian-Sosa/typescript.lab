@@ -149,14 +149,18 @@ onBeforeUnmount(() => {
 
     <p v-if="state === 'loading'" class="notice-panel" role="status">Loading your private attempts…</p>
 
-    <section v-else-if="state === 'unconfigured' || state === 'signed-out'" class="notice-panel guest-gate" aria-labelledby="guest-gate-title">
+    <section
+      v-else-if="state === 'unconfigured' || state === 'signed-out'"
+      class="notice-panel guest-gate"
+      aria-labelledby="guest-gate-title"
+    >
       <span class="gate-icon" aria-hidden="true">▤</span>
       <div>
         <h2 id="guest-gate-title">Sign in to open your notebook</h2>
         <p>Your saved attempts and notes remain private to your account.</p>
         <p v-if="state === 'unconfigured'">
-          Private notebook access needs the public Supabase URL and publishable key in this environment.
-          No example history is shown.
+          Private notebook access needs the public Supabase URL and publishable key in this environment. No example
+          history is shown.
         </p>
         <p v-else>Sign in to load your saved attempts. No history is available while signed out.</p>
         <button

@@ -4,7 +4,8 @@ import { AuthenticationRequiredError, AttemptSessionChangedError } from './attem
 import type { DraftRepository } from './draftRepository';
 import { sameDraftContent, type DraftRecovery, type LocalDraftBuffer } from './draftRecovery';
 
-export type DraftSaveState = 'loading' | 'idle' | 'guest' | 'saving' | 'saved' | 'offline' | 'error' | 'conflict' | 'auth-required';
+export type DraftSaveState =
+  'loading' | 'idle' | 'guest' | 'saving' | 'saved' | 'offline' | 'error' | 'conflict' | 'auth-required';
 interface DraftState {
   source: string;
   notes: string;
@@ -27,8 +28,19 @@ export function createDraftSync(options: {
   isOnline: () => boolean;
 }) {
   const { challenge, recovery, repository } = options;
-  const state = reactive<DraftState>({ source: challenge.starter, notes: '', timeComplexity: '', spaceComplexity: '',
-    status: 'idle', ownerId: null, revision: null, remoteDraft: null, guestAvailable: false, otherRecoveries: [], localError: false });
+  const state = reactive<DraftState>({
+    source: challenge.starter,
+    notes: '',
+    timeComplexity: '',
+    spaceComplexity: '',
+    status: 'idle',
+    ownerId: null,
+    revision: null,
+    remoteDraft: null,
+    guestAvailable: false,
+    otherRecoveries: [],
+    localError: false,
+  });
   let generation = 0;
   let disposed = false;
   let connected = false;
@@ -42,21 +54,39 @@ export function createDraftSync(options: {
 
   function read(owner: string | null, tab?: string): LocalDraftBuffer | null {
     if (tab === undefined && memoryBuffers.has(owner)) return memoryBuffers.get(owner)!;
-    try { return recovery.read(owner, challenge.id, tab); } catch { storageFailures.add(owner); state.localError = true; return null; }
+    try {
+      return recovery.read(owner, challenge.id, tab);
+    } catch {
+      storageFailures.add(owner);
+      state.localError = true;
+      return null;
+    }
   }
 
   function currentBuffer() {
-    return { ownerId: state.ownerId, challengeId: challenge.id, challengeVersion: bufferVersion,
-      source: state.source, expectedRevision: state.revision, dirty, notes: state.notes,
-      timeComplexity: state.timeComplexity, spaceComplexity: state.spaceComplexity };
+    return {
+      ownerId: state.ownerId,
+      challengeId: challenge.id,
+      challengeVersion: bufferVersion,
+      source: state.source,
+      expectedRevision: state.revision,
+      dirty,
+      notes: state.notes,
+      timeComplexity: state.timeComplexity,
+      spaceComplexity: state.spaceComplexity,
+    };
   }
 
   function refreshRecoveries() {
     try {
       state.otherRecoveries = recovery.others(state.ownerId, challenge.id).map((buffer) => ({
-        tabId: buffer.tabId, updatedAt: buffer.updatedAt, current: sameDraftContent(buffer, currentBuffer()),
+        tabId: buffer.tabId,
+        updatedAt: buffer.updatedAt,
+        current: sameDraftContent(buffer, currentBuffer()),
       }));
-    } catch { state.localError = true; }
+    } catch {
+      state.localError = true;
+    }
   }
 
   function persist() {
@@ -67,7 +97,10 @@ export function createDraftSync(options: {
       recovery.write(buffer);
       storageFailures.delete(state.ownerId);
       state.localError = storageFailures.size > 0;
-    } catch { storageFailures.add(state.ownerId); state.localError = true; }
+    } catch {
+      storageFailures.add(state.ownerId);
+      state.localError = true;
+    }
     refreshRecoveries();
   }
 
@@ -86,19 +119,35 @@ export function createDraftSync(options: {
     try {
       recovery.archive(currentBuffer());
       return true;
-    } catch { state.localError = true; return false; }
+    } catch {
+      state.localError = true;
+      return false;
+    }
   }
 
   function schedule() {
     clearTimeout(timer);
-    if (!disposed && dirty && loaded && state.ownerId && state.status !== 'conflict' && state.status !== 'auth-required') {
-      timer = setTimeout(() => { void flush(); }, 500);
+    if (
+      !disposed &&
+      dirty &&
+      loaded &&
+      state.ownerId &&
+      state.status !== 'conflict' &&
+      state.status !== 'auth-required'
+    ) {
+      timer = setTimeout(() => {
+        void flush();
+      }, 500);
     }
   }
 
   function failure(error: unknown) {
-    state.status = error instanceof AuthenticationRequiredError || error instanceof AttemptSessionChangedError
-      ? 'auth-required' : options.isOnline() ? 'error' : 'offline';
+    state.status =
+      error instanceof AuthenticationRequiredError || error instanceof AttemptSessionChangedError
+        ? 'auth-required'
+        : options.isOnline()
+          ? 'error'
+          : 'offline';
   }
 
   async function connect(ownerId: string | null): Promise<void> {
@@ -110,23 +159,42 @@ export function createDraftSync(options: {
     connected = true;
     dirty = false;
     bufferVersion = challenge.version;
-    Object.assign(state, { ownerId, source: challenge.starter, notes: '', timeComplexity: '', spaceComplexity: '',
-      revision: null, remoteDraft: null, status: ownerId ? 'loading' : 'guest', localError: storageFailures.size > 0, guestAvailable: false, otherRecoveries: [] });
+    Object.assign(state, {
+      ownerId,
+      source: challenge.starter,
+      notes: '',
+      timeComplexity: '',
+      spaceComplexity: '',
+      revision: null,
+      remoteDraft: null,
+      status: ownerId ? 'loading' : 'guest',
+      localError: storageFailures.size > 0,
+      guestAvailable: false,
+      otherRecoveries: [],
+    });
     const local = read(ownerId);
     if (local) restore(local);
     refreshRecoveries();
-    if (!ownerId) { loaded = true; return; }
+    if (!ownerId) {
+      loaded = true;
+      return;
+    }
     const guest = read(null);
     state.guestAvailable = !!guest && (guest.source !== challenge.starter || guest.notes !== '');
-    if (!repository) { state.status = 'error'; return; }
+    if (!repository) {
+      state.status = 'error';
+      return;
+    }
     try {
       const cloud = await repository.loadDraft(challenge.id);
       if (disposed || epoch !== generation) return;
       if (cloud && cloud.userId !== ownerId) throw new AttemptSessionChangedError();
       loaded = true;
       state.remoteDraft = cloud;
-      if ((local?.challengeVersion && local.challengeVersion !== challenge.version)
-        || (cloud && cloud.challengeVersion !== challenge.version)) {
+      if (
+        (local?.challengeVersion && local.challengeVersion !== challenge.version) ||
+        (cloud && cloud.challengeVersion !== challenge.version)
+      ) {
         state.status = 'conflict';
         return;
       }
@@ -137,7 +205,10 @@ export function createDraftSync(options: {
           state.status = 'saved';
           persist();
         } else if ((cloud?.revision ?? null) !== state.revision) state.status = 'conflict';
-        else { state.status = 'idle'; schedule(); }
+        else {
+          state.status = 'idle';
+          schedule();
+        }
       } else {
         if (!options.fresh && cloud) state.source = cloud.source;
         state.revision = cloud?.revision ?? null;
@@ -155,7 +226,8 @@ export function createDraftSync(options: {
     dirty = true;
     persist();
     if (!state.ownerId) state.status = 'guest';
-    else if (state.status !== 'conflict' && state.status !== 'auth-required' && state.status !== 'loading') state.status = options.isOnline() ? 'idle' : 'offline';
+    else if (state.status !== 'conflict' && state.status !== 'auth-required' && state.status !== 'loading')
+      state.status = options.isOnline() ? 'idle' : 'offline';
     schedule();
   }
 
@@ -166,21 +238,42 @@ export function createDraftSync(options: {
 
   async function flush(): Promise<void> {
     clearTimeout(timer);
-    if (disposed || !dirty || !loaded || !state.ownerId || !repository || flight === generation
-      || state.status === 'conflict' || state.status === 'auth-required') return;
-    if (!options.isOnline()) { state.status = 'offline'; persist(); return; }
+    if (
+      disposed ||
+      !dirty ||
+      !loaded ||
+      !state.ownerId ||
+      !repository ||
+      flight === generation ||
+      state.status === 'conflict' ||
+      state.status === 'auth-required'
+    )
+      return;
+    if (!options.isOnline()) {
+      state.status = 'offline';
+      persist();
+      return;
+    }
     const epoch = generation;
     const owner = state.ownerId;
     const source = state.source;
     flight = epoch;
     state.status = 'saving';
     try {
-      const result = await repository.saveDraft({ challengeId: challenge.id, challengeVersion: challenge.version,
-        source, expectedRevision: state.revision });
+      const result = await repository.saveDraft({
+        challengeId: challenge.id,
+        challengeVersion: challenge.version,
+        source,
+        expectedRevision: state.revision,
+      });
       if (disposed || epoch !== generation || owner !== state.ownerId) return;
       if (result.kind === 'conflict') {
         state.remoteDraft = result.current;
-        if (result.current?.source === state.source && result.current.challengeVersion === challenge.version && result.current.userId === owner) {
+        if (
+          result.current?.source === state.source &&
+          result.current.challengeVersion === challenge.version &&
+          result.current.userId === owner
+        ) {
           state.revision = result.current.revision;
           dirty = false;
           state.status = 'saved';
@@ -194,14 +287,20 @@ export function createDraftSync(options: {
       }
       persist();
     } catch (error) {
-      if (!disposed && epoch === generation) { failure(error); persist(); }
+      if (!disposed && epoch === generation) {
+        failure(error);
+        persist();
+      }
     } finally {
       if (flight === epoch) flight = null;
       if (!disposed && epoch === generation && state.status === 'idle') schedule();
     }
   }
 
-  async function retry() { await connect(state.ownerId); if (dirty && state.status !== 'conflict') await flush(); }
+  async function retry() {
+    await connect(state.ownerId);
+    if (dirty && state.status !== 'conflict') await flush();
+  }
 
   async function resolveConflict(choice: 'local' | 'remote') {
     if (state.status !== 'conflict') return;
@@ -210,7 +309,10 @@ export function createDraftSync(options: {
       state.source = state.remoteDraft?.source ?? challenge.starter;
       dirty = false;
       state.status = state.remoteDraft ? 'saved' : 'idle';
-    } else { dirty = true; state.status = 'idle'; }
+    } else {
+      dirty = true;
+      state.status = 'idle';
+    }
     state.revision = state.remoteDraft?.revision ?? null;
     bufferVersion = challenge.version;
     persist();
@@ -236,7 +338,10 @@ export function createDraftSync(options: {
   async function recoverBuffer(tabId: string) {
     const buffer = read(state.ownerId, tabId);
     if (!buffer) return;
-    if (sameDraftContent(buffer, currentBuffer())) { refreshRecoveries(); return; }
+    if (sameDraftContent(buffer, currentBuffer())) {
+      refreshRecoveries();
+      return;
+    }
     if (!preserveBeforeReplace()) return;
     restore(buffer);
     dirty = true;
@@ -245,10 +350,28 @@ export function createDraftSync(options: {
   }
 
   return {
-    state: readonly(state), connect, edit, editNotes, flush, retry, resolveConflict, importGuest, recoverBuffer, refreshRecoveries,
+    state: readonly(state),
+    connect,
+    edit,
+    editNotes,
+    flush,
+    retry,
+    resolveConflict,
+    importGuest,
+    recoverBuffer,
+    refreshRecoveries,
     guestBuffer: () => read(null),
-    setOffline() { clearTimeout(timer); if (state.ownerId && dirty) state.status = 'offline'; persist(); },
-    dispose() { persist(); disposed = true; generation += 1; clearTimeout(timer); },
+    setOffline() {
+      clearTimeout(timer);
+      if (state.ownerId && dirty) state.status = 'offline';
+      persist();
+    },
+    dispose() {
+      persist();
+      disposed = true;
+      generation += 1;
+      clearTimeout(timer);
+    },
   };
 }
 export type DraftSync = ReturnType<typeof createDraftSync>;

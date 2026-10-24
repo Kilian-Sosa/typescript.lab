@@ -20,11 +20,26 @@ async function signIn() {
 <template>
   <div v-if="auth && route.matched.length" class="account-controls" aria-label="Private account">
     <span v-if="auth.state.status === 'checking'" class="account-checking" role="status">Checking account…</span>
-    <button v-else-if="auth.state.userId || auth.state.signingOut" type="button" class="header-action" :disabled="auth.state.signingOut" :aria-busy="auth.state.signingOut" @click="auth.signOut">Sign out</button>
-    <button v-else-if="auth.state.signOutFailed" type="button" class="header-action" @click="auth.signOut">Retry sign-out</button>
+    <button
+      v-else-if="auth.state.userId || auth.state.signingOut"
+      type="button"
+      class="header-action"
+      :disabled="auth.state.signingOut"
+      :aria-busy="auth.state.signingOut"
+      @click="auth.signOut"
+    >
+      Sign out
+    </button>
+    <button v-else-if="auth.state.signOutFailed" type="button" class="header-action" @click="auth.signOut">
+      Retry sign-out
+    </button>
     <template v-else>
-      <button type="button" class="header-action" :disabled="signingIn" :aria-busy="signingIn" @click="signIn">Sign in with GitHub</button>
-      <button v-if="auth.state.status === 'error'" type="button" class="header-action" @click="auth.start">Retry session</button>
+      <button type="button" class="header-action" :disabled="signingIn" :aria-busy="signingIn" @click="signIn">
+        Sign in with GitHub
+      </button>
+      <button v-if="auth.state.status === 'error'" type="button" class="header-action" @click="auth.start">
+        Retry session
+      </button>
     </template>
     <p v-if="error || auth.state.message" class="account-message" role="status">{{ error || auth.state.message }}</p>
   </div>

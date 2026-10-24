@@ -2,9 +2,14 @@ import { expect, it } from 'vitest';
 import { deploymentPolicy } from '../deployment';
 
 it('fails closed on missing, wildcard, same-site, path and HTTP deployment origins', () => {
-  for (const [parent, runner] of [[undefined, undefined], ['https://*.vercel.app', 'https://runner.vercel.app'],
-    ['https://app.vercel.app/path', 'https://runner.vercel.app'], ['https://app.vercel.app', 'https://app.vercel.app'],
-    ['http://app.vercel.app', 'https://runner.vercel.app'], ['https://app.example.com', 'https://runner.example.com']]) {
+  for (const [parent, runner] of [
+    [undefined, undefined],
+    ['https://*.vercel.app', 'https://runner.vercel.app'],
+    ['https://app.vercel.app/path', 'https://runner.vercel.app'],
+    ['https://app.vercel.app', 'https://app.vercel.app'],
+    ['http://app.vercel.app', 'https://runner.vercel.app'],
+    ['https://app.example.com', 'https://runner.example.com'],
+  ]) {
     expect(() => deploymentPolicy(parent, runner)).toThrow();
   }
 });

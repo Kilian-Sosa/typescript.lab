@@ -13,19 +13,14 @@ export function filterChallenges(
 
   return challenges.filter((challenge) => {
     const matchesDifficulty = difficulty === undefined || challenge.difficulty === difficulty;
-    const searchableText = [challenge.title, challenge.objective, ...challenge.tags]
-      .join(' ')
-      .toLocaleLowerCase();
+    const searchableText = [challenge.title, challenge.objective, ...challenge.tags].join(' ').toLocaleLowerCase();
     const matchesQuery = normalizedQuery.length === 0 || searchableText.includes(normalizedQuery);
 
     return matchesDifficulty && matchesQuery;
   });
 }
 
-export function listChallenges(
-  query = '',
-  difficulty?: Difficulty,
-): ChallengeSummary[] {
+export function listChallenges(query = '', difficulty?: Difficulty): ChallengeSummary[] {
   return filterChallenges(challengeRegistry, query, difficulty);
 }
 

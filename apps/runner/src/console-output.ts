@@ -2,19 +2,40 @@ import { bytes, dense, exactKeys, record } from './protocol';
 
 export const CONSOLE_LIMITS = Object.freeze({ entries: 100, messageBytes: 2048, totalBytes: 16384 });
 export type ConsoleLevel = 'log' | 'info' | 'warn' | 'error';
-export interface ConsoleEntry { sequence: number; caseId: string; level: ConsoleLevel; text: string }
-export interface ConsoleTranscript { entries: ConsoleEntry[]; truncated: boolean }
+export interface ConsoleEntry {
+  sequence: number;
+  caseId: string;
+  level: ConsoleLevel;
+  text: string;
+}
+export interface ConsoleTranscript {
+  entries: ConsoleEntry[];
+  truncated: boolean;
+}
 
 export function validConsoleOutput(value: unknown, caseIds: readonly string[]): value is ConsoleTranscript {
-  if (!record(value) || !exactKeys(value, ['entries', 'truncated']) || typeof value.truncated !== 'boolean'
-    || !dense(value.entries, CONSOLE_LIMITS.entries)) return false;
-  let total = 0, previousCase = -1;
+  if (
+    !record(value) ||
+    !exactKeys(value, ['entries', 'truncated']) ||
+    typeof value.truncated !== 'boolean' ||
+    !dense(value.entries, CONSOLE_LIMITS.entries)
+  )
+    return false;
+  let total = 0,
+    previousCase = -1;
   for (let i = 0; i < value.entries.length; i++) {
     const e = value.entries[i];
-    if (!record(e) || !exactKeys(e, ['sequence', 'caseId', 'level', 'text']) || e.sequence !== i
-      || typeof e.caseId !== 'string' || typeof e.level !== 'string'
-      || !['log', 'info', 'warn', 'error'].includes(e.level) || typeof e.text !== 'string'
-      || bytes(e.text) > CONSOLE_LIMITS.messageBytes) return false;
+    if (
+      !record(e) ||
+      !exactKeys(e, ['sequence', 'caseId', 'level', 'text']) ||
+      e.sequence !== i ||
+      typeof e.caseId !== 'string' ||
+      typeof e.level !== 'string' ||
+      !['log', 'info', 'warn', 'error'].includes(e.level) ||
+      typeof e.text !== 'string' ||
+      bytes(e.text) > CONSOLE_LIMITS.messageBytes
+    )
+      return false;
     const index = caseIds.indexOf(e.caseId);
     if (index < previousCase || index < 0 || (total += bytes(e.text)) > CONSOLE_LIMITS.totalBytes) return false;
     previousCase = index;

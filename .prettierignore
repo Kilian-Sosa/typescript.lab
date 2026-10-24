@@ -1,0 +1,16 @@
+# Generated dependencies, artifacts and local checkouts (applies from either package).
+**/node_modules/**
+**/.pnpm-store/**
+**/.worktrees/**
+**/dist/**
+**/.dist/**
+**/.artifacts/**
+**/.vercel/**
+**/coverage/**
+**/test-results/**
+**/playwright-report/**
+**/output/**
+**/.nuxt/**
+**/.output/**
+# Package-manager generated files are maintained by pnpm, not Prettier.
+**/pnpm-lock.yaml
