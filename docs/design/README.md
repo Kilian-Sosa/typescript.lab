@@ -68,6 +68,13 @@ These reference values are approved visual starting points; contrast and respons
 
 No primary interaction should require hover; focus rings should be visually obvious, and side-by-side layouts must never cause document-wide horizontal scrolling.
 
+### Application header (issues #12 and #13, owner request 2026-10-24)
+
+- Authenticated accounts show **Sign out** without the redundant `Private account connected` label. Account privacy remains explicit in the workspace and saving feedback.
+- Account, repository and theme actions share a 40px minimum height and align in one action row when space permits. Reserve the account-action width across checking, guest and signed-in states to avoid shifting adjacent controls.
+- At constrained widths, deliberately wrap the header into compact rows; preserve visible account actions, complete accessible names and keyboard access to the brand, repository and theme switch. Error/status messages wrap without horizontal overflow; pending actions are disabled and failed sign-out remains retryable.
+- Verify 100%, 125%, 150% and 200% zoom reflow plus 390px mobile. Automated coverage models a 1280px browser content area as effective CSS widths 1280, 1024, 853 and 640px respectively. This tests responsive reflow, not actual browser zoom; neither CSS `zoom` nor device pixel scaling substitutes for browser zoom.
+
 ## Components and states to implement later
 
 - `AppShell`, `SideNav`, `SearchInput`, `ChallengeListItem`, `ProgressSummary`

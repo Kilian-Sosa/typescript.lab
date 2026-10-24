@@ -58,6 +58,121 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/challenges\/longest-window/);
 }
 
+// A 1280px content area at browser zoom 100/125/150/200% has these CSS widths.
+// Viewport reflow exercises the zoom layout; CSS zoom and deviceScaleFactor do not.
+for (const width of [1280, 1024, 853, 640, 390]) {
+  test(`header actions reflow accessibly at ${width} CSS px`, async ({ page, context }, testInfo) => {
+    await api(context);
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()); });
+    await page.addInitScript(() => localStorage.setItem('typescript-lab-theme', 'light'));
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/challenges/longest-window');
+    const header = page.getByRole('banner');
+    const repo = header.getByRole('link', { name: 'GitHub repository' });
+    const theme = header.getByRole('button', { name: /Switch to .* theme/ });
+    await expect(header.getByRole('button', { name: 'Sign in with GitHub', exact: true })).toBeVisible();
+    const beforeLogin = await repo.boundingBox();
+    await login(page);
+    await expect.soft(header).not.toContainText('Private account connected');
+    const signOut = header.getByRole('button', { name: 'Sign out', exact: true });
+    const controls = [signOut, repo, theme];
+    const boxes = [];
+    for (const control of controls) {
+      await expect(control).toBeVisible();
+      const box = (await control.boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(width);
+      expect(box.height).toBeGreaterThanOrEqual(40);
+      expect(box.height).toBeLessThanOrEqual(44);
+      boxes.push(box);
+    }
+    expect(Math.abs(boxes[0]!.y - boxes[1]!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(boxes[1]!.y - boxes[2]!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(beforeLogin!.x - boxes[1]!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(beforeLogin!.y - boxes[1]!.y)).toBeLessThanOrEqual(1);
+    for (let i = 1; i < boxes.length; i++) {
+      expect(boxes[i - 1]!.x + boxes[i - 1]!.width).toBeLessThanOrEqual(boxes[i]!.x);
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    await header.getByRole('link', { name: 'typescript.lab home' }).focus();
+    await page.keyboard.press('Tab');
+    await expect(signOut).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(repo).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(theme).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+    await expect(page).toHaveTitle(/typescript.lab/i);
+    await expect(page.getByRole('heading', { name: 'Longest Window with Limited Event Types', exact: true })).toBeVisible();
+    await expect(page.locator('vite-error-overlay')).toHaveCount(0);
+    expect(errors).toEqual([]);
+    await page.screenshot({ path: testInfo.outputPath(`header-${width}.png`) });
+    await theme.click();
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+    await signOut.click();
+    await expect(header.getByRole('button', { name: 'Sign in with GitHub', exact: true })).toBeVisible();
+    const afterLogout = (await repo.boundingBox())!;
+    expect(Math.abs(afterLogout.x - boxes[1]!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(afterLogout.y - boxes[1]!.y)).toBeLessThanOrEqual(1);
+  });
+}
+
+for (const width of [1280, 640, 390]) {
+  test(`header pending and recovery states stay usable at ${width} CSS px`, async ({ page, context }) => {
+    await api(context);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/challenges/longest-window');
+    await login(page);
+    const header = page.getByRole('banner');
+    const repo = header.getByRole('link', { name: 'GitHub repository' });
+    const signedIn = (await repo.boundingBox())!;
+    let resumeCheck!: () => void;
+    const checking = new Promise<void>((resolve) => { resumeCheck = resolve; });
+    await context.route('https://m4-fixture.supabase.co/auth/v1/user', async (route) => {
+      await checking;
+      await route.fallback();
+    });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(header.getByRole('status')).toContainText('Checking account');
+    const duringCheck = (await repo.boundingBox())!;
+    expect(Math.abs(duringCheck.x - signedIn.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(duringCheck.y - signedIn.y)).toBeLessThanOrEqual(1);
+    resumeCheck();
+    const signOut = header.getByRole('button', { name: 'Sign out', exact: true });
+    await expect(signOut).toBeEnabled();
+    let finishLogout!: () => void;
+    const logout = new Promise<void>((resolve) => { finishLogout = resolve; });
+    let failLogout = true;
+    await context.route('https://m4-fixture.supabase.co/auth/v1/logout*', async (route) => {
+      await logout;
+      if (failLogout) {
+        await route.fulfill({ status: 400, contentType: 'application/json',
+          headers: { 'access-control-allow-origin': '*' }, body: JSON.stringify({ message: 'Fixture logout failure' }) });
+      } else await route.fallback();
+    });
+    await signOut.click();
+    await expect(signOut).toBeDisabled();
+    await expect(signOut).toHaveAttribute('aria-busy', 'true');
+    await expect(header.getByRole('status')).toContainText('Signing out');
+    const duringLogout = (await repo.boundingBox())!;
+    expect(Math.abs(duringLogout.x - signedIn.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(duringLogout.y - signedIn.y)).toBeLessThanOrEqual(1);
+    finishLogout();
+    const retry = header.getByRole('button', { name: 'Retry sign-out', exact: true });
+    await expect(retry).toBeVisible();
+    await expect(header.getByRole('status')).toContainText('Sign-out could not finish');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+    failLogout = false;
+    await retry.focus();
+    await page.keyboard.press('Enter');
+    await expect(header.getByRole('button', { name: 'Sign in with GitHub', exact: true })).toBeVisible();
+    await expect(header.getByRole('status')).toContainText('Signed out.');
+  });
+}
+
 test('guest text and notes survive reload, while callback denial and expiry are safe and explicit', async ({ page, context }) => {
   await api(context);
   const messages: string[] = [];
