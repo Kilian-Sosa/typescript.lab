@@ -117,6 +117,8 @@ test(
       });
       const page = await context.newPage();
       const responses = [];
+      const browserConsole = [];
+      page.on('console', (message) => browserConsole.push(message.text()));
       page.on('response', (r) => responses.push({ url: r.url(), headers: r.headers() }));
       await page.goto(appOrigin);
       await page.waitForFunction(() => window.messages.some((m) => m.kind === 'ready'));
@@ -217,9 +219,83 @@ test(
         'failed',
       );
       assert.deepEqual(numericGlobals.cases[0].actual, [-2, 7, false, true, true, 3, 255, 2.5]);
-      await run('export function longestWindow() { console.log("bounded capture"); return null; }', 'failed');
-      const logged = await page.evaluate(() => window.messages.filter((m) => m.kind === 'run-result').at(-1));
-      assert.equal(logged.consoleOutput.entries[0].text, 'bounded capture');
+      async function transcript(result) {
+        const message = await page.evaluate(
+          (id) => window.messages.find((m) => m.kind === 'run-result' && m.result.runId === id),
+          result.runId,
+        );
+        assert.ok(Buffer.byteLength(JSON.stringify(message), 'utf8') <= 65536);
+        const output = message.consoleOutput;
+        assert.ok(output, 'Built runner must capture console output');
+        assert.ok(output.entries.length <= 100);
+        assert.ok(output.entries.every((entry) => Buffer.byteLength(entry.text, 'utf8') <= 2048));
+        assert.ok(output.entries.reduce((size, entry) => size + Buffer.byteLength(entry.text, 'utf8'), 0) <= 16384);
+        return output;
+      }
+      const plainText = '<img src=x onerror=alert(1)> 😀';
+      const logged = await run(
+        `console.info('module');\n${solution.replace(
+          '  if (k <= 0)',
+          `  console.log(${JSON.stringify(plainText)}); console.warn('careful'); console.error('example');\n  if (k <= 0)`,
+        )}`,
+        'passed',
+      );
+      assert.deepEqual(logged.cases, passed.cases);
+      assert.deepEqual(await transcript(logged), {
+        entries: passed.cases.flatMap((c, index) => [
+          { sequence: index * 4, caseId: c.caseId, level: 'info', text: 'module' },
+          { sequence: index * 4 + 1, caseId: c.caseId, level: 'log', text: plainText },
+          { sequence: index * 4 + 2, caseId: c.caseId, level: 'warn', text: 'careful' },
+          { sequence: index * 4 + 3, caseId: c.caseId, level: 'error', text: 'example' },
+        ]),
+        truncated: false,
+      });
+      assert.equal(
+        browserConsole.some((entry) => entry.includes(plainText)),
+        false,
+      );
+      assert.equal(await page.locator('img').count(), 0);
+      assert.equal(await frame.locator('img').count(), 0);
+      const countFlood = await run(
+        solution.replace('  if (k <= 0)', `  for (let i = 0; i < 101; i++) console.log('flood');\n  if (k <= 0)`),
+        'passed',
+      );
+      assert.deepEqual(await transcript(countFlood), {
+        entries: Array.from({ length: 100 }, (_, sequence) => ({
+          sequence,
+          caseId: passed.cases[0].caseId,
+          level: 'log',
+          text: 'flood',
+        })),
+        truncated: true,
+      });
+      const byteFlood = await run(
+        solution.replace(
+          '  if (k <= 0)',
+          `  for (let i = 0; i < 20; i++) console.log('😀'.repeat(1000));\n  if (k <= 0)`,
+        ),
+        'passed',
+      );
+      const bounded = await transcript(byteFlood);
+      assert.equal(bounded.truncated, true);
+      assert.ok(bounded.entries.length > 0);
+      assert.ok(bounded.entries.some((entry) => entry.text.includes('[Truncated]')));
+      const caseIds = passed.cases.map((c) => c.caseId);
+      assert.ok(
+        bounded.entries.every(
+          (entry, sequence) =>
+            entry.sequence === sequence &&
+            caseIds.includes(entry.caseId) &&
+            caseIds.indexOf(entry.caseId) >= (sequence ? caseIds.indexOf(bounded.entries[sequence - 1].caseId) : 0) &&
+            entry.level === 'log' &&
+            /^(?:😀)*(?:\[Truncated\])?$/.test(entry.text),
+        ),
+        JSON.stringify(bounded),
+      );
+      const undefinedOutput = await run('export function longestWindow() {}', 'execution-error', 'policy-rejected');
+      assert.deepEqual(undefinedOutput.diagnostics, [
+        'Output must be finite plain JSON data without accessors or serialization hooks.',
+      ]);
       await run('export function longestWindow() { return { start: 0, endExclusive: 0 }; }', 'failed');
       await run('export const bad: number = "wrong";', 'compile-error');
       await run('export function longestWindow( {', 'compile-error');
