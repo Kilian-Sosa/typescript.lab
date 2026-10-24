@@ -84,6 +84,7 @@ jobs:
       - run: node --test scripts/check-m3-qa-build.test.mjs
       - run: node --test scripts/check-mvp-preview-build.test.mjs
       - run: node --test scripts/check-mvp-production-build.test.mjs
+      - run: node --test scripts/check-production-hosted.test.mjs
       # Synthetic public values validate the build only; this artifact is never deployed.
       - run: node scripts/build-mvp-preview.mjs
         env:
@@ -99,7 +100,13 @@ jobs:
       - run: node --test scripts/check-mvp-preview-local.mjs
         env:
           PLAYWRIGHT_BROWSER_CHANNEL: chromium
+      - run: node --test scripts/check-mvp-production-local.mjs
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
       - run: pnpm test:e2e
+      - run: node scripts/check-recovery.mjs --workers=2
+        env:
+          PLAYWRIGHT_BROWSER_CHANNEL: chromium
       - run: pnpm --dir apps/runner test:browser
         env:
           PLAYWRIGHT_BROWSER_CHANNEL: chromium

@@ -161,7 +161,24 @@ Strict app/runner/Worker CSP, `nosniff` and `no-referrer` remain enforced. Gener
 cannot activate execution, and must additionally remain protected or canonicalized during hosted acceptance.
 
 The [PR 1 plan](docs/superpowers/plans/2026-10-24-mvp-production-activation.md) records implementation evidence.
-PR 2 will supply compiled-artifact browser acceptance and reusable hosted-validation scripts. Genuine OAuth,
+The [PR 2 plan](docs/superpowers/plans/2026-10-24-mvp-production-acceptance.md) adds shared compiled-artifact browser
+acceptance and reusable hosted validation. Run locally with installed Edge (`PLAYWRIGHT_BROWSER_CHANNEL=msedge`):
+
+```powershell
+node --test scripts/check-mvp-production-local.mjs
+node --test scripts/check-mvp-preview-local.mjs
+node --test scripts/check-production-hosted.test.mjs
+```
+
+Both browser suites build their respective real artifacts, enforce emitted CSP and execute real QuickJS, while
+intercepting all authentication/data traffic with synthetic fixtures. Hosted-verifier fixture tests make no network
+requests. See [local evidence](docs/release/2026-10-24-production-local-acceptance.md), the
+[release/rollback runbook](docs/release-checklist.md) and the separate
+[NOT RUN hosted acceptance record](docs/release/production-hosted-acceptance.md).
+The live delivery verifier is an explicitly invoked read-only tool; its scoped process credentials
+`VERCEL_TOKEN` and `VERCEL_AUTOMATION_BYPASS_SECRET` are operator-only and never application configuration.
+Run it only for approved hosted validation, with the concrete identities and command documented in the runbook.
+Genuine OAuth,
 Supabase RLS, exact-alias HTTPS isolation and an independent match of Vercel target/SHA/hashes/headers remain
 separate hosted gates using disposable test accounts/data. Preserve the existing private draft.
 Stage protected Production artifacts without domain assignment, then expose the reviewed static runner while the
