@@ -1,3 +1,4 @@
+import { indexFixtureFiles } from './static-fixture-files.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
@@ -17,6 +18,7 @@ test(
   { timeout: 120000 },
   async () => {
     let browser, app, config;
+    let staticFiles = new Map();
     const errors = [];
     const runner = createServer(async (req, res) => {
       const path = req.url === '/' ? '/index.html' : req.url;
@@ -25,7 +27,9 @@ test(
         ...config.routes.filter((r) => r.src && new RegExp(`^${r.src}$`).test(path)).map((r) => r.headers),
       );
       try {
-        const body = await readFile(join(root, 'apps/runner/.vercel/output/static', path));
+        const file = staticFiles.get(path);
+        if (!file) throw new Error('Unknown public fixture');
+        const body = await readFile(file);
         res.writeHead(200, {
           ...headers,
           'Content-Type':
@@ -79,6 +83,7 @@ test(
       process.env.LAB_RUNNER_LOCAL_TEST = '1';
       await build({ configFile: join(root, 'apps/runner/vite.config.ts'), logLevel: 'error' });
       config = JSON.parse(await readFile(join(root, 'apps/runner/.vercel/output/config.json'), 'utf8'));
+      staticFiles = await indexFixtureFiles(join(root, 'apps/runner/.vercel/output/static'));
       browser = await chromium.launch({
         channel: process.env.PLAYWRIGHT_BROWSER_CHANNEL ?? 'msedge',
         headless: true,

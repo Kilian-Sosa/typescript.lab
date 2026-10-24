@@ -199,7 +199,7 @@ test('advisory data cannot create workflow commands or active summary markup', (
   const body = report();
   body.advisories['1243084'].findings[0].paths = ['x\n::error::forged <script>alert(1)</script>'];
   const output = assessReport(parseReport(result(body, 1)), 'root', []);
-  assert.doesNotMatch(output.text, /\n::error|<script>/);
+  assert.doesNotMatch(output.text, /\n::error|<script>/i);
 });
 
 test('CI exposes a separate read-only check without installs, secrets or privileged PR triggers', () => {

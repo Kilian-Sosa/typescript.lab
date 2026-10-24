@@ -1,0 +1,11 @@
+[
+  {
+    "ruleId": "js/http-to-file-access",
+    "path": "scripts/scan-secrets.mjs",
+    "line": 44,
+    "sourceSha256": "6774e333f6d0f79bc6c1bdd87516c236586dcc1055e926d921dc005dc764bf0b",
+    "owner": "Kilian-Sosa",
+    "expires": "2027-01-24",
+    "reason": "The only network-derived archive write occurs after SHA-256 equality with the exact official release asset pin. The destination is a fresh temporary directory and extraction/execution happens only after that verification. CodeQL does not model this cryptographic validation."
+  }
+]

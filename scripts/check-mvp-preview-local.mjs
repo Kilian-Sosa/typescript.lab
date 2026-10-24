@@ -210,6 +210,8 @@ test(
         authRequests.some((path) => path.includes('/auth/v1/token')),
         'The test did not exercise the synthetic PKCE token exchange',
       );
+      // Session UI updates before the callback component finishes routing.
+      await page.waitForURL(appOrigin + '/challenges/longest-window');
       assert.equal(new URL(page.url()).pathname, '/challenges/longest-window');
       assert.equal(new URL(page.url()).search, '', 'OAuth callback query remained visible');
       await source.fill(solution);

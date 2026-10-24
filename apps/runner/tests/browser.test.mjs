@@ -1,3 +1,4 @@
+import { indexFixtureFiles } from '../../../scripts/static-fixture-files.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { readFile, readdir } from 'node:fs/promises';
@@ -23,6 +24,7 @@ test(
   async () => {
     let browser;
     let config;
+    let staticFiles = new Map();
     let appOrigin, runnerOrigin;
     let appNetworkHits = 0;
     const hits = [];
@@ -42,7 +44,9 @@ test(
         return;
       }
       try {
-        const body = await readFile(join(root, '.vercel/output/static', path));
+        const file = staticFiles.get(path);
+        if (!file) throw new Error('Unknown public fixture');
+        const body = await readFile(file);
         res.writeHead(200, { ...headers, 'Content-Type': types[extname(path)] ?? 'application/octet-stream' });
         res.end(body);
       } catch {
@@ -80,6 +84,7 @@ test(
       process.env.LAB_RUNNER_LOCAL_TEST = '1';
       await build({ configFile: join(root, 'vite.config.ts'), logLevel: 'error' });
       config = JSON.parse(await readFile(join(root, '.vercel/output/config.json'), 'utf8'));
+      staticFiles = await indexFixtureFiles(join(root, '.vercel/output/static'));
       const files = await readdir(join(root, '.vercel/output/static/assets'));
       assert.ok(files.some((f) => f.endsWith('.wasm')));
       browser = await chromium.launch({
