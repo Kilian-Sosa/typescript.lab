@@ -6,6 +6,74 @@ interface NewableFunction extends Function {}
 interface IArguments { length: number; callee: Function; [index: number]: any; }
 interface String { readonly length: number; repeat(count: number): string; }
 interface Number {}
+interface NumberConstructor {
+  (value?: unknown): number;
+  readonly EPSILON: number;
+  readonly MAX_SAFE_INTEGER: number;
+  readonly MIN_SAFE_INTEGER: number;
+  readonly MAX_VALUE: number;
+  readonly MIN_VALUE: number;
+  readonly NaN: number;
+  readonly POSITIVE_INFINITY: number;
+  readonly NEGATIVE_INFINITY: number;
+  isFinite(number: unknown): boolean;
+  isInteger(number: unknown): boolean;
+  isNaN(number: unknown): boolean;
+  isSafeInteger(number: unknown): boolean;
+  parseFloat(string: string): number;
+  parseInt(string: string, radix?: number): number;
+}
+declare var Number: NumberConstructor;
+interface Math {
+  readonly E: number;
+  readonly LN10: number;
+  readonly LN2: number;
+  readonly LOG10E: number;
+  readonly LOG2E: number;
+  readonly PI: number;
+  readonly SQRT1_2: number;
+  readonly SQRT2: number;
+  abs(x: number): number;
+  acos(x: number): number;
+  acosh(x: number): number;
+  asin(x: number): number;
+  asinh(x: number): number;
+  atan(x: number): number;
+  atanh(x: number): number;
+  atan2(y: number, x: number): number;
+  cbrt(x: number): number;
+  ceil(x: number): number;
+  clz32(x: number): number;
+  cos(x: number): number;
+  cosh(x: number): number;
+  exp(x: number): number;
+  expm1(x: number): number;
+  floor(x: number): number;
+  fround(x: number): number;
+  hypot(...values: number[]): number;
+  imul(x: number, y: number): number;
+  log(x: number): number;
+  log1p(x: number): number;
+  log10(x: number): number;
+  log2(x: number): number;
+  max(...values: number[]): number;
+  min(...values: number[]): number;
+  pow(x: number, y: number): number;
+  round(x: number): number;
+  sign(x: number): number;
+  sin(x: number): number;
+  sinh(x: number): number;
+  sqrt(x: number): number;
+  tan(x: number): number;
+  tanh(x: number): number;
+  trunc(x: number): number;
+}
+declare var Math: Math;
+declare var Infinity: number;
+declare function isFinite(number: number): boolean;
+declare function isNaN(number: number): boolean;
+declare function parseFloat(string: string): number;
+declare function parseInt(string: string, radix?: number): number;
 interface Boolean {}
 interface RegExp { test(value: string): boolean; }
 interface Symbol {}
