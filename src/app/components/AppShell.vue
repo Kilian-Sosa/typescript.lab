@@ -39,7 +39,7 @@ onMounted(() => {
       <div class="topbar-actions">
         <AuthControls />
         <a
-          class="repository-link"
+          class="header-action repository-link"
           href="https://github.com/Kilian-Sosa/typescript.lab"
           target="_blank"
           rel="noopener noreferrer"
@@ -48,7 +48,7 @@ onMounted(() => {
           <span aria-hidden="true">↗</span>
         </a>
         <button
-          class="theme-toggle"
+          class="header-action theme-toggle"
           type="button"
           :aria-label="theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme'"
           @click="toggleTheme"
