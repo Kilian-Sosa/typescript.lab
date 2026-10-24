@@ -85,3 +85,11 @@ test('accepted findings fail closed on changed source or expired review', () => 
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('SARIF artifact-index locations retain exact reviewed-file matching', () => {
+  const analysis = sarif('6.3');
+  const run = analysis.runs[0];
+  run.artifacts = [{ location: { uri: 'scripts/pinned.mjs' } }];
+  run.results[0].locations = [{ physicalLocation: { artifactLocation: { index: 0 }, region: { startLine: 7 } } }];
+  assert.equal(inspectSarif(analysis, [{ ruleId: 'fixture', path: 'scripts/pinned.mjs', line: 7 }]), 0);
+});

@@ -19,7 +19,7 @@ export function loadAcceptedFindings(root, now = Date.now()) {
   return entries;
 }
 
-export function inspectSarif(analysis, accepted = []) {
+export function inspectSarif(analysis, accepted = [], report = () => {}) {
   if (analysis.version !== '2.1.0' || !Array.isArray(analysis.runs) || !analysis.runs.length)
     throw new Error('Missing or invalid SARIF analysis.');
   let blocking = 0;
@@ -39,17 +39,19 @@ export function inspectSarif(analysis, accepted = []) {
       )
         throw new Error('Invalid SARIF security severity.');
       const location = result.locations?.[0]?.physicalLocation;
+      const artifact = location?.artifactLocation;
+      const uri = artifact?.uri ?? run.artifacts?.[artifact?.index]?.location?.uri;
       if (
         accepted.some(
-          (entry) =>
-            entry.ruleId === rule.id &&
-            entry.path === location?.artifactLocation?.uri &&
-            entry.line === location?.region?.startLine,
+          (entry) => entry.ruleId === rule.id && entry.path === uri && entry.line === location?.region?.startLine,
         )
       )
         continue;
       const level = result.level ?? rule.defaultConfiguration?.level ?? 'warning';
-      if (security === undefined ? level === 'error' : Number(security) >= 4) blocking++;
+      if (security === undefined ? level === 'error' : Number(security) >= 4) {
+        blocking++;
+        report({ rule: rule.id, path: uri, line: location?.region?.startLine, severity: security ?? level });
+      }
     }
   }
   return blocking;
@@ -65,7 +67,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     const accepted = loadAcceptedFindings(root);
     let blocking = 0;
     for (const file of files)
-      blocking += inspectSarif(JSON.parse(readFileSync(join(directory, file), 'utf8')), accepted);
+      blocking += inspectSarif(JSON.parse(readFileSync(join(directory, file), 'utf8')), accepted, (finding) =>
+        console.log('CodeQL finding: ' + JSON.stringify(finding)),
+      );
     console.log(
       'CodeQL: ' +
         blocking +
