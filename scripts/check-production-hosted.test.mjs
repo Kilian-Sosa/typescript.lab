@@ -154,11 +154,12 @@ test('delivery verification independently checks platform identity and every emi
     assert.equal(result.scope, 'delivery-only');
     assert.equal(result.sourceSha, sha);
     assert.equal(result.staticFiles, 5);
-    assert.ok(f.calls.some(({ url }) => url.includes('/v13/deployments/dpl_app')));
+    const platformCalls = f.calls
+      .map(({ url }) => new URL(url))
+      .filter(({ origin }) => origin === 'https://api.vercel.com');
+    assert.ok(platformCalls.some(({ pathname }) => pathname === '/v13/deployments/dpl_app'));
     assert.ok(
-      f.calls.some(
-        ({ url }) => url.includes(new URL(PRODUCTION_ORIGINS.app).hostname) && url.includes('api.vercel.com'),
-      ),
+      platformCalls.some(({ pathname }) => pathname === `/v13/deployments/${new URL(PRODUCTION_ORIGINS.app).hostname}`),
     );
   }
 });
