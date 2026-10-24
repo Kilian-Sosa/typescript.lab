@@ -27,6 +27,17 @@ test('security jobs run on PR/main and scan built assets with isolated permissio
   assert.match(yaml, /persist-credentials: false/);
   assert.ok(!/\$\{\{\s*secrets\./.test(yaml));
 });
+test('CodeQL action stages share one pinned version and Dependabot groups their updates', () => {
+  const workflow = readFileSync('.github/workflows/security.yml', 'utf8');
+  const stages = [
+    ...workflow.matchAll(/uses:\s*github\/codeql-action\/(init|analyze)@([a-f0-9]{40})\s+#\s+(v\d+\.\d+\.\d+)/g),
+  ];
+  assert.deepEqual(stages.map(([, stage]) => stage).sort(), ['analyze', 'init']);
+  assert.equal(new Set(stages.map(([, , sha]) => sha)).size, 1, 'CodeQL stages must use the same commit');
+  assert.equal(new Set(stages.map(([, , , version]) => version)).size, 1, 'CodeQL version comments must agree');
+  const dependabot = readFileSync('.github/dependabot.yml', 'utf8');
+  assert.match(dependabot, /groups:\s*\n\s*codeql-action:\s*\n\s*patterns:\s*\n\s*- ['"]github\/codeql-action\/\*['"]/);
+});
 test('desired main policy requires strict checks, findings, PRs and no bypass', () => {
   const policy = JSON.parse(readFileSync('.github/main-ruleset.json', 'utf8'));
   assert.equal(policy.enforcement, 'active');
