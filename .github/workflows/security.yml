@@ -1,0 +1,62 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          config-file: ./.github/codeql/codeql-config.yml
+      - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          category: /language:javascript-typescript
+          output: codeql-results
+      - run: node scripts/check-codeql-results.mjs codeql-results
+
+  secret-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
+        with:
+          version: 11.25.0
+          install: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - run: node --test scripts/scan-secrets.test.mjs scripts/check-ci-policy.test.mjs scripts/check-codeql-results.test.mjs
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm --dir apps/runner install --ignore-workspace --frozen-lockfile
+      - run: pnpm --dir apps/runner build
+        env:
+          VITE_RUNNER_PARENT_ORIGIN: https://lab-app.vercel.app
+          VITE_RUNNER_ORIGIN: https://lab-runner.vercel.app
+      - run: node scripts/scan-secrets.mjs --artifacts dist apps/runner/.vercel/output/static

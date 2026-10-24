@@ -1,0 +1,10 @@
+title = "TypeScript Lab credential scanning"
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Nonfunctional public key for the fully intercepted M4 recovery browser fixture only"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^publishable-m4-fixture$''']
+paths = ['''(?:^|[/\\])scripts[/\\]check-recovery\.mjs$''']
