@@ -112,7 +112,11 @@ test('built cross-site runner enforces CSP, actual evaluation, deadlines, recove
         Number.isSafeInteger(42), Number("3"), parseInt("ff", 16), parseFloat("2.5px")];
     }`, 'failed');
     assert.deepEqual(numericGlobals.cases[0].actual, [-2, 7, false, true, true, 3, 255, 2.5]);
-    await run('export function longestWindow() { console.log("unavailable until bounded capture"); }', 'compile-error');
+    const logged = await run('export function longestWindow() { console.log("bounded capture"); return { start: 0, endExclusive: 0 }; }', 'failed');
+    const transcript = await page.evaluate(id => messages.find(m => m.kind === 'run-result' && m.result.runId === id).consoleOutput, logged.runId);
+    assert.equal(transcript.entries.length, 14);
+    assert.equal(transcript.truncated, false);
+    assert.ok(transcript.entries.every(entry => entry.level === 'log' && entry.text === 'bounded capture'));
     await run('export function longestWindow() { return { start: 0, endExclusive: 0 }; }', 'failed');
     await run('export const bad: number = "wrong";', 'compile-error');
     await run('export function longestWindow( {', 'compile-error');
