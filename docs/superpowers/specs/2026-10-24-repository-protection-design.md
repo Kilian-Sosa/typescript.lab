@@ -23,7 +23,7 @@
 2. GitHub native code/secret scanning alone minimizes local tooling, but native push protection does not supply the requested deterministic tracked-source and built-artifact PR secret check.
 3. A large third-party security suite adds overlapping tools and access/configuration burden without a demonstrated need. Do not adopt it for this issue.
 
-The recommendation and policy below are agent proposals, not prior owner decisions.
+The owner approved this recommendation and policy on 2026-10-24.
 
 ## Required checks and trust boundaries
 
@@ -70,3 +70,5 @@ No Vercel/Supabase changes, deployments, public runner exposure, billing, Produc
 The [implementation plan](../plans/2026-10-24-repository-protection.md) divides local CI work and hosted enforcement into independently verifiable slices. No automatic independent reviewer or worker is required; the owner implementation policy applies.
 
 Implementation ruling: inspect CodeQL SARIF locally in the static-security job as well as enforcing the findings rule when the main baseline exists. This guarantees a failing named status for medium+ security/error findings, including during the initial advanced-setup bootstrap. Runner artifacts are emitted to apps/runner/.vercel/output/static, not apps/runner/dist. The owner separately authorized coordination with the #22/#23 chats and branch/PR publication on 2026-10-24.
+
+Reviewed CodeQL false positives may be accepted only through an auditable exact rule/file/line entry bound to complete source SHA-256, owner, reason and expiry; changed source or expiry fails closed. The initial three entries cover the checksum-verified archive download and the two dedicated-Worker channel listeners. No query or source-tree exclusion is permitted as a substitute for review. Actual test-harness file-access and URL-origin findings were fixed rather than accepted.

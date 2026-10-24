@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { extname, resolve, sep } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
@@ -378,8 +378,6 @@ window.__makeFrame=(sandbox)=>{
       return;
     }
     try {
-      const fileInfo = await stat(fullPath);
-      if (!fileInfo.isFile()) throw new Error('not a file');
       const body = await readFile(fullPath);
       const isHtml = extname(fullPath) === '.html';
       const isWorkerScript = /quickjs\.worker-[^/]+\.js$/.test(url.pathname) || url.pathname === '/quickjs.worker.mjs';
@@ -761,7 +759,7 @@ export async function runQuickJsFeasibility() {
       }),
     );
     page.on('response', (response) => {
-      if (response.url().startsWith(state.runnerOrigin ?? 'http://runner.test')) {
+      if (new URL(response.url()).origin === (state.runnerOrigin ?? 'http://runner.test')) {
         runnerResponses.push({
           url: response.url(),
           status: response.status(),
