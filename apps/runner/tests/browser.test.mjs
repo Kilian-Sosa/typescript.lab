@@ -103,6 +103,16 @@ test('built cross-site runner enforces CSP, actual evaluation, deadlines, recove
     }
     const passed = await run(solution, 'passed'); assert.equal(passed.cases.length, 14);
     assert.equal(passed.cases.every(c => c.status === 'passed'), true);
+    const numericSolution = solution.replace('if (k <= 0)', 'k = Math.max(0, Math.floor(k));\n  if (k <= 0)');
+    const numericPassed = await run(numericSolution, 'passed');
+    assert.equal(numericPassed.cases.length, 14);
+    assert.equal(numericPassed.cases.every(c => c.status === 'passed'), true);
+    const numericGlobals = await run(`export function longestWindow() {
+      return [Math.floor(-1.2), Math.max(2, 7), Number.isFinite(Infinity), Number.isNaN(NaN),
+        Number.isSafeInteger(42), Number("3"), parseInt("ff", 16), parseFloat("2.5px")];
+    }`, 'failed');
+    assert.deepEqual(numericGlobals.cases[0].actual, [-2, 7, false, true, true, 3, 255, 2.5]);
+    await run('export function longestWindow() { console.log("unavailable until bounded capture"); }', 'compile-error');
     await run('export function longestWindow() { return { start: 0, endExclusive: 0 }; }', 'failed');
     await run('export const bad: number = "wrong";', 'compile-error');
     await run('export function longestWindow( {', 'compile-error');
