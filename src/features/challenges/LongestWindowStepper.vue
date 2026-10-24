@@ -48,18 +48,15 @@ function goToNextStep(): void {
 </script>
 
 <template>
-  <section
-    v-if="active"
-    class="longest-window-stepper"
-    :aria-labelledby="titleId"
-  >
+  <section v-if="active" class="longest-window-stepper" :aria-labelledby="titleId">
     <div class="stepper-heading">
       <div>
         <p class="eyebrow">REFERENCE VISUALIZATION</p>
         <h2 :id="titleId">Step through the sliding window</h2>
       </div>
       <p class="reference-notice">
-        This is a trace of the canonical reference approach for the challenge example. It does not read or run your editor code.
+        This is a trace of the canonical reference approach for the challenge example. It does not read or run your
+        editor code.
       </p>
     </div>
 
@@ -93,9 +90,7 @@ function goToNextStep(): void {
       >
         Previous
       </button>
-      <p class="step-count" data-testid="visualizer-step-status">
-        Step {{ stepIndex + 1 }} of {{ steps.length }}
-      </p>
+      <p class="step-count" data-testid="visualizer-step-status">Step {{ stepIndex + 1 }} of {{ steps.length }}</p>
       <button
         type="button"
         :aria-controls="stateLabelId"
@@ -134,7 +129,8 @@ function goToNextStep(): void {
         <h4 :id="countsLabelId">Event counts</h4>
         <ul v-if="countsEntries.length > 0" :aria-labelledby="countsLabelId" data-testid="visualizer-counts">
           <li v-for="[event, count] in countsEntries" :key="event">
-            <code>{{ event === '' ? '(empty string)' : event }}</code>: {{ count }}
+            <code>{{ event === '' ? '(empty string)' : event }}</code
+            >: {{ count }}
           </li>
         </ul>
         <p v-else>No event identifiers are in the current window.</p>

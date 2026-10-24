@@ -248,7 +248,11 @@ function makeAppServer(state) {
   return createServer((request, response) => {
     const url = new URL(request.url, `http://${request.headers.host}`);
     if (url.pathname === '/probe-hit') {
-      state.events.push({ mode: url.searchParams.get('mode'), origin: request.headers.origin ?? null, cookieSent: String(request.headers.cookie ?? '').includes('lab_probe_cookie=app-cookie-canary') });
+      state.events.push({
+        mode: url.searchParams.get('mode'),
+        origin: request.headers.origin ?? null,
+        cookieSent: String(request.headers.cookie ?? '').includes('lab_probe_cookie=app-cookie-canary'),
+      });
       respond(response, 200, 'application/json', '{"ok":true}');
       return;
     }
@@ -271,16 +275,25 @@ function makeAppServer(state) {
       return;
     }
     if (url.pathname === '/cookie-check.html') {
-      sendHtml(response, `default-src 'none'; script-src 'unsafe-inline'; frame-ancestors ${state.appOrigin}`, cookieCheckHtml());
+      sendHtml(
+        response,
+        `default-src 'none'; script-src 'unsafe-inline'; frame-ancestors ${state.appOrigin}`,
+        cookieCheckHtml(),
+      );
       return;
     }
     if (url.pathname === '/app-worker.js') {
-      respond(response, 200, 'text/javascript; charset=utf-8', `
+      respond(
+        response,
+        200,
+        'text/javascript; charset=utf-8',
+        `
 function readCanary(){return new Promise((resolve,reject)=>{const req=indexedDB.open('lab-runner-spike');req.onerror=()=>reject(req.error);req.onsuccess=()=>{const db=req.result;const get=db.transaction('values').objectStore('values').get('auth-probe');get.onsuccess=()=>{db.close();resolve(get.result)};get.onerror=()=>reject(get.error)}})}
 self.onmessage=async event=>{if(event.data?.kind==='read'){
  const indexedDbCanary=await readCanary();const response=await fetch('/probe-hit?mode=worker-only',{method:'POST',credentials:'same-origin',body:'probe-only'});
  self.postMessage({kind:'capabilities',domUnavailable:typeof document==='undefined',indexedDbCanary,sameOriginFetchOk:response.ok})
- }if(event.data?.kind==='loop'){self.postMessage({kind:'loop-started'});while(true){}}};`);
+ }if(event.data?.kind==='loop'){self.postMessage({kind:'loop-started'});while(true){}}};`,
+      );
       return;
     }
     respond(response, 404, 'text/plain; charset=utf-8', 'not found');
@@ -297,11 +310,19 @@ function makeRunnerServer(state) {
     }
     if (url.pathname === '/isolated.html') {
       const csp = `default-src 'none'; script-src 'self'; connect-src 'none'; worker-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors ${state.appOrigin}`;
-      sendHtml(response, csp, '<!doctype html><meta charset="utf-8"><title>Isolated runner</title><script src="/isolated.js" defer></script>');
+      sendHtml(
+        response,
+        csp,
+        '<!doctype html><meta charset="utf-8"><title>Isolated runner</title><script src="/isolated.js" defer></script>',
+      );
       return;
     }
     if (url.pathname === '/cookie-check.html') {
-      sendHtml(response, `default-src 'none'; script-src 'unsafe-inline'; frame-ancestors ${state.appOrigin}`, cookieCheckHtml());
+      sendHtml(
+        response,
+        `default-src 'none'; script-src 'unsafe-inline'; frame-ancestors ${state.appOrigin}`,
+        cookieCheckHtml(),
+      );
       return;
     }
     if (url.pathname === '/isolated.js') {
@@ -310,11 +331,16 @@ function makeRunnerServer(state) {
     }
     if (url.pathname === '/runner-worker.js') {
       respond(response, 200, 'text/javascript; charset=utf-8', makeRunnerWorker(), {
-        'Content-Security-Policy': "default-src 'none'; script-src 'unsafe-eval'; connect-src 'none'; worker-src 'none'",
+        'Content-Security-Policy':
+          "default-src 'none'; script-src 'unsafe-eval'; connect-src 'none'; worker-src 'none'",
       });
       return;
     }
-    if (url.pathname === '/nested-worker.js' || url.pathname === '/nested-import.js' || url.pathname === '/dynamic-import.js') {
+    if (
+      url.pathname === '/nested-worker.js' ||
+      url.pathname === '/nested-import.js' ||
+      url.pathname === '/dynamic-import.js'
+    ) {
       state.events.push({ mode: url.pathname.slice(1) + '-loaded' });
       respond(response, 200, 'text/javascript; charset=utf-8', 'postMessage({probe:"unexpected-script-execution"});');
       return;
@@ -328,10 +354,13 @@ export async function runSpike() {
   const typescript = loadPackage('LAB_RUNNER_TYPESCRIPT_MODULE', 'TypeScript');
   if (typescript.version !== '5.9.3') throw new Error(`Expected TypeScript 5.9.3; received ${typescript.version}.`);
 
-  const compiled = typescript.transpileModule("const answer: number = 6 * 7; postMessage({probe:'typed-source',value:answer});", {
-    reportDiagnostics: true,
-    compilerOptions: { target: typescript.ScriptTarget.ES2022, module: typescript.ModuleKind.None },
-  });
+  const compiled = typescript.transpileModule(
+    "const answer: number = 6 * 7; postMessage({probe:'typed-source',value:answer});",
+    {
+      reportDiagnostics: true,
+      compilerOptions: { target: typescript.ScriptTarget.ES2022, module: typescript.ModuleKind.None },
+    },
+  );
   const invalidType = typescript.transpileModule('const answer: number = "not-a-number";', {
     reportDiagnostics: true,
     compilerOptions: { target: typescript.ScriptTarget.ES2022, module: typescript.ModuleKind.None },
@@ -345,7 +374,7 @@ export async function runSpike() {
   let context;
   let browserClosed = false;
   let contextClosed = false;
-  let serversClosed = false;
+  let serversClosed;
   let evidence;
   let failure;
   try {
@@ -370,7 +399,6 @@ export async function runSpike() {
     const isolated = probe.frames?.isolated ?? {};
     const isolatedSummary = isolated.summary ?? {};
     const opaqueSummary = probe.frames?.opaque?.summary ?? {};
-    const controlSummary = probe.frames?.opaqueControl?.summary ?? {};
     evidence = {
       browser: { engine: 'Microsoft Edge', channel: 'msedge', version: browser.version() },
       origins: { app: appState.appOrigin, runner: appState.runnerOrigin },
@@ -428,7 +456,9 @@ export async function runSpike() {
         typedOutputRan: isolated.typed?.probe === 'typed-source',
         typedResult: isolated.typed?.value,
         invalidTypeOutputProduced: invalidType.outputText.length > 0,
-        invalidTypeSemanticDiagnostics: (invalidType.diagnostics ?? []).filter((diagnostic) => diagnostic.category === typescript.DiagnosticCategory.Error).length,
+        invalidTypeSemanticDiagnostics: (invalidType.diagnostics ?? []).filter(
+          (diagnostic) => diagnostic.category === typescript.DiagnosticCategory.Error,
+        ).length,
       },
       requestLog: appEvents,
       runnerRequestLog: runnerEvents,

@@ -1,8 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SaveDraftInput, SolutionDraft } from '../../../shared/contracts/v1';
-import { AuthenticationRequiredError, AttemptSessionChangedError, type ScopedRequestClientFactory } from './attemptRepository';
+import {
+  AuthenticationRequiredError,
+  AttemptSessionChangedError,
+  type ScopedRequestClientFactory,
+} from './attemptRepository';
 
-export type SaveDraftResult = { kind: 'saved'; draft: SolutionDraft } | { kind: 'conflict'; current: SolutionDraft | null };
+export type SaveDraftResult =
+  { kind: 'saved'; draft: SolutionDraft } | { kind: 'conflict'; current: SolutionDraft | null };
 export interface DraftRepository {
   loadDraft(challengeId: string): Promise<SolutionDraft | null>;
   saveDraft(input: SaveDraftInput): Promise<SaveDraftResult>;
@@ -12,16 +17,32 @@ function decodeDraft(value: unknown, owner: string, challengeId: string): Soluti
   if (!value || typeof value !== 'object') throw new Error('Invalid draft contract.');
   const row = value as Record<string, unknown>;
   if (row.user_id !== owner) throw new Error('Draft belongs to another account.');
-  if (row.challenge_id !== challengeId || typeof row.challenge_version !== 'string' || !row.challenge_version
-    || typeof row.source !== 'string' || !Number.isSafeInteger(row.revision) || Number(row.revision) < 0
-    || typeof row.updated_at !== 'string' || !Number.isFinite(Date.parse(row.updated_at))) {
+  if (
+    row.challenge_id !== challengeId ||
+    typeof row.challenge_version !== 'string' ||
+    !row.challenge_version ||
+    typeof row.source !== 'string' ||
+    !Number.isSafeInteger(row.revision) ||
+    Number(row.revision) < 0 ||
+    typeof row.updated_at !== 'string' ||
+    !Number.isFinite(Date.parse(row.updated_at))
+  ) {
     throw new Error('Invalid draft contract.');
   }
-  return { userId: owner, challengeId, challengeVersion: row.challenge_version,
-    source: row.source, revision: Number(row.revision), updatedAt: row.updated_at };
+  return {
+    userId: owner,
+    challengeId,
+    challengeVersion: row.challenge_version,
+    source: row.source,
+    revision: Number(row.revision),
+    updatedAt: row.updated_at,
+  };
 }
 
-export function createDraftRepository(client: SupabaseClient, createScopedClient: ScopedRequestClientFactory): DraftRepository {
+export function createDraftRepository(
+  client: SupabaseClient,
+  createScopedClient: ScopedRequestClientFactory,
+): DraftRepository {
   let generation = 0;
   let observed: string | null | undefined;
   client.auth.onAuthStateChange((_event, session) => {
@@ -39,8 +60,12 @@ export function createDraftRepository(client: SupabaseClient, createScopedClient
     }
     const { data: verified, error: verificationError } = await client.auth.getUser(session.access_token);
     if (verificationError || !verified.user) throw new AuthenticationRequiredError();
-    if (revision !== generation || verified.user.id !== session.user.id
-      || (observed !== undefined && observed !== verified.user.id)) throw new AttemptSessionChangedError();
+    if (
+      revision !== generation ||
+      verified.user.id !== session.user.id ||
+      (observed !== undefined && observed !== verified.user.id)
+    )
+      throw new AttemptSessionChangedError();
     observed = verified.user.id;
     return { owner: verified.user.id, token: session.access_token, generation: revision };
   }
@@ -51,8 +76,12 @@ export function createDraftRepository(client: SupabaseClient, createScopedClient
   }
 
   async function read(scoped: SupabaseClient, owner: string, challengeId: string) {
-    const { data, error } = await scoped.from('solution_drafts').select('*')
-      .eq('user_id', owner).eq('challenge_id', challengeId).maybeSingle();
+    const { data, error } = await scoped
+      .from('solution_drafts')
+      .select('*')
+      .eq('user_id', owner)
+      .eq('challenge_id', challengeId)
+      .maybeSingle();
     if (error) throw new Error('Could not load your private draft.');
     return data === null ? null : decodeDraft(data, owner, challengeId);
   }
@@ -65,17 +94,32 @@ export function createDraftRepository(client: SupabaseClient, createScopedClient
       return draft;
     },
     async saveDraft(input) {
-      if (input.expectedRevision !== null && (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0)) {
+      if (
+        input.expectedRevision !== null &&
+        (!Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 0)
+      ) {
         throw new Error('Invalid expected draft revision.');
       }
       const snapshot = await capture();
       const scoped = createScopedClient(snapshot.token);
-      const result = input.expectedRevision === null
-        ? await scoped.from('solution_drafts').insert({ challenge_id: input.challengeId,
-          challenge_version: input.challengeVersion, source: input.source }).select('*').single()
-        : await scoped.from('solution_drafts').update({ challenge_version: input.challengeVersion, source: input.source })
-          .eq('user_id', snapshot.owner).eq('challenge_id', input.challengeId)
-          .eq('revision', input.expectedRevision).select('*');
+      const result =
+        input.expectedRevision === null
+          ? await scoped
+              .from('solution_drafts')
+              .insert({
+                challenge_id: input.challengeId,
+                challenge_version: input.challengeVersion,
+                source: input.source,
+              })
+              .select('*')
+              .single()
+          : await scoped
+              .from('solution_drafts')
+              .update({ challenge_version: input.challengeVersion, source: input.source })
+              .eq('user_id', snapshot.owner)
+              .eq('challenge_id', input.challengeId)
+              .eq('revision', input.expectedRevision)
+              .select('*');
       await check(snapshot);
       if (result.error && !(input.expectedRevision === null && result.error.code === '23505')) {
         if (result.error.code === 'PGRST301' || result.error.code === '42501') throw new AuthenticationRequiredError();
@@ -88,8 +132,11 @@ export function createDraftRepository(client: SupabaseClient, createScopedClient
       }
       const data = Array.isArray(result.data) ? (result.data.length === 1 ? result.data[0] : null) : result.data;
       const draft = decodeDraft(data, snapshot.owner, input.challengeId);
-      if (draft.source !== input.source || draft.challengeVersion !== input.challengeVersion
-        || draft.revision !== (input.expectedRevision === null ? 0 : input.expectedRevision + 1)) {
+      if (
+        draft.source !== input.source ||
+        draft.challengeVersion !== input.challengeVersion ||
+        draft.revision !== (input.expectedRevision === null ? 0 : input.expectedRevision + 1)
+      ) {
         throw new Error('Draft acknowledgment does not match the saved contract.');
       }
       return { kind: 'saved', draft };

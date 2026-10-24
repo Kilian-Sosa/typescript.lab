@@ -54,9 +54,21 @@ onBeforeUnmount(() => {
   <div class="draft-workspace">
     <CodeEditor v-model="source" />
     <DraftSaveStatus :sync="sync" :challenge-id="challengeId" :challenge-version="challengeVersion" />
-    <RunnerControls :source="source" :challenge-id="challengeId" :challenge-version="challengeVersion" :reset-key="auth?.state.generation ?? 0" />
-    <AttemptSubmissionPanel :key="auth?.state.generation ?? 0" :challenge-id="challengeId" :challenge-version="challengeVersion"
-      :source="source" :recovery-notes="noteFields" :return-to="route.fullPath" @notes-changed="sync.editNotes" />
+    <RunnerControls
+      :source="source"
+      :challenge-id="challengeId"
+      :challenge-version="challengeVersion"
+      :reset-key="auth?.state.generation ?? 0"
+    />
+    <AttemptSubmissionPanel
+      :key="auth?.state.generation ?? 0"
+      :challenge-id="challengeId"
+      :challenge-version="challengeVersion"
+      :source="source"
+      :recovery-notes="noteFields"
+      :return-to="route.fullPath"
+      @notes-changed="sync.editNotes"
+    />
   </div>
 </template>
 

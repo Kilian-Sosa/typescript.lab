@@ -21,7 +21,9 @@ describe('ChallengePage', () => {
     expect(wrapper.text()).toContain('Given an array of event identifiers');
     expect(wrapper.text()).toContain('Constraints and edge cases');
     expect(wrapper.get('[data-testid="example-output"]').text()).toBe('{ start: 0, endExclusive: 3 }');
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain('TODO: Return the earliest longest window');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain(
+      'TODO: Return the earliest longest window',
+    );
     expect(wrapper.text()).toContain('Tests have not run');
     expect(wrapper.text()).toContain('Interview Mode');
     expect(wrapper.text()).not.toContain('sliding-window');
@@ -164,7 +166,9 @@ describe('ChallengePage', () => {
     await router.push('/challenges/longest-window?fresh=1');
     await flushPromises();
 
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain('TODO: Return the earliest longest window');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toContain(
+      'TODO: Return the earliest longest window',
+    );
     expect(wrapper.get('button[aria-label="Interview mode"]').attributes('aria-pressed')).toBe('true');
     expect(wrapper.find('button[aria-label="Show hint 1"]').exists()).toBe(false);
   });
@@ -182,7 +186,9 @@ describe('ChallengePage', () => {
 
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining('previous solutions'));
     expect(router.currentRoute.value.path).toBe('/challenges/longest-window');
-    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe('keep my current approach');
+    expect((wrapper.get('textarea[aria-label="TypeScript source"]').element as HTMLTextAreaElement).value).toBe(
+      'keep my current approach',
+    );
 
     confirm.mockReturnValue(true);
     await router.push('/notebook/longest-window');

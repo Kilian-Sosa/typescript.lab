@@ -16,7 +16,9 @@ test('Interview Mode requires consent before Notebook navigation and keeps cance
   await expect(page).toHaveURL(/\/notebook$/);
 });
 
-test('Learning Mode reveals the reference trace only after consent and resets hidden learning state', async ({ page }) => {
+test('Learning Mode reveals the reference trace only after consent and resets hidden learning state', async ({
+  page,
+}) => {
   await page.goto('/challenges/longest-window');
 
   const hintsHeading = page.getByRole('heading', { name: 'Progressive hints' });
@@ -44,12 +46,16 @@ test('Learning Mode reveals the reference trace only after consent and resets hi
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('visualizer-step-status')).toHaveText(/Step 2 of/);
   await expect(page.getByTestId('visualizer-explanation')).toHaveAttribute('aria-live', 'polite');
-  await expect(page.getByRole('list', { name: 'Event positions and current window' })).toContainText('In current window');
+  await expect(page.getByRole('list', { name: 'Event positions and current window' })).toContainText(
+    'In current window',
+  );
 
   const hintButton = page.getByRole('button', { name: 'Show hint 1' });
   await hintButton.focus();
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('listitem').filter({ hasText: 'Grow a candidate range from left to right' })).toBeVisible();
+  await expect(
+    page.getByRole('listitem').filter({ hasText: 'Grow a candidate range from left to right' }),
+  ).toBeVisible();
 
   await page.getByRole('button', { name: 'Interview mode' }).click();
   await expect(hintsHeading).toHaveCount(0);
@@ -77,10 +83,13 @@ test('the reference trace has no horizontal overflow and honors reduced motion',
   await expect(page.getByRole('heading', { name: 'Step through the sliding window' })).toBeVisible();
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const reducedMotion = await page.locator('.event-cell').first().evaluate((element) => {
-    const styles = getComputedStyle(element);
-    return { transitionProperty: styles.transitionProperty, transitionDuration: styles.transitionDuration };
-  });
+  const reducedMotion = await page
+    .locator('.event-cell')
+    .first()
+    .evaluate((element) => {
+      const styles = getComputedStyle(element);
+      return { transitionProperty: styles.transitionProperty, transitionDuration: styles.transitionDuration };
+    });
   expect(reducedMotion.transitionProperty).toBe('none');
   expect(Number.parseFloat(reducedMotion.transitionDuration)).toBeLessThanOrEqual(0.01);
 

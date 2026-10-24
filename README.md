@@ -19,6 +19,8 @@ The public learning content needs no cloud credentials. Verify the application a
 
 ```sh
 pnpm typecheck
+pnpm lint
+pnpm format:check
 pnpm test
 pnpm build
 pnpm exec playwright install chromium
@@ -26,6 +28,21 @@ pnpm test:e2e
 ```
 
 On Windows, the browser suite can use installed Edge by setting `PLAYWRIGHT_BROWSER_CHANNEL=msedge`. Set `PLAYWRIGHT_PORT` if the default test port `4173` is occupied.
+
+### Lint and formatting
+
+CI runs `pnpm lint` and `pnpm format:check` on every PR targeting `main` and every push to `main`. These commands never rewrite files. The independently installed runner has the same commands:
+
+```sh
+pnpm --dir apps/runner install --ignore-workspace --frozen-lockfile
+pnpm --dir apps/runner lint
+pnpm --dir apps/runner format:check
+node --test scripts/check-code-quality.test.mjs
+```
+
+ESLint uses shared flat configuration in `tooling/eslint.mjs`: recommended JavaScript and TypeScript correctness rules plus Vue 3 essential rules, without typed linting or stylistic rules. Each package resolves its own pinned dependencies. Browser, Worker and Node globals support the repository's mixed browser/test harnesses. Unused parameters/caught errors may start with `_`; unused rest siblings are allowed for intentional field omission. Three runner protocol/console test files document a single-rule `no-explicit-any` exception for runtime assertions on untrusted messages. Production files retain the rule.
+
+Prettier owns formatting for JS/MJS/CJS, TypeScript, Vue, CSS, HTML, JSON and YAML, including scripts, tests, challenges, shared code, spikes and the design mockup. Markdown, SQL and runner library text are outside this gate. `.prettierignore` and ESLint ignores exclude dependency stores, local worktrees and generated test/build output; generated pnpm lockfiles are excluded from Prettier. One root `prettier.config.mjs` applies to both packages. Embedded language formatting is off to preserve learner-code strings and tagged fixtures. To format deliberately, run `pnpm exec prettier --write "**/*.{js,mjs,cjs,ts,vue,css,html,json,yml,yaml}"` from the root, or format selected files with your editor's Prettier integration. Include formatting with your change; CI only checks it.
 
 For a local exercise, edit [the starter](challenges/longest-window/starter.ts), then run `pnpm test:practice`. That explicit suite fails until the starter is implemented; the default CI suite tests the separate canonical solution. Read the [challenge contract](challenges/longest-window/README.md) first.
 

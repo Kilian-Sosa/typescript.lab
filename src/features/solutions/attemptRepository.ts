@@ -62,8 +62,7 @@ function isString(value: unknown): value is string {
 }
 
 function isMissingAuthSessionError(value: unknown): boolean {
-  return isRecord(value)
-    && (value.name === 'AuthSessionMissingError' || value.code === 'session_not_found');
+  return isRecord(value) && (value.name === 'AuthSessionMissingError' || value.code === 'session_not_found');
 }
 
 function decodeEvaluation(value: unknown): AttemptEvaluation {
@@ -76,16 +75,15 @@ function decodeEvaluation(value: unknown): AttemptEvaluation {
   }
 
   if (
-    typeof value.status !== 'string'
-    || !savedEvaluationStatuses.has(value.status)
-    || !Number.isSafeInteger(value.totalCases)
-    || !Number.isSafeInteger(value.passedCases)
-    || (value.totalCases as number) < 0
-    || (value.passedCases as number) < 0
-    || (value.passedCases as number) > (value.totalCases as number)
-    || Object.keys(value).some((key) => !['status', 'totalCases', 'passedCases'].includes(key))
-    || (value.status === 'passed'
-      && ((value.totalCases as number) === 0 || value.totalCases !== value.passedCases))
+    typeof value.status !== 'string' ||
+    !savedEvaluationStatuses.has(value.status) ||
+    !Number.isSafeInteger(value.totalCases) ||
+    !Number.isSafeInteger(value.passedCases) ||
+    (value.totalCases as number) < 0 ||
+    (value.passedCases as number) < 0 ||
+    (value.passedCases as number) > (value.totalCases as number) ||
+    Object.keys(value).some((key) => !['status', 'totalCases', 'passedCases'].includes(key)) ||
+    (value.status === 'passed' && ((value.totalCases as number) === 0 || value.totalCases !== value.passedCases))
   ) {
     throw new AttemptDataError();
   }
@@ -114,12 +112,12 @@ function decodeAttempt(value: unknown, expectedUserId: string): SolutionAttempt 
   };
 
   if (
-    !isString(value.id)
-    || !isString(value.challenge_id)
-    || !isString(value.challenge_version)
-    || !isString(value.source)
-    || !isString(value.notes)
-    || !isString(value.created_at)
+    !isString(value.id) ||
+    !isString(value.challenge_id) ||
+    !isString(value.challenge_version) ||
+    !isString(value.source) ||
+    !isString(value.notes) ||
+    !isString(value.created_at)
   ) {
     throw new AttemptDataError();
   }
@@ -244,9 +242,9 @@ export function createAttemptRepository(
     }
 
     if (
-      sessionRevision !== snapshot.revision
-      || current.revision !== snapshot.revision
-      || current.userId !== snapshot.userId
+      sessionRevision !== snapshot.revision ||
+      current.revision !== snapshot.revision ||
+      current.userId !== snapshot.userId
     ) {
       throw new AttemptSessionChangedError();
     }
@@ -286,10 +284,7 @@ export function createAttemptRepository(
       let cursor: { readonly createdAt: string; readonly id: string } | undefined;
 
       while (true) {
-        let query = requestClientFor(snapshot)
-          .from('solution_attempts')
-          .select('*')
-          .eq('user_id', snapshot.userId);
+        let query = requestClientFor(snapshot).from('solution_attempts').select('*').eq('user_id', snapshot.userId);
 
         if (challengeId !== undefined) {
           query = query.eq('challenge_id', challengeId);

@@ -1,10 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  AttemptAuthorizationError,
-  AuthenticationRequiredError,
-  createAttemptRepository,
-} from './attemptRepository';
+import { AttemptAuthorizationError, AuthenticationRequiredError, createAttemptRepository } from './attemptRepository';
 
 const input = {
   challengeId: 'longest-window',
@@ -31,15 +27,17 @@ function row(userId = 'owner-a') {
   };
 }
 
-function makeClient(options: {
-  userId?: string | null;
-  listData?: unknown;
-  insertAfterFirstPage?: unknown;
-  insertData?: unknown;
-  listError?: unknown;
-  insertError?: unknown;
-  authError?: unknown;
-} = {}) {
+function makeClient(
+  options: {
+    userId?: string | null;
+    listData?: unknown;
+    insertAfterFirstPage?: unknown;
+    insertData?: unknown;
+    listError?: unknown;
+    insertError?: unknown;
+    authError?: unknown;
+  } = {},
+) {
   const filters: Array<[string, string]> = [];
   const orderCalls: Array<[string, { ascending: boolean }]> = [];
   const rangeCalls: Array<[number, number]> = [];
@@ -55,12 +53,13 @@ function makeClient(options: {
     auth: {
       getSession: vi.fn(async () => ({
         data: {
-          session: options.userId === null
-            ? null
-            : {
-              access_token: `${options.userId ?? 'owner-a'}-token`,
-              user: { id: options.userId ?? 'owner-a' },
-            },
+          session:
+            options.userId === null
+              ? null
+              : {
+                  access_token: `${options.userId ?? 'owner-a'}-token`,
+                  user: { id: options.userId ?? 'owner-a' },
+                },
         },
         error: null,
       })),
@@ -70,9 +69,7 @@ function makeClient(options: {
       })),
       onAuthStateChange: vi.fn((callback: NonNullable<typeof authChange>) => {
         authChange = callback;
-        callback('INITIAL_SESSION', options.userId === null
-          ? null
-          : { user: { id: options.userId ?? 'owner-a' } });
+        callback('INITIAL_SESSION', options.userId === null ? null : { user: { id: options.userId ?? 'owner-a' } });
         return { data: { subscription: { unsubscribe: vi.fn() } } };
       }),
     },
@@ -108,18 +105,17 @@ function makeClient(options: {
           Promise.resolve({
             data: Array.isArray(currentListData)
               ? currentListData
-                .filter((record) => {
-                  if (!cursor || typeof record !== 'object' || record === null) {
-                    return true;
-                  }
-                  const rowRecord = record as Record<string, unknown>;
-                  const createdAt = String(rowRecord.created_at);
-                  const id = String(rowRecord.id);
-                  return createdAt < cursor.createdAt
-                    || (createdAt === cursor.createdAt && id < cursor.id);
-                })
-                .slice(rangeStart, rangeEnd + 1)
-              : currentListData ?? [],
+                  .filter((record) => {
+                    if (!cursor || typeof record !== 'object' || record === null) {
+                      return true;
+                    }
+                    const rowRecord = record as Record<string, unknown>;
+                    const createdAt = String(rowRecord.created_at);
+                    const id = String(rowRecord.id);
+                    return createdAt < cursor.createdAt || (createdAt === cursor.createdAt && id < cursor.id);
+                  })
+                  .slice(rangeStart, rangeEnd + 1)
+              : (currentListData ?? []),
             error: options.listError ?? null,
           })
             .then((result) => {
@@ -198,15 +194,17 @@ describe('createAttemptRepository', () => {
       testSummary: { status: 'untested' },
       createdAt: '2026-10-17T10:30:00.000Z',
     });
-    expect(fake.inserted).toEqual([{
-      challenge_id: 'longest-window',
-      challenge_version: '1.0.0',
-      source: input.source,
-      notes: input.notes,
-      declared_time_complexity: 'O(n)',
-      declared_space_complexity: null,
-      test_summary: { status: 'untested' },
-    }]);
+    expect(fake.inserted).toEqual([
+      {
+        challenge_id: 'longest-window',
+        challenge_version: '1.0.0',
+        source: input.source,
+        notes: input.notes,
+        declared_time_complexity: 'O(n)',
+        declared_space_complexity: null,
+        test_summary: { status: 'untested' },
+      },
+    ]);
   });
 
   it('refuses to read or write when Supabase has no authenticated user', async () => {
@@ -269,7 +267,10 @@ describe('createAttemptRepository', () => {
     expect(attempts[1000]?.id).toBe('attempt-1000');
     expect(new Set(attempts.map((attempt) => attempt.id)).size).toBe(1001);
     expect(attempts.some((attempt) => attempt.id === 'concurrent-newest-attempt')).toBe(false);
-    expect(fake.rangeCalls).toEqual([[0, 999], [0, 999]]);
+    expect(fake.rangeCalls).toEqual([
+      [0, 999],
+      [0, 999],
+    ]);
     expect(fake.cursorFilters).toEqual([
       'created_at.lt.2026-10-17T09:43:21.000Z,and(created_at.eq.2026-10-17T09:43:21.000Z,id.lt.attempt-999)',
     ]);

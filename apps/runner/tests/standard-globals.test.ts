@@ -79,8 +79,12 @@ const numericExamples: [string, number | boolean][] = [
 ];
 
 function request(source: string) {
-  return { runId: 'numeric-globals', sourceRevision: 1, source,
-    cases: [{ id: 'numeric', input: { events: [], k: 1 } }] };
+  return {
+    runId: 'numeric-globals',
+    sourceRevision: 1,
+    source,
+    cases: [{ id: 'numeric', input: { events: [], k: 1 } }],
+  };
 }
 
 describe('supported numeric globals', () => {
@@ -95,43 +99,67 @@ describe('supported numeric globals', () => {
   it('runs all 14 canonical cases with Math.floor and Math.max', async () => {
     const canonical = readFileSync(new URL('../../../challenges/longest-window/solution.ts', import.meta.url), 'utf8');
     const source = canonical.replace('if (k <= 0)', 'k = Math.max(0, Math.floor(k));\n  if (k <= 0)');
-    const result = await evaluate({ ...request(source), cases: longestWindowCases.map(({ id, input }) => ({ id, input })) });
+    const result = await evaluate({
+      ...request(source),
+      cases: longestWindowCases.map(({ id, input }) => ({ id, input })),
+    });
     expect(result.status).toBe('ok');
-    expect(result.cases).toEqual(longestWindowCases.map(c => ({ caseId: c.id, actual: c.expected })));
+    expect(result.cases).toEqual(longestWindowCases.map((c) => ({ caseId: c.id, actual: c.expected })));
   });
 
-  it.each(['Infinity', '-Infinity', 'Number.NaN', 'Math.max()', 'Math.sqrt(-1)'])('rejects nonfinite output from %s', async expression => {
-    const result = await evaluate(request(`export function longestWindow() { return ${expression}; }`));
-    expect(result.status).toBe('policy-rejected');
-    expect(result.cases).toEqual([]);
-  });
+  it.each(['Infinity', '-Infinity', 'Number.NaN', 'Math.max()', 'Math.sqrt(-1)'])(
+    'rejects nonfinite output from %s',
+    async (expression) => {
+      const result = await evaluate(request(`export function longestWindow() { return ${expression}; }`));
+      expect(result.status).toBe('policy-rejected');
+      expect(result.cases).toEqual([]);
+    },
+  );
 
   it.each([
-    'Math.floor("2")', 'Math.max(1, "2")', 'Math.pow(2)', 'Math.PI = 0',
-    'Math.random()', 'Number.parseInt(1)', 'parseFloat(1)', 'Number.MAX_VALUE = 0',
-    'fetch("https://example.com")', 'window.document', 'process.env',
-    'new WebSocket("wss://example.com")', 'new XMLHttpRequest()',
-    'setTimeout(() => {}, 0)', 'Buffer.from("secret")', 'Deno.env.get("secret")',
-    'console.debug("message")', 'console.table([])', 'console.clear()',
-  ])('preserves strict compile errors for %s', expression => {
+    'Math.floor("2")',
+    'Math.max(1, "2")',
+    'Math.pow(2)',
+    'Math.PI = 0',
+    'Math.random()',
+    'Number.parseInt(1)',
+    'parseFloat(1)',
+    'Number.MAX_VALUE = 0',
+    'fetch("https://example.com")',
+    'window.document',
+    'process.env',
+    'new WebSocket("wss://example.com")',
+    'new XMLHttpRequest()',
+    'setTimeout(() => {}, 0)',
+    'Buffer.from("secret")',
+    'Deno.env.get("secret")',
+    'console.debug("message")',
+    'console.table([])',
+    'console.clear()',
+  ])('preserves strict compile errors for %s', (expression) => {
     expect(compile(`export function longestWindow() { return ${expression}; }`).status).toBe('compile-error');
   });
 
   it.each([
-    'import x from "remote";', 'import("https://example.com")', 'require("node:fs")',
-    'type T = import("node:fs");', '/// <reference lib="dom" />\nfetch("https://example.com");',
+    'import x from "remote";',
+    'import("https://example.com")',
+    'require("node:fs")',
+    'type T = import("node:fs");',
+    '/// <reference lib="dom" />\nfetch("https://example.com");',
     '/// <reference types="node" />\nprocess.exit();',
-  ])('does not gain ambient libraries or dependencies through %s', source => {
+  ])('does not gain ambient libraries or dependencies through %s', (source) => {
     expect(compile(source).status).not.toBe('ok');
   });
 
   it('keeps host APIs absent while exposing only the VM console when types are bypassed', async () => {
-    const result = await evaluate(request(`export function longestWindow() {
+    const result = await evaluate(
+      request(`export function longestWindow() {
       const root: any = ([] as any).constructor.constructor('return globalThis')();
       return [typeof root.console, typeof root.fetch, typeof root.process, typeof root.Buffer,
         typeof root.setTimeout, typeof root.WebSocket, typeof root.XMLHttpRequest,
         typeof root.document, typeof root.Worker, typeof root.require, typeof root.Deno];
-    }`));
+    }`),
+    );
     expect(result.status).toBe('ok');
     expect(result.cases[0]!.actual).toEqual(['object', ...Array(10).fill('undefined')]);
   });

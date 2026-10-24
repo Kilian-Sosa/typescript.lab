@@ -37,19 +37,38 @@ export function captureAuthCallback(href: string, replace: (path: string) => voi
 
 export function safeReturnPath(path: string, origin: string): string {
   const url = new URL(path, origin);
-  if (!path.startsWith('/') || url.origin !== origin || url.hash
-    || !(/^\/challenges\/[a-z0-9-]+$/.test(url.pathname) || /^\/notebook(?:\/[a-z0-9-]+)?$/.test(url.pathname) || url.pathname === '/explore')
-    || [...url.searchParams.keys()].some((key) => key !== 'fresh')) {
+  if (
+    !path.startsWith('/') ||
+    url.origin !== origin ||
+    url.hash ||
+    !(
+      /^\/challenges\/[a-z0-9-]+$/.test(url.pathname) ||
+      /^\/notebook(?:\/[a-z0-9-]+)?$/.test(url.pathname) ||
+      url.pathname === '/explore'
+    ) ||
+    [...url.searchParams.keys()].some((key) => key !== 'fresh')
+  ) {
     throw new Error('The sign-in return path must be a safe route on this site.');
   }
   return url.pathname + url.search;
 }
 
-export function createAuthController(client: SupabaseClient, environment: {
-  storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
-  origin: string;
-}) {
-  const state = reactive<AuthState>({ status: 'checking', userId: null, generation: 0, message: '', signingOut: false, signOutFailed: false, returnTo: '/notebook' });
+export function createAuthController(
+  client: SupabaseClient,
+  environment: {
+    storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+    origin: string;
+  },
+) {
+  const state = reactive<AuthState>({
+    status: 'checking',
+    userId: null,
+    generation: 0,
+    message: '',
+    signingOut: false,
+    signOutFailed: false,
+    returnTo: '/notebook',
+  });
   let epoch = 0;
   let disposed = false;
   let suspended = false;
@@ -77,18 +96,28 @@ export function createAuthController(client: SupabaseClient, environment: {
       if (disposed || suspended || revision !== epoch) return false;
       if (error || !data.user || data.user.id !== session.user.id) throw new Error('Unverified account');
       identity(data.user.id, 'signed-in');
-      expiryTimer = setTimeout(() => {
-        epoch += 1;
-        identity(null, 'signed-out', 'Your session expired. Sign in again to recover your private work.');
-      }, Math.min(session.expires_at * 1000 - Date.now(), 2_147_483_647));
+      expiryTimer = setTimeout(
+        () => {
+          epoch += 1;
+          identity(null, 'signed-out', 'Your session expired. Sign in again to recover your private work.');
+        },
+        Math.min(session.expires_at * 1000 - Date.now(), 2_147_483_647),
+      );
       return true;
     } catch {
-      if (revision === epoch && !disposed) identity(null, 'error', 'Could not verify your account. Check your connection and retry. Your local work is retained.');
+      if (revision === epoch && !disposed)
+        identity(
+          null,
+          'error',
+          'Could not verify your account. Check your connection and retry. Your local work is retained.',
+        );
       return false;
     }
   }
 
-  const { data: { subscription } } = client.auth.onAuthStateChange((event, session) => {
+  const {
+    data: { subscription },
+  } = client.auth.onAuthStateChange((event, session) => {
     if (disposed || suspended || event === 'INITIAL_SESSION') return;
     if (exchanging && event !== 'SIGNED_OUT') return;
     const revision = ++epoch;
@@ -100,7 +129,10 @@ export function createAuthController(client: SupabaseClient, environment: {
     }
     if (session.user.id !== state.userId) identity(null, 'checking');
     // Supabase holds its auth lock while notifying listeners. Verify after it returns.
-    const timer = setTimeout(() => { deferred.delete(timer); void verify(session, revision); }, 0);
+    const timer = setTimeout(() => {
+      deferred.delete(timer);
+      void verify(session, revision);
+    }, 0);
     deferred.add(timer);
   });
 
@@ -112,7 +144,8 @@ export function createAuthController(client: SupabaseClient, environment: {
       if (error) throw error;
       await verify(data.session, revision);
     } catch {
-      if (revision === epoch && !disposed) identity(null, 'error', 'Could not restore your session. Check your connection and retry.');
+      if (revision === epoch && !disposed)
+        identity(null, 'error', 'Could not restore your session. Check your connection and retry.');
     }
   }
 
@@ -124,9 +157,13 @@ export function createAuthController(client: SupabaseClient, environment: {
     // Fail before navigation if the tab cannot retain callback state.
     environment.storage.setItem(pendingKey, JSON.stringify({ path, startedAt: Date.now() }));
     try {
-      const { error } = await client.auth.signInWithOAuth({ provider: 'github', options: {
-        redirectTo: `${environment.origin}/auth/callback`, scopes: 'read:user user:email',
-      } });
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'github',
+        options: {
+          redirectTo: `${environment.origin}/auth/callback`,
+          scopes: 'read:user user:email',
+        },
+      });
       if (error) throw error;
     } catch {
       environment.storage.removeItem(pendingKey);
@@ -140,16 +177,27 @@ export function createAuthController(client: SupabaseClient, environment: {
     try {
       pending = JSON.parse(environment.storage.getItem(pendingKey) ?? 'null');
       environment.storage.removeItem(pendingKey);
-    } catch { /* A missing or unavailable tab store invalidates this callback. */ }
+    } catch {
+      /* A missing or unavailable tab store invalidates this callback. */
+    }
     if (pending) {
-      try { state.returnTo = safeReturnPath(pending.path, environment.origin); } catch { pending = null; }
+      try {
+        state.returnTo = safeReturnPath(pending.path, environment.origin);
+      } catch {
+        pending = null;
+      }
     }
     if (callback?.kind === 'denied') {
       state.message = 'GitHub sign-in was cancelled or denied. Your local work is retained. You can retry.';
       return null;
     }
-    if (callback?.kind !== 'code' || !pending || !Number.isFinite(pending.startedAt)
-      || Date.now() - pending.startedAt < 0 || Date.now() - pending.startedAt > 10 * 60_000) {
+    if (
+      callback?.kind !== 'code' ||
+      !pending ||
+      !Number.isFinite(pending.startedAt) ||
+      Date.now() - pending.startedAt < 0 ||
+      Date.now() - pending.startedAt > 10 * 60_000
+    ) {
       state.message = 'This sign-in link is missing, expired or already used. Restart GitHub sign-in.';
       return null;
     }
@@ -165,12 +213,14 @@ export function createAuthController(client: SupabaseClient, environment: {
       }
       if (error || !data.session) throw new Error('Exchange failed');
       const revision = ++epoch;
-      if (!await verify(data.session, revision)) return null;
+      if (!(await verify(data.session, revision))) return null;
       return path;
     } catch {
       state.message = 'This sign-in link expired or could not be verified. Restart GitHub sign-in.';
       return null;
-    } finally { exchanging = false; }
+    } finally {
+      exchanging = false;
+    }
   }
 
   async function signOut(): Promise<void> {
@@ -190,11 +240,17 @@ export function createAuthController(client: SupabaseClient, environment: {
       state.signOutFailed = true;
       state.status = 'error';
       state.message = 'Sign-out could not finish. Check your connection and retry sign-out before switching accounts.';
-    } finally { state.signingOut = false; }
+    } finally {
+      state.signingOut = false;
+    }
   }
 
   return {
-    state: readonly(state), start, signIn, signOut, completeCallback,
+    state: readonly(state),
+    start,
+    signIn,
+    signOut,
+    completeCallback,
     dispose() {
       disposed = true;
       epoch += 1;

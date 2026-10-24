@@ -3,32 +3,37 @@ import { longestWindowSteps } from './longestWindowSteps';
 import { longestWindowCases } from '../../../challenges/longest-window/cases';
 
 describe('longestWindowSteps', () => {
-  it.each(longestWindowCases)('ends at the published range for $id and preserves pointer/count invariants', ({ input, expected }) => {
-    const steps = longestWindowSteps(input.events, input.k);
-    const finalStep = steps.at(-1)!;
-    expect({ start: finalStep.bestStart, endExclusive: finalStep.bestEndExclusive }).toEqual(expected);
-    for (const step of steps) {
-      expect(step.left).toBeGreaterThanOrEqual(0);
-      expect(step.left).toBeLessThanOrEqual(step.right + 1);
-      expect(step.right).toBeLessThan(input.events.length || 1);
-      const currentEvents = input.events.slice(step.left, step.right + 1);
-      expect(Object.values(step.counts).reduce((sum, count) => sum + count, 0)).toBe(currentEvents.length);
-      for (const [event, count] of Object.entries(step.counts)) {
-        expect(count).toBe(currentEvents.filter((value) => value === event).length);
+  it.each(longestWindowCases)(
+    'ends at the published range for $id and preserves pointer/count invariants',
+    ({ input, expected }) => {
+      const steps = longestWindowSteps(input.events, input.k);
+      const finalStep = steps.at(-1)!;
+      expect({ start: finalStep.bestStart, endExclusive: finalStep.bestEndExclusive }).toEqual(expected);
+      for (const step of steps) {
+        expect(step.left).toBeGreaterThanOrEqual(0);
+        expect(step.left).toBeLessThanOrEqual(step.right + 1);
+        expect(step.right).toBeLessThan(input.events.length || 1);
+        const currentEvents = input.events.slice(step.left, step.right + 1);
+        expect(Object.values(step.counts).reduce((sum, count) => sum + count, 0)).toBe(currentEvents.length);
+        for (const [event, count] of Object.entries(step.counts)) {
+          expect(count).toBe(currentEvents.filter((value) => value === event).length);
+        }
       }
-    }
-  });
+    },
+  );
 
   it('records pointer movement, counts, and best-range updates for each reference step', () => {
     const steps = longestWindowSteps(['A', 'B', 'A', 'C'], 2);
 
-    expect(steps.map(({ left, right, counts, bestStart, bestEndExclusive }) => ({
-      left,
-      right,
-      counts: { ...counts },
-      bestStart,
-      bestEndExclusive,
-    }))).toEqual([
+    expect(
+      steps.map(({ left, right, counts, bestStart, bestEndExclusive }) => ({
+        left,
+        right,
+        counts: { ...counts },
+        bestStart,
+        bestEndExclusive,
+      })),
+    ).toEqual([
       { left: 0, right: -1, counts: {}, bestStart: 0, bestEndExclusive: 0 },
       { left: 0, right: 0, counts: { A: 1 }, bestStart: 0, bestEndExclusive: 1 },
       { left: 0, right: 1, counts: { A: 1, B: 1 }, bestStart: 0, bestEndExclusive: 2 },
@@ -48,14 +53,16 @@ describe('longestWindowSteps', () => {
   });
 
   it('returns an empty trace state for empty input', () => {
-    expect(longestWindowSteps([], 2)).toEqual([{
-      left: 0,
-      right: -1,
-      counts: {},
-      bestStart: 0,
-      bestEndExclusive: 0,
-      explanation: expect.stringMatching(/no events/i),
-    }]);
+    expect(longestWindowSteps([], 2)).toEqual([
+      {
+        left: 0,
+        right: -1,
+        counts: {},
+        bestStart: 0,
+        bestEndExclusive: 0,
+        explanation: expect.stringMatching(/no events/i),
+      },
+    ]);
   });
 
   it.each([0, -1])('returns before scanning when k is %s', (k) => {

@@ -29,13 +29,7 @@ export const longestWindowChallenge = {
     'Unicode identifiers and empty-string identifiers are compared as ordinary string values.',
   ],
   cases: longestWindowCases,
-  exampleCaseIds: [
-    'documented-sample',
-    'empty-events',
-    'zero-limit',
-    'unicode-identifiers',
-    'empty-string-identifier',
-  ],
+  exampleCaseIds: ['documented-sample', 'empty-events', 'zero-limit', 'unicode-identifiers', 'empty-string-identifier'],
   learning: {
     hints: [
       'Grow a candidate range from left to right while keeping track of how many times each identifier appears.',

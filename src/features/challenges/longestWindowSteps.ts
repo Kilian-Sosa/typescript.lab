@@ -12,10 +12,7 @@ export interface StepSnapshot {
  * Builds an immutable trace of the canonical longest-window reference algorithm.
  * The snapshots describe this reference algorithm; they never inspect learner code.
  */
-export function longestWindowSteps(
-  events: readonly string[],
-  k: number,
-): readonly StepSnapshot[] {
+export function longestWindowSteps(events: readonly string[], k: number): readonly StepSnapshot[] {
   const counts = new Map<string, number>();
   const snapshots: StepSnapshot[] = [];
   let left = 0;
@@ -29,14 +26,16 @@ export function longestWindowSteps(
       snapshotCounts[event] = count;
     }
 
-    snapshots.push(Object.freeze({
-      left,
-      right,
-      counts: Object.freeze(snapshotCounts),
-      bestStart,
-      bestEndExclusive,
-      explanation,
-    }));
+    snapshots.push(
+      Object.freeze({
+        left,
+        right,
+        counts: Object.freeze(snapshotCounts),
+        bestStart,
+        bestEndExclusive,
+        explanation,
+      }),
+    );
   }
 
   if (k <= 0) {

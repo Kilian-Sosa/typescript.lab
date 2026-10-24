@@ -1,7 +1,4 @@
-export function longestWindow(
-  events: string[],
-  k: number,
-): { start: number; endExclusive: number } {
+export function longestWindow(events: string[], k: number): { start: number; endExclusive: number } {
   if (k <= 0) {
     return { start: 0, endExclusive: 0 };
   }

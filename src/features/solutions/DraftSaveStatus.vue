@@ -33,28 +33,50 @@ function download() {
 <template>
   <section class="draft-feedback" aria-label="Draft persistence">
     <p id="source-persistence" role="status">{{ status }}</p>
-    <p v-if="state.localError" role="alert">Browser recovery storage is unavailable or full. Keep this page open and download or copy your work before leaving.</p>
+    <p v-if="state.localError" role="alert">
+      Browser recovery storage is unavailable or full. Keep this page open and download or copy your work before
+      leaving.
+    </p>
     <div class="draft-actions">
-      <button v-if="['error', 'offline', 'auth-required'].includes(state.status)" type="button" class="text-button" @click="sync.retry">Retry draft save</button>
-      <button type="button" class="text-button" aria-label="Download current draft" @click="download">Download current draft</button>
+      <button
+        v-if="['error', 'offline', 'auth-required'].includes(state.status)"
+        type="button"
+        class="text-button"
+        @click="sync.retry"
+      >
+        Retry draft save
+      </button>
+      <button type="button" class="text-button" aria-label="Download current draft" @click="download">
+        Download current draft
+      </button>
     </div>
     <p v-if="downloadError" role="alert">{{ downloadError }}</p>
     <div v-if="state.status === 'conflict'" class="draft-review" role="alert">
       <h3>Review the cloud draft</h3>
-      <p>The editor above contains your local text. Choosing a version is explicit; another tab can still cause a new revision conflict.</p>
+      <p>
+        The editor above contains your local text. Choosing a version is explicit; another tab can still cause a new
+        revision conflict.
+      </p>
       <template v-if="state.remoteDraft">
-        <p>Cloud revision {{ state.remoteDraft.revision }} · Challenge version {{ state.remoteDraft.challengeVersion }}</p>
+        <p>
+          Cloud revision {{ state.remoteDraft.revision }} · Challenge version {{ state.remoteDraft.challengeVersion }}
+        </p>
         <pre aria-label="Conflicting cloud draft">{{ state.remoteDraft.source }}</pre>
       </template>
       <p v-else>No cloud draft currently exists.</p>
       <div class="draft-actions">
-        <button type="button" class="text-button" @click="sync.resolveConflict('local')">Keep local version and retry</button>
+        <button type="button" class="text-button" @click="sync.resolveConflict('local')">
+          Keep local version and retry
+        </button>
         <button type="button" class="text-button" @click="sync.resolveConflict('remote')">Use cloud version</button>
       </div>
     </div>
     <details v-if="guest && state.status !== 'conflict' && state.status !== 'loading'" class="draft-review">
       <summary>Review guest draft for import</summary>
-      <p>This imports a browser-only guest buffer into the connected account. Review both versions before replacing the current draft.</p>
+      <p>
+        This imports a browser-only guest buffer into the connected account. Review both versions before replacing the
+        current draft.
+      </p>
       <pre aria-label="Guest draft to import">{{ guest.source }}</pre>
       <p v-if="guest.notes">Guest notes: {{ guest.notes }}</p>
       <p>Current account draft:</p>
@@ -63,12 +85,26 @@ function download() {
     </details>
     <details v-if="state.otherRecoveries.length" class="draft-review">
       <summary>Recover another local buffer ({{ state.otherRecoveries.length }})</summary>
-      <p>Each entry is distinct local content from another or interrupted tab. Recovering it opens it for review and preserves your current work.</p>
-      <button v-for="buffer in state.otherRecoveries" :key="buffer.tabId" type="button" class="text-button" :disabled="buffer.current" @click="sync.recoverBuffer(buffer.tabId)">
+      <p>
+        Each entry is distinct local content from another or interrupted tab. Recovering it opens it for review and
+        preserves your current work.
+      </p>
+      <button
+        v-for="buffer in state.otherRecoveries"
+        :key="buffer.tabId"
+        type="button"
+        class="text-button"
+        :disabled="buffer.current"
+        @click="sync.recoverBuffer(buffer.tabId)"
+      >
         {{ buffer.current ? 'Currently open' : 'Review buffer' }} from {{ new Date(buffer.updatedAt).toLocaleString() }}
       </button>
     </details>
-    <p v-if="state.notes || state.timeComplexity || state.spaceComplexity">Notes and declared complexity are {{ state.localError ? 'kept in this page; browser recovery is unavailable' : 'retained on this browser' }}. Save an attempt to store them privately in your immutable history.</p>
+    <p v-if="state.notes || state.timeComplexity || state.spaceComplexity">
+      Notes and declared complexity are
+      {{ state.localError ? 'kept in this page; browser recovery is unavailable' : 'retained on this browser' }}. Save
+      an attempt to store them privately in your immutable history.
+    </p>
   </section>
 </template>
 

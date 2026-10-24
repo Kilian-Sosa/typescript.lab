@@ -2,11 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { App, InjectionKey } from 'vue';
 import { authControllerKey, createAuthController, type AuthController } from '../auth/auth';
 import { createDraftRepository, type DraftRepository } from './draftRepository';
-import {
-  createAttemptRepository,
-  type AttemptRepository,
-  type ScopedRequestClientFactory,
-} from './attemptRepository';
+import { createAttemptRepository, type AttemptRepository, type ScopedRequestClientFactory } from './attemptRepository';
 
 export interface PublicSupabaseConfig {
   readonly url: string;
@@ -47,15 +43,11 @@ export function createScopedDataClient(
   });
 }
 
-export const attemptRepositoryKey: InjectionKey<AttemptRepository | null> =
-  Symbol('attemptRepository');
-export const notebookSessionKey: InjectionKey<NotebookSessionProvider | null> =
-  Symbol('notebookSessionProvider');
+export const attemptRepositoryKey: InjectionKey<AttemptRepository | null> = Symbol('attemptRepository');
+export const notebookSessionKey: InjectionKey<NotebookSessionProvider | null> = Symbol('notebookSessionProvider');
 export const draftRepositoryKey: InjectionKey<DraftRepository | null> = Symbol('draftRepository');
 
-export function createNotebookSessionProvider(
-  config: PublicSupabaseConfig,
-): NotebookSessionProvider | null {
+export function createNotebookSessionProvider(config: PublicSupabaseConfig): NotebookSessionProvider | null {
   const hasUrl = config.url.trim().length > 0;
   const hasKey = config.publishableKey.trim().length > 0;
 

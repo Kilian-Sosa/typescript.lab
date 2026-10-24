@@ -121,21 +121,11 @@ async function signIn(): Promise<void> {
         <legend>Declared complexity (optional)</legend>
         <label>
           Time complexity
-          <input
-            v-model="timeComplexity"
-            type="text"
-            aria-label="Declared time complexity"
-            placeholder="O(n)"
-          />
+          <input v-model="timeComplexity" type="text" aria-label="Declared time complexity" placeholder="O(n)" />
         </label>
         <label>
           Space complexity
-          <input
-            v-model="spaceComplexity"
-            type="text"
-            aria-label="Declared space complexity"
-            placeholder="O(k)"
-          />
+          <input v-model="spaceComplexity" type="text" aria-label="Declared space complexity" placeholder="O(k)" />
         </label>
       </fieldset>
 

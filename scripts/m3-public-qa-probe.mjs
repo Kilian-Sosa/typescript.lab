@@ -11,13 +11,17 @@ export const QA = Object.freeze({
 });
 
 const CSP = 'content-security-policy';
-const check = (ok, detail) => { if (!ok) throw new Error(detail); };
-const sso = location => {
+const check = (ok, detail) => {
+  if (!ok) throw new Error(detail);
+};
+const sso = (location) => {
   if (!location) return false;
   try {
     const url = new URL(location);
     return url.origin === 'https://vercel.com' && url.pathname === '/sso-api';
-  } catch { return false; }
+  } catch {
+    return false;
+  }
 };
 
 export function checksFor(phase) {
@@ -29,17 +33,21 @@ export function checksFor(phase) {
     ['Runner immutable Preview', QA.runnerImmutable + '/', 'sso'],
     ['Runner QA', QA.runner + '/', phase === 'public' ? 'html' : 'sso'],
   ];
-  if (phase === 'public') endpoints.push(
-    ['Runner Worker', QA.runner + QA.worker, 'worker'],
-    ['Runner WASM', QA.runner + QA.wasm, 'wasm'],
-    ['Runner missing asset', QA.runner + '/nonexistent-m3-public-qa-asset', '404'],
-  );
+  if (phase === 'public')
+    endpoints.push(
+      ['Runner Worker', QA.runner + QA.worker, 'worker'],
+      ['Runner WASM', QA.runner + QA.wasm, 'wasm'],
+      ['Runner missing asset', QA.runner + '/nonexistent-m3-public-qa-asset', '404'],
+    );
   return endpoints;
 }
 
 function verifyHeader(response, key, expected, label) {
   const value = response.headers.get(key) ?? '';
-  check(value.toLowerCase().includes(expected.toLowerCase()), `${label}: expected ${key} to contain ${JSON.stringify(expected)}`);
+  check(
+    value.toLowerCase().includes(expected.toLowerCase()),
+    `${label}: expected ${key} to contain ${JSON.stringify(expected)}`,
+  );
 }
 
 export async function runProbe(phase, request = fetch) {
@@ -54,8 +62,10 @@ export async function runProbe(phase, request = fetch) {
       signal: AbortSignal.timeout(12000),
     });
     if (kind === 'sso') {
-      check(response.status === 302 && sso(response.headers.get('location')),
-        `${label}: expected Vercel SSO redirect (302)`);
+      check(
+        response.status === 302 && sso(response.headers.get('location')),
+        `${label}: expected Vercel SSO redirect (302)`,
+      );
     } else if (kind === '404') {
       check(response.status === 404, `${label}: expected 404`);
     } else {
@@ -74,7 +84,8 @@ export async function runProbe(phase, request = fetch) {
           const claimed = Number(response.headers.get('content-length') ?? 0);
           check(claimed <= 131072, 'Runner HTML content length exceeds 128 KiB');
           const reader = response.body?.getReader();
-          let total = 0, body = '';
+          let total = 0,
+            body = '';
           if (reader) {
             const decoder = new TextDecoder();
             while (true) {
@@ -102,11 +113,13 @@ export async function runProbe(phase, request = fetch) {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const phase = process.argv[2];
-  runProbe(phase).then(results => {
-    for (const entry of results) console.log(`PASS ${entry.label}: HTTP ${entry.status} (${entry.kind})`);
-    console.log(`PASS ${phase}: ${results.length} read-only checks`);
-  }).catch(error => {
-    console.error(`STOP ${phase ?? 'unknown'}: ${error.message}`);
-    process.exitCode = 1;
-  });
+  runProbe(phase)
+    .then((results) => {
+      for (const entry of results) console.log(`PASS ${entry.label}: HTTP ${entry.status} (${entry.kind})`);
+      console.log(`PASS ${phase}: ${results.length} read-only checks`);
+    })
+    .catch((error) => {
+      console.error(`STOP ${phase ?? 'unknown'}: ${error.message}`);
+      process.exitCode = 1;
+    });
 }
