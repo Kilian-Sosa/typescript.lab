@@ -112,7 +112,7 @@ describe('supported numeric globals', () => {
     'fetch("https://example.com")', 'window.document', 'process.env',
     'new WebSocket("wss://example.com")', 'new XMLHttpRequest()',
     'setTimeout(() => {}, 0)', 'Buffer.from("secret")', 'Deno.env.get("secret")',
-    'console.log("message")', 'console.info("message")', 'console.warn("message")', 'console.error("message")',
+    'console.debug("message")', 'console.table([])', 'console.clear()',
   ])('preserves strict compile errors for %s', expression => {
     expect(compile(`export function longestWindow() { return ${expression}; }`).status).toBe('compile-error');
   });
@@ -125,7 +125,7 @@ describe('supported numeric globals', () => {
     expect(compile(source).status).not.toBe('ok');
   });
 
-  it('keeps host APIs and console absent even when learner types are bypassed', async () => {
+  it('keeps host APIs absent while exposing only the VM console when types are bypassed', async () => {
     const result = await evaluate(request(`export function longestWindow() {
       const root: any = ([] as any).constructor.constructor('return globalThis')();
       return [typeof root.console, typeof root.fetch, typeof root.process, typeof root.Buffer,
@@ -133,6 +133,6 @@ describe('supported numeric globals', () => {
         typeof root.document, typeof root.Worker, typeof root.require, typeof root.Deno];
     }`));
     expect(result.status).toBe('ok');
-    expect(result.cases[0]!.actual).toEqual(Array(11).fill('undefined'));
+    expect(result.cases[0]!.actual).toEqual(['object', ...Array(10).fill('undefined')]);
   });
 });

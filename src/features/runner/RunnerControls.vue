@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { inject, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
-import type { RunResult } from '../../../shared/contracts/v1';
+import type { RunFeedback } from './runChallenge';
 import { createIframeRunner, hostedQaRunnerOrigin, localRunnerOrigin, mvpPreviewRunnerOrigin,
   newRunId, runOutcome } from './runChallenge';
 import { runChallengeKey } from './session';
 import TestResults from './TestResults.vue';
+import ConsoleOutput from './ConsoleOutput.vue';
 
 const props = defineProps<{ source: string; challengeId: string; challengeVersion: string; resetKey?: number }>();
 const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABLE_LOCAL_RUNNER,
@@ -16,7 +17,7 @@ const origin = localRunnerOrigin(import.meta.env.DEV, import.meta.env.VITE_ENABL
     import.meta.env.VITE_RUNNER_ORIGIN, window.location.origin, import.meta.env.DEV,
     import.meta.env.VITE_MVP_PREVIEW_DEPLOYMENT_ENV);
 const runChallenge = inject(runChallengeKey, null) ?? (origin ? createIframeRunner(origin) : null);
-const result = shallowRef<RunResult | null>(null);
+const result = shallowRef<RunFeedback | null>(null);
 const stale = ref(false);
 const running = ref(false);
 const runButton = ref<HTMLButtonElement | null>(null);
@@ -34,7 +35,10 @@ onBeforeUnmount(invalidate);
 
 function cancel() {
   const restoreFocus = document.activeElement === cancelButton.value;
+  generation++;
   controller?.abort();
+  controller = null; running.value = false;
+  if (result.value) result.value = runOutcome(props.challengeId, result.value, 'execution-error', 'Run cancelled.', 'cancelled');
   if (restoreFocus) runButton.value?.focus();
 }
 
@@ -68,6 +72,7 @@ async function run() {
     </div>
     <p v-if="!runChallenge" class="runner-gate">Run tests is unavailable on this deployment. The isolated runner must be enabled on an approved app/runner origin pair. Your source can still be edited and saved.</p>
     <TestResults :result="result" :stale="stale" />
+    <ConsoleOutput :result="result" :stale="stale" />
   </div>
 </template>
 

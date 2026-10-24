@@ -128,6 +128,29 @@ test('Vue editor runs its current source through the cross-site iframe and rende
         console.log(`PASS bounded resource probe ${label}: ${observed}`);
       };
       await evaluate(solution, 'All 14 tests passed');
+      const consolePanel = page.getByRole('region', { name: 'Console output', exact: true });
+      assert.match(await consolePanel.textContent(), /No console messages/);
+      const loggedSource = `console.info('module'); console.log('<img src=x onerror=alert(1)> 😀'); console.warn('careful'); console.error('example');\n${solution}`;
+      await evaluate(loggedSource, 'All 14 tests passed');
+      assert.equal(await consolePanel.locator('li').count(), 56);
+      assert.match(await consolePanel.locator('li').nth(0).textContent(), /info.*module/s);
+      assert.match(await consolePanel.locator('li').nth(1).textContent(), /log.*<img src=x onerror=alert\(1\)> 😀/s);
+      assert.equal(await consolePanel.locator('img').count(), 0);
+      assert.match(await consolePanel.textContent(), /Revision \d+.*passed/s);
+      await consolePanel.getByRole('region', { name: 'Console messages' }).focus();
+      assert.equal(await consolePanel.getByRole('region', { name: 'Console messages' }).evaluate(el => document.activeElement === el), true);
+      await evaluate('export function longestWindow() { console.log("before error"); throw new Error("learner exception"); }', 'Execution failed');
+      assert.match(await consolePanel.textContent(), /before error/);
+      await evaluate('export function longestWindow() { for (let i=0;i<1000;i++) console.log("😀".repeat(1000)); return null; }', 'Tests failed');
+      assert.match(await consolePanel.textContent(), /truncated/);
+      assert.ok(await consolePanel.locator('li').count() <= 100);
+      const consoleDimensions = await page.evaluate(() => ({ content: document.documentElement.scrollWidth, viewport: document.documentElement.clientWidth }));
+      assert.ok(consoleDimensions.content <= consoleDimensions.viewport, JSON.stringify(consoleDimensions));
+      await source.fill('updated source');
+      assert.match(await consolePanel.textContent(), /Console cleared/);
+      assert.equal(await consolePanel.locator('li').count(), 0);
+      console.log(`PASS ${viewport.width}px Console: real VM levels/order, plain text, bounds, runtime error, stale clearing and keyboard scrolling`);
+      await evaluate(solution, 'All 14 tests passed');
       // Exercise limits against the actual worker rather than relying only on policy unit tests.
       if (viewport.width === 1280) {
         await resourceLimit('export function longestWindow(){return "x".repeat(70000)}', 'output', 'Code is unsupported');
@@ -150,6 +173,8 @@ test('Vue editor runs its current source through the cross-site iframe and rende
       const cancel = page.getByRole('button', { name: 'Cancel test run' });
       await cancel.click();
       await page.waitForFunction(() => document.querySelector('#execution-status')?.textContent?.includes('Run cancelled'));
+      assert.match(await consolePanel.textContent(), /Console cleared/);
+      assert.equal(await consolePanel.locator('li').count(), 0);
       assert.equal(await page.locator('iframe').count(), 0);
       assert.equal(await run.evaluate(el => document.activeElement === el), true);
 

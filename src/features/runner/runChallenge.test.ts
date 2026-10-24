@@ -82,6 +82,32 @@ describe('authenticated MVP Preview activation gate', () => {
 });
 
 describe('iframe adapter', () => {
+  const transcript = { truncated: false, entries: [{ sequence: 0, caseId: longestWindowCases[0]!.id, level: 'log', text: 'hello' }] };
+  it('returns validated console output without changing the shared result contract', async () => {
+    const f = fixture(); f.receive({ protocol: 1, kind: 'run-result', nonce: f.nonce, result: passed(), consoleOutput: transcript });
+    expect(await f.promise).toMatchObject({ status: 'passed', consoleOutput: transcript });
+  });
+  it.each([
+    { ...transcript, truncated: 'yes' },
+    { ...transcript, entries: [{ ...transcript.entries[0], level: 'html' }] },
+    { ...transcript, entries: [{ ...transcript.entries[0], sequence: 1 }] },
+    { ...transcript, entries: [{ ...transcript.entries[0], text: 'é'.repeat(2048) }] },
+    { ...transcript, entries: [{ ...transcript.entries[0], caseId: 'forged' }] },
+    { ...transcript, entries: new Array(1) },
+    { ...transcript, entries: Array.from({ length: 8 }, (_, sequence) => ({ ...transcript.entries[0], sequence, text: '\0'.repeat(2048) })) },
+  ])('rejects malformed console envelopes %#', async consoleOutput => {
+    const f = fixture(); f.receive({ protocol: 1, kind: 'run-result', nonce: f.nonce, result: passed(), consoleOutput });
+    expect((await f.promise).status).toBe('infrastructure-error');
+  });
+  it('ignores old-run console and discards terminal data after cancellation', async () => {
+    const controller = new AbortController(); const f = fixture(controller.signal);
+    f.receive({ protocol: 1, kind: 'run-result', nonce: f.nonce, result: { ...passed(), runId: 'old' }, consoleOutput: transcript });
+    expect(document.querySelector('iframe')).toBe(f.frame);
+    controller.abort();
+    f.receive({ protocol: 1, kind: 'run-result', nonce: f.nonce, result: passed(), consoleOutput: transcript });
+    expect(await f.promise).toMatchObject({ reason: 'cancelled' });
+    expect(await f.promise).not.toHaveProperty('consoleOutput');
+  });
   it('sends the exact buffer and context only after the bound handshake, then disposes', async () => {
     const f = fixture();
     expect(f.frame.getAttribute('sandbox')).toBe('allow-scripts allow-same-origin');

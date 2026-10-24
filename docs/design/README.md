@@ -87,6 +87,10 @@ Each interactive component must document at least loading, success, empty and er
 - Respect reduced motion, generous touch targets and zoom to 200%.
 - Never use success colors alone as proof of passed tests, and never show illustrative progress as a real authenticated state.
 
+## Console output (issue #14)
+
+Solve places a labelled Console region below Test feedback in the editor panel. It uses existing typography, border and editor tokens. Messages show level and case identity as plain text in a wrapping, keyboard-focusable scroll region; a polite summary announces count without reading the whole transcript. Run ID, source revision, status and truncation remain visible. Empty/running/unavailable/cleared states are distinct, and run diagnostics stay in Test feedback. The [console design](../superpowers/specs/2026-10-24-learner-console-design.md) governs bounds and lifecycle. The original mockup predates this additive panel; it does not supply executable console semantics.
+
 ## Mockup fidelity contract
 
 The prototype uses example identities, timestamps, challenge data and solution history solely to demonstrate composition. Its interactions intentionally do not access GitHub, user accounts, production databases, an arbitrary code runner or Vercel.

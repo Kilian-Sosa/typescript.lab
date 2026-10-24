@@ -1,5 +1,6 @@
 import { longestWindowCases } from '../../../challenges/longest-window/cases';
 import { CONTRACT_VERSION, type CaseResult, type RunResult } from '../../../shared/contracts/v1';
+import { validConsoleOutput, type ConsoleTranscript } from './console-output';
 import { bytes, dense, equalJson, exactKeys, json, LIMITS, record, validRun,
   type RunRequest, type WorkerReply } from './protocol';
 
@@ -16,12 +17,14 @@ interface Options {
 interface Active { request: RunRequest; worker: WorkerPort | null; timer?: ReturnType<typeof setTimeout>; finished: boolean; }
 
 function validReply(value: unknown, request: RunRequest): value is WorkerReply {
-  if (!record(value) || !exactKeys(value, ['runId', 'sourceRevision', 'status', 'diagnostics', 'cases'])
+  const keys = ['runId', 'sourceRevision', 'status', 'diagnostics', 'cases'];
+  if (!record(value) || !exactKeys(value, 'consoleOutput' in value ? [...keys, 'consoleOutput'] : keys)
     || value.runId !== request.runId || value.sourceRevision !== request.sourceRevision
     || typeof value.status !== 'string'
     || !['ok', 'compile-error', 'policy-rejected', 'execution-error', 'timeout', 'infrastructure-error'].includes(value.status)
     || !dense(value.diagnostics, 20) || !value.diagnostics.every(d => typeof d === 'string' && bytes(d) <= 2000)
     || !dense(value.cases, LIMITS.cases)) return false;
+  if ('consoleOutput' in value && !validConsoleOutput(value.consoleOutput, longestWindowCases.map(c => c.id))) return false;
   if (value.status === 'ok' ? value.cases.length !== longestWindowCases.length
     : value.cases.length !== 0 || value.diagnostics.length === 0) return false;
   for (let i = 0; i < value.cases.length; i++) {
@@ -39,18 +42,18 @@ export function createSupervisor(options: Options) {
   const retired = new Set<string>();
   const unrun = (): CaseResult[] => longestWindowCases.map(c => ({ caseId: c.id, status: 'not-run' }));
   function sendResult(request: RunRequest, status: RunResult['status'], diagnostics: readonly string[],
-    reason?: RunResult['reason'], cases = unrun()) {
+    reason?: RunResult['reason'], cases = unrun(), consoleOutput?: ConsoleTranscript) {
     const result: RunResult = { contractVersion: CONTRACT_VERSION, runId: request.runId,
       challengeId: request.challengeId, challengeVersion: request.challengeVersion,
       sourceRevision: request.sourceRevision, status, cases, diagnostics, ...(reason ? { reason } : {}) };
-    const message = { protocol: 1, kind: 'run-result', nonce, result };
+    const message = { protocol: 1, kind: 'run-result', nonce, result, ...(consoleOutput ? { consoleOutput } : {}) };
     if (bytes(JSON.stringify(message)) > LIMITS.output) {
-      options.send({ ...message, result: { ...result, status: 'execution-error', reason: 'policy-rejected',
+      options.send({ protocol: 1, kind: 'run-result', nonce, result: { ...result, status: 'execution-error', reason: 'policy-rejected',
         cases: unrun(), diagnostics: ['Result exceeds the output budget.'] } });
     } else options.send(message);
   }
   function finish(state: Active, status: RunResult['status'], diagnostics: readonly string[],
-    reason?: RunResult['reason'], cases?: CaseResult[]) {
+    reason?: RunResult['reason'], cases?: CaseResult[], consoleOutput?: ConsoleTranscript) {
     if (state.finished) return;
     state.finished = true;
     clearTimeout(state.timer);
@@ -59,7 +62,7 @@ export function createSupervisor(options: Options) {
       state.worker.terminate(); state.worker = null;
     }
     if (active === state) active = null;
-    sendResult(state.request, status, diagnostics, reason, cases);
+    sendResult(state.request, status, diagnostics, reason, cases, consoleOutput);
   }
   return {
     receive(event: { origin: string; source: unknown; data: unknown }) {
@@ -96,11 +99,11 @@ export function createSupervisor(options: Options) {
             const cases: CaseResult[] = longestWindowCases.map((c, i) => ({ caseId: c.id,
               expected: c.expected, actual: data.cases[i]!.actual,
               status: equalJson(c.expected, data.cases[i]!.actual) ? 'passed' : 'failed' }));
-            finish(state, cases.every(c => c.status === 'passed') ? 'passed' : 'failed', [], undefined, cases);
+            finish(state, cases.every(c => c.status === 'passed') ? 'passed' : 'failed', [], undefined, cases, data.consoleOutput);
           } else {
             const status = data.status === 'policy-rejected' ? 'execution-error' : data.status;
             finish(state, status, data.diagnostics, data.status === 'policy-rejected' ? 'policy-rejected'
-              : data.status === 'execution-error' ? 'runtime-error' : undefined);
+              : data.status === 'execution-error' ? 'runtime-error' : undefined, undefined, data.consoleOutput);
           }
         };
         worker.postMessage({ runId: request.runId, sourceRevision: request.sourceRevision, source: request.source,

@@ -16,14 +16,54 @@ function fixture() {
   });
   const wrapper = mount(RunnerControls, { attachTo: document.body, props: { source: 'exact unsaved source\n', challengeId: 'longest-window', challengeVersion: '1.0.0', resetKey: 0 },
     global: { provide: { [runChallengeKey as symbol]: run } } });
-  const reply = (status: RunResult['status'], reason?: RunResult['reason']) => finish({ contractVersion: '1.0.0',
+  const reply = (status: RunResult['status'], reason?: RunResult['reason'], consoleOutput?: unknown) => finish({ contractVersion: '1.0.0',
     ...active, challengeId: 'longest-window', status, diagnostics: ['Readable diagnostic <script>'], ...(reason ? { reason } : {}),
+    ...(consoleOutput ? { consoleOutput } : {}),
     cases: longestWindowCases.map(c => ({ caseId: c.id, status: status === 'passed' ? 'passed' : status === 'failed' ? 'failed' : 'not-run',
       ...(status === 'passed' || status === 'failed' ? { expected: c.expected, actual: status === 'passed' ? c.expected : null } : {}) })) });
   return { wrapper, run, reply };
 }
 
 describe('editor and accessible results', () => {
+  const logs = { truncated: true, entries: [{ sequence: 0, caseId: longestWindowCases[0]!.id, level: 'warn', text: '<img src=x onerror=alert(1)> 😀' }] };
+  it('labels a separate plain-text Console with current run identity and truncation', async () => {
+    const f = fixture();
+    expect(f.wrapper.get('section[aria-label="Console output"]').text()).toContain('Run tests to capture');
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    expect(f.wrapper.get('section[aria-label="Console output"]').text()).toContain('available when this run finishes');
+    f.reply('execution-error', 'runtime-error', logs); await flushPromises();
+    const panel = f.wrapper.get('section[aria-label="Console output"]');
+    expect(panel.text()).toContain('warn'); expect(panel.text()).toContain(logs.entries[0]!.text);
+    expect(panel.find('img').exists()).toBe(false);
+    expect(panel.text()).toContain(f.run.mock.calls[0]![2].runId);
+    expect(panel.text()).toContain('Revision 0'); expect(panel.text()).toContain('execution-error');
+    expect(panel.text()).toContain('truncated'); expect(panel.text()).not.toContain('Readable diagnostic');
+    expect(panel.get('[tabindex="0"]').attributes('aria-label')).toBe('Console messages');
+    expect(panel.get('[aria-live="polite"]').text()).toContain('1 console message');
+    f.wrapper.unmount();
+  });
+  it('clears console on edits, account reset and next run, and distinguishes absent/empty capture', async () => {
+    const f = fixture(); await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    f.reply('passed', undefined, logs); await flushPromises();
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    expect(f.wrapper.text()).not.toContain(logs.entries[0]!.text);
+    f.reply('passed', undefined, { entries: [], truncated: false }); await flushPromises();
+    expect(f.wrapper.text()).toContain('No console messages');
+    await f.wrapper.setProps({ source: 'new revision' });
+    expect(f.wrapper.get('section[aria-label="Console output"]').text()).toContain('cleared');
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click'); f.reply('passed', undefined, logs); await flushPromises();
+    await f.wrapper.setProps({ resetKey: 1 }); expect(f.wrapper.text()).not.toContain(logs.entries[0]!.text);
+    await f.wrapper.get('button[aria-label="Run tests"]').trigger('click'); f.reply('infrastructure-error'); await flushPromises();
+    expect(f.wrapper.text()).toContain('Console output is unavailable'); f.wrapper.unmount();
+  });
+  it('immediately cancels and cannot restore logs or a pass from a delayed runner', async () => {
+    const f = fixture(); await f.wrapper.get('button[aria-label="Run tests"]').trigger('click');
+    await f.wrapper.get('button[aria-label="Cancel test run"]').trigger('click');
+    expect(f.wrapper.text()).toContain('Run cancelled');
+    f.reply('passed', undefined, logs); await flushPromises();
+    expect(f.wrapper.text()).not.toContain('All 14 tests passed'); expect(f.wrapper.text()).not.toContain(logs.entries[0]!.text);
+    expect(f.wrapper.get('section[aria-label="Console output"]').text()).toContain('cleared'); f.wrapper.unmount();
+  });
   afterEach(() => vi.unstubAllGlobals());
   it('can allocate a run on the local HTTP test sites without randomUUID', async () => {
     vi.stubGlobal('crypto', { getRandomValues: crypto.getRandomValues.bind(crypto) });
