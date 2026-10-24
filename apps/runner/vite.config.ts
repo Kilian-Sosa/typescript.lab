@@ -2,18 +2,28 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import { deploymentPolicy } from './deployment.ts';
+import { dirname, resolve } from 'node:path';
+import { validateProductionEnvironment } from '../../shared/deployment/production.ts';
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const root = fileURLToPath(new URL('.', import.meta.url));
-  const env = { ...loadEnv(mode, root, ''), ...process.env };
+  const production = mode === 'mvp-production';
+  if (!production && (process.env.VERCEL_ENV === 'production' || process.env.VERCEL_TARGET_ENV === 'production')) {
+    throw new Error('Production runner builds require the dedicated mvp-production mode.');
+  }
+  if (production && command !== 'build') throw new Error('MVP Production runner is a build-only mode.');
+  const productionPolicy = production ? validateProductionEnvironment(process.env, false) : null;
+  // Never call loadEnv in Production: envDir alone cannot disable this explicit read.
+  const env: Record<string, string | undefined> = production ? {} : { ...loadEnv(mode, root, ''), ...process.env };
   const policy = deploymentPolicy(
-    env.VITE_RUNNER_PARENT_ORIGIN,
-    env.VITE_RUNNER_ORIGIN,
+    productionPolicy?.app ?? env.VITE_RUNNER_PARENT_ORIGIN,
+    productionPolicy?.runner ?? env.VITE_RUNNER_ORIGIN,
     env.LAB_RUNNER_LOCAL_TEST === '1',
   );
-  const output = fileURLToPath(new URL('.vercel/output/', import.meta.url));
+  let output = fileURLToPath(new URL('.vercel/output/', import.meta.url));
   return {
     root,
+    ...(production ? { envDir: false, envPrefix: [] } : {}),
     base: '/',
     define: {
       'import.meta.env.VITE_RUNNER_PARENT_ORIGIN': JSON.stringify(policy.parent),
@@ -24,6 +34,9 @@ export default defineConfig(({ mode }) => {
     plugins: [
       {
         name: 'runner-response-headers',
+        configResolved(config) {
+          output = dirname(resolve(config.root, config.build.outDir));
+        },
         closeBundle() {
           const headers = (csp: string) => ({
             'Content-Security-Policy': csp,
@@ -31,6 +44,7 @@ export default defineConfig(({ mode }) => {
             'X-Content-Type-Options': 'nosniff',
             'Cache-Control': 'no-store',
             'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+            ...(production ? { 'X-Robots-Tag': 'noindex, nofollow' } : {}),
           });
           mkdirSync(output, { recursive: true });
           writeFileSync(

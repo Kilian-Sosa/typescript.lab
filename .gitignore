@@ -3,6 +3,9 @@ node_modules/
 test-results/
 playwright-report/
 output/playwright/
+output/mvp-production/
+output/.mvp-production-*/
+output/lab-production-config-*/
 .nuxt/
 .output/
 .vercel/
